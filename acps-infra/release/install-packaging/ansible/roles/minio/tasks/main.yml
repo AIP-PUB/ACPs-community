@@ -1,0 +1,67 @@
+---
+- name: AMP 与 monitor 均禁用时结束（S12 里程碑可仅开 AMP）
+  when: not ((amp_host_milestone | default(false) | bool) or (monitor_server_enabled | bool))
+  ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 MinIO（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: stage minio image
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: minio
+        acps_artifact_kind: vendor_bundle
+
+    - name: 解析 minio image user for data dir
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: resolve_cert_owner.yml
+      vars:
+        acps_cert_owner_user: ""
+
+    - name: 规范化 minio data dir ownership
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: normalize_data_dir.yml
+      vars:
+        acps_data_dir: "{{ acps_data_root }}/minio"
+
+    - name: 渲染 compose
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/minio.yml"
+        mode: "0644"
+
+    - name: 部署 minio
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: minio
+        acps_compose_force_recreate: false
+
+    - name: 等待端口
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ minio_api_port }}"
+        timeout: 120
+
+    - name: 开放 minio 广告端口（firewalld/ufw；与 host 同构）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: open_advertise_ports.yml
+      vars:
+        acps_open_ports:
+          - "{{ minio_api_port }}"
+          - "{{ minio_console_port }}"
+
+- name: host 分支：官方静态二进制 vendor_bundle + systemd（本设计 §5.5 / §8.2.1）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

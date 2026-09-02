@@ -274,11 +274,12 @@ class RegistryClient:
                 logger.warning("Agent 处于非激活状态", aic=aic, active=agent_info.active)
                 return None
 
-            # 3. 组织信息验证 - 提取 provider 信息用于构造证书 Subject DN
-            #    至少需要 organization 字段
+            # provider.organization 用于证书 Subject DN 的 O 字段，但是可选：
+            # 仅完成个人身份认证的 Agent 可能没有 organization（registry verified
+            # provider snapshot 亦如此）。缺省时 DN 构造会省略 O，见
+            # AgentInfo.get_certificate_subject_components。
             if not agent_info.organization:
-                logger.warning("Agent 数据缺少 provider.organization 字段", aic=aic)
-                return None
+                logger.info("Agent ACS 未提供 provider.organization，证书 DN 将省略 O", aic=aic)
 
             return agent_info
 

@@ -1,0 +1,68 @@
+# Ensure audit_records monthly partitions cover "now" + N months.
+# Alembic only seeds 2026-06/07; without forward partitions AuditWriter
+# consumes Kafka but inserts fail (no partition for event_time) → empty Query API.
+---
+- name: 解析 audit 分区覆盖窗口（当月起 N 个月）
+  ansible.builtin.set_fact:
+    _mon_audit_partition_months: "{{ acps_monitor_audit_partition_months | default(4) | int }}"
+
+- name: 将 acps_psql.sh stage 到 monitor 主机（跨机 PG 用 host 模式）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_acps_psql.yml
+
+- name: 派生 PG 连接参数（同机 image → container；否则 host/--host）
+  ansible.builtin.set_fact:
+    _mon_pg_psql_mode_args: >-
+      {{
+        ('--mode image --container ' ~ acps_compose_project_prefix ~ '-postgresql-1')
+        if (
+          acps_deploy_mode == 'image'
+          and inventory_hostname in (groups['postgresql'] | default([]))
+        )
+        else ('--mode host --host ' ~ (hostvars | acps_group_addr(groups, 'postgresql'))
+              ~ ' --port ' ~ (postgresql_port | default(5432) | string))
+      }}
+
+- name: 确保 audit_records 月分区覆盖当前窗口
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PSQL="{{ acps_runtime_root }}/staging/acps_psql.sh"
+    months="{{ _mon_audit_partition_months }}"
+    sql=$(MONTHS="$months" python3 - <<'PY'
+    from datetime import date
+    import os
+
+    months = int(os.environ["MONTHS"])
+    start = date.today().replace(day=1)
+
+    def add_months(d: date, n: int) -> date:
+        y = d.year + (d.month - 1 + n) // 12
+        m = (d.month - 1 + n) % 12 + 1
+        return date(y, m, 1)
+
+    stmts = []
+    for i in range(months):
+        a = add_months(start, i)
+        b = add_months(start, i + 1)
+        name = f"audit_records_{a.year:04d}_{a.month:02d}"
+        stmts.append(
+            f"CREATE TABLE IF NOT EXISTS {name} "
+            f"PARTITION OF audit_records "
+            f"FOR VALUES FROM ('{a.isoformat()}') TO ('{b.isoformat()}');"
+        )
+    print("\n".join(stmts))
+    PY
+    )
+    # shellcheck disable=SC2086
+    "$PSQL" {{ _mon_pg_psql_mode_args }} \
+      --db "{{ monitor_db_name | default('agent_monitor') }}" \
+      --user "{{ monitor_db_user | default('monitor') }}" \
+      --sql "$sql"
+  args:
+    executable: /bin/bash
+  environment:
+    PGPASSWORD: "{{ monitor_db_password }}"
+  register: _mon_audit_partitions
+  changed_when: >-
+    'CREATE TABLE' in (_mon_audit_partitions.stdout | default(''))

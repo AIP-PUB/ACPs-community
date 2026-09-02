@@ -1,13 +1,15 @@
 import asyncio
+import contextlib
 import json
 import os
 import re
+import time as _time
 import tomllib
 from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import structlog
 from acps_sdk.aip.aip_base_model import (
@@ -22,11 +24,35 @@ from acps_sdk.aip.aip_base_model import (
 )
 from acps_sdk.aip.aip_rpc_model import JSONRPCError, RpcRequest, RpcResponse
 from acps_sdk.aip.aip_rpc_server import CommandHandlers, DefaultHandlers
+from acps_sdk.amp import (
+    AccessEmitter,
+    AuditAction,
+    AuditActor,
+    AuditBody,
+    AuditEmitter,
+    AuditResult,
+    AuditTarget,
+    HeartbeatEmitter,
+    MessageEmitter,
+    MetricsEmitter,
+    SystemEmitter,
+)
+from acps_sdk.amp.metrics_demo import DemoMetricsSampler
+from acps_sdk.amp.signer import AuditSigner, CertificateAuditSigner, load_signer_from_keys_json
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 
 # --- Logging Setup ---
 BEIJING_TZ = timezone(timedelta(hours=8))
+
+# --- Audit: 终止状态集合与 resultStatus 映射 ---
+_TERMINAL_STATES = {TaskState.Completed, TaskState.Rejected, TaskState.Failed, TaskState.Canceled}
+_STATUS_MAP: dict[TaskState, Literal["success", "failure", "unknown"]] = {
+    TaskState.Completed: "success",
+    TaskState.Rejected: "failure",
+    TaskState.Failed: "failure",
+    TaskState.Canceled: "failure",
+}
 LLM_STAGE_TEMPERATURES = {
     "decision": 0.2,
     "analysis": 0.2,
@@ -37,6 +63,19 @@ LLM_REQUIRED_FIELDS = ("api_key", "base_url", "model")
 SKILLS_CONFIG_META_KEYS = {"slot_labels"}
 CHINA_TRANSPORT_INTERCITY_SKILL = "china_transport.intercity-transportation-planning"
 CHINA_TRANSPORT_ROUTE_SKILL = "china_transport.route-optimization"
+
+
+def resolve_amp_log_dir() -> Path:
+    """解析 AMP jsonl 日志目录。
+
+    image-mode 由部署显式设置 AMP_LOG_DIR（如 /opt/acps/app/logs）；
+    未设置时回退到仓库根目录下的 logs/（本地开发）。
+    """
+    amp_log_dir = os.environ.get("AMP_LOG_DIR")
+    if amp_log_dir:
+        return Path(amp_log_dir)
+
+    return Path(__file__).parent.parent / "logs"
 
 
 def truncate_text(text: str, max_len: int = 300) -> str:
@@ -148,8 +187,12 @@ class GenericRunner:
 
         self._load_project_env()
 
-        # 状态变化回调（用于 group mode 广播）
+        # 状态变化回调（旧 API，向后兼容；内部由 _state_change_listeners 统一管理）
         self._on_state_change_callback: Callable[[TaskResult], Coroutine[Any, Any, None]] | None = None
+        # 多监听者列表（stream / notification / group 可各自注册）
+        self._state_change_listeners: list[Callable[[TaskResult], Coroutine[Any, Any, None]]] = []
+        # 异步监听者任务集合（防止 GC 回收 fire-and-forget 任务）
+        self._bg_listener_tasks: set[asyncio.Task[None]] = set()
 
         # Load configurations
         self.acs = self._load_acs()
@@ -159,6 +202,84 @@ class GenericRunner:
 
         # Setup Logger
         self.logger = structlog.get_logger(agent_name)
+
+        # Setup Audit Emitter（从 acs.json 读取 AIC，日志写入 logs/ 目录）
+        self._aic: str = self.acs.get("aic", "")
+        _amp_log_dir = resolve_amp_log_dir()
+        _audit_log_file = _amp_log_dir / f"amp_audit_{agent_name}.jsonl"
+
+        # 签名器初始化：优先使用 CA 证书（{base_dir}/client.pem + client.key），
+        # 回退到共享 audit_keys.json（开发 mock 模式）。
+        # 可通过环境变量 AMP_AUDIT_CERT_FILE / AMP_AUDIT_KEY_FILE 覆盖证书路径。
+        _cert_file = Path(os.environ.get("AMP_AUDIT_CERT_FILE", str(Path(self.base_dir) / "client.pem")))
+        _key_file = Path(os.environ.get("AMP_AUDIT_KEY_FILE", str(Path(self.base_dir) / "client.key")))
+        _signer: AuditSigner | None = None
+        if _cert_file.exists() and _key_file.exists():
+            try:
+                _signer = CertificateAuditSigner(
+                    private_key_pem=_key_file.read_text(encoding="utf-8"),
+                    cert_pem=_cert_file.read_text(encoding="utf-8"),
+                )
+                self.logger.info(
+                    "AMP 审计签名器：CA 证书模式",
+                    kid=_signer.kid,
+                    alg=_signer.alg,
+                )
+            except Exception as exc:
+                self.logger.warning("CA 证书签名器初始化失败，回退到 audit_keys.json 模式", error=str(exc))
+                _signer = None
+        if _signer is None:
+            _audit_keys_file = Path(
+                os.environ.get(
+                    "AMP_AUDIT_KEYS_FILE",
+                    str(Path(__file__).parent.parent.parent / "monitor-server" / "config" / "audit_keys.json"),
+                )
+            )
+            _signer = load_signer_from_keys_json(_audit_keys_file, self._aic)
+        self._audit_emitter = AuditEmitter(_audit_log_file, aic=self._aic, signer=_signer)
+
+        # Setup Heartbeat Emitter（每 Agent 独立文件，避免并发写交错）
+        _hb_file = _amp_log_dir / f"amp_heartbeat_{agent_name}.jsonl"
+        self._heartbeat_emitter = HeartbeatEmitter(_hb_file, aic=self._aic)
+        self._heartbeat_task: asyncio.Task[None] | None = None
+
+        # Setup Metrics Emitter（每 Agent 独立文件，per-agent 路径互不冲突）
+        _metrics_file = _amp_log_dir / f"amp_metrics_{agent_name}.jsonl"
+        _metrics_resource = {
+            "service.name": f"demo-partner-{agent_name}",
+            "service.namespace": "acps-demo",
+            "deployment.environment.name": "dev",
+        }
+        self._metrics_sampler = DemoMetricsSampler(aic=self._aic)
+        self._metrics_emitter = MetricsEmitter(
+            _metrics_file,
+            aic=self._aic,
+            sampler=self._metrics_sampler,
+            resource=_metrics_resource,
+        )
+        self._metrics_task: asyncio.Task[None] | None = None
+
+        # Setup Access Emitter（每 Agent 独立文件，事件驱动无周期任务）
+        _access_file = _amp_log_dir / f"amp_access_{agent_name}.jsonl"
+        self._access_emitter = AccessEmitter(_access_file, aic=self._aic)
+        self._service_name = f"demo-partner-{agent_name}"
+
+        # Setup Message Emitter（每 Agent 独立文件，事件驱动无周期任务）
+        _message_file = _amp_log_dir / f"amp_message_{agent_name}.jsonl"
+        self._message_emitter = MessageEmitter(_message_file, aic=self._aic)
+
+        # Setup System Emitter（每 Agent 独立文件，事件驱动无周期任务）
+        _system_file = _amp_log_dir / f"amp_system_{agent_name}.jsonl"
+        _system_resource = {
+            "service.name": f"demo-partner-{agent_name}",
+            "service.namespace": "acps-demo",
+            "deployment.environment.name": "dev",
+        }
+        self._system_emitter = SystemEmitter(
+            _system_file,
+            aic=self._aic,
+            resource=_system_resource,
+        )
 
         # Setup LLM Clients
         self.llm_clients: dict[str, AsyncOpenAI] = {}
@@ -258,6 +379,7 @@ class GenericRunner:
             self.llm_clients[profile_name] = AsyncOpenAI(
                 api_key=profile_data.get("api_key"),
                 base_url=profile_data.get("base_url"),
+                timeout=120.0,
             )
 
     def _get_llm_client(self, profile_name: str) -> AsyncOpenAI:
@@ -401,13 +523,119 @@ class GenericRunner:
         )
         return normalized_requirements
 
+    def add_state_change_listener(self, listener: Callable[[TaskResult], Coroutine[Any, Any, None]]) -> None:
+        """注册状态变更监听者（去重；同一 listener 只会注册一次）。"""
+        if listener not in self._state_change_listeners:
+            self._state_change_listeners.append(listener)
+
+    def remove_state_change_listener(self, listener: Callable[[TaskResult], Coroutine[Any, Any, None]]) -> None:
+        """取消注册状态变更监听者（不存在时静默忽略）。"""
+        with contextlib.suppress(ValueError):
+            self._state_change_listeners.remove(listener)
+
     def set_state_change_callback(self, callback: Callable[[TaskResult], Coroutine[Any, Any, None]]) -> None:
         """
-        设置状态变化回调函数
+        设置状态变化回调函数（向后兼容 API）。
+
+        等价于 add_state_change_listener；旧代码可直接调用，
+        不会覆盖已经通过 add_state_change_listener 注册的其他监听者。
 
         回调函数签名: async def callback(task_result: TaskResult) -> None
         """
         self._on_state_change_callback = callback
+        self.add_state_change_listener(callback)
+
+    def start_heartbeat(self) -> None:
+        """在已运行的事件循环中启动周期心跳任务（幂等）。"""
+        interval = float(os.environ.get("AMP_HEARTBEAT_INTERVAL_SECONDS", "15"))
+        if self._heartbeat_task is None or self._heartbeat_task.done():
+            self._heartbeat_task = asyncio.create_task(
+                self._heartbeat_emitter.run_periodic(interval),
+                name=f"amp-heartbeat-{self._aic}",
+            )
+            self.logger.info("AMP heartbeat started", aic=self._aic, interval=interval)
+
+    async def stop_heartbeat(self) -> None:
+        """取消周期心跳任务。"""
+        if self._heartbeat_task is not None:
+            self._heartbeat_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._heartbeat_task
+            self._heartbeat_task = None
+
+    def start_metrics(self) -> None:
+        """在已运行的事件循环中启动周期指标发射任务（幂等）。"""
+        interval = float(os.environ.get("AMP_METRICS_INTERVAL_SECONDS", "30"))
+        if self._metrics_task is None or self._metrics_task.done():
+            self._metrics_task = asyncio.create_task(
+                self._metrics_emitter.run_periodic(interval),
+                name=f"amp-metrics-{self._aic}",
+            )
+            self.logger.info("AMP metrics started", aic=self._aic, interval=interval)
+
+    async def stop_metrics(self) -> None:
+        """取消周期指标发射任务。"""
+        if self._metrics_task is not None:
+            self._metrics_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._metrics_task
+            self._metrics_task = None
+
+    async def close_llm_clients(self) -> None:
+        """关闭 AsyncOpenAI 客户端，避免测试与进程退出时遗留连接。"""
+        for client in self.llm_clients.values():
+            close = getattr(client, "close", None)
+            if close is None:
+                continue
+            try:
+                await close()
+            except Exception:
+                self.logger.warning("LLM client close failed", exc_info=True)
+
+    async def shutdown(self) -> None:
+        """清理后台任务与网络客户端，供应用关闭与测试 teardown 复用。"""
+        await self.stop_heartbeat()
+        await self.stop_metrics()
+
+        running_futures = [
+            ctx.running_future
+            for ctx in self.tasks.values()
+            if ctx.running_future is not None and not ctx.running_future.done()
+        ]
+        for future in running_futures:
+            future.cancel()
+        for future in running_futures:
+            with contextlib.suppress(asyncio.CancelledError):
+                await future
+        for ctx in self.tasks.values():
+            if ctx.running_future is not None and ctx.running_future.done():
+                ctx.running_future = None
+
+        listener_tasks = list(self._bg_listener_tasks)
+        for task in listener_tasks:
+            task.cancel()
+        for task in listener_tasks:
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+        self._bg_listener_tasks.clear()
+
+        self._state_change_listeners.clear()
+        self._on_state_change_callback = None
+        await self.close_llm_clients()
+
+    def _sample_metrics(self) -> dict[str, int]:
+        """从 self.tasks 统计真实 active / queued 任务计数。
+
+        Returns:
+            {"active_tasks": int, "queued_tasks": int}
+        """
+        active = sum(1 for ctx in self.tasks.values() if ctx.task.status.state == TaskState.Working)
+        queued = sum(
+            1
+            for ctx in self.tasks.values()
+            if ctx.task.status.state in (TaskState.Accepted, TaskState.AwaitingCompletion)
+        )
+        return {"active_tasks": active, "queued_tasks": queued}
 
     def _update_task_status(
         self, task_id: str, new_state: TaskState, data_items: list[Any] | None = None
@@ -429,18 +657,56 @@ class GenericRunner:
 
         ctx.last_updated_at = datetime.now(BEIJING_TZ)
 
-        # 触发状态变化回调（用于 group mode 广播）
-        if self._on_state_change_callback:
+        # B2: 审计——任务进入终止状态（同步方法，使用 emit_sync）
+        if new_state in _TERMINAL_STATES:
+            _reason_text: str | None = None
+            for _item in data_items or []:
+                _text = getattr(_item, "text", None)
+                if _text:
+                    _reason_text = _text
+                    break
             try:
-                # 在事件循环中调度回调
+                self._audit_emitter.emit_sync(
+                    AuditBody(
+                        actor=AuditActor(id=self._aic or "system", type="agent"),
+                        action=AuditAction(name="task_state_transition", type="aip_protocol"),
+                        target=AuditTarget(type="task", id=task_id),
+                        result=AuditResult(
+                            status=_STATUS_MAP[new_state],
+                            reason=_reason_text,
+                        ),
+                    ),
+                    trace_id=ctx.task.sessionId,
+                    correlation_id=task_id,
+                )
+            except Exception:
+                self.logger.warning("Audit emit B2 failed", exc_info=True)
+
+        # 触发所有已注册的状态变更监听者（fire-and-forget，异常互相隔离）
+        # _on_state_change_callback 已经通过 set_state_change_callback → add_state_change_listener
+        # 加入 _state_change_listeners，所以只需遍历 _state_change_listeners 即可。
+        listeners = list(self._state_change_listeners)
+        if listeners:
+            try:
                 loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    _task = asyncio.create_task(self._on_state_change_callback(ctx.task))
-                    del _task  # fire-and-forget
-                else:
-                    loop.run_until_complete(self._on_state_change_callback(ctx.task))
-            except Exception as e:
-                self.logger.warning("State change callback failed", task_id=task_id, error=str(e))
+            except RuntimeError:
+                loop = None
+
+            for listener in listeners:
+                try:
+                    if loop is not None and loop.is_running():
+                        _t = asyncio.create_task(listener(ctx.task))
+                        self._bg_listener_tasks.add(_t)
+                        _t.add_done_callback(self._bg_listener_tasks.discard)
+                    elif loop is not None:
+                        loop.run_until_complete(listener(ctx.task))
+                except Exception as e:
+                    self.logger.warning(
+                        "State change listener failed",
+                        task_id=task_id,
+                        listener=repr(listener),
+                        error=str(e),
+                    )
 
         return ctx.task
 
@@ -459,6 +725,8 @@ class GenericRunner:
         profile_name: str,
         system_prompt: str,
         user_content: str | list[dict[str, Any]],
+        *,
+        task_id: str | None = None,
     ) -> str:
         client = self._get_llm_client(profile_name)
         model = self._get_model_name(profile_name)
@@ -469,14 +737,70 @@ class GenericRunner:
         else:
             messages.append({"role": "user", "content": user_content})
 
+        _t0 = _time.monotonic()
         try:
             response = await client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=self._get_llm_temperature(stage),
+                # Doubao/seed models default to long thinking; disable for Partner stages.
+                extra_body={"thinking": {"type": "disabled"}},
             )
-            return response.choices[0].message.content or ""
-        except Exception:
+            content = response.choices[0].message.content or ""
+            _elapsed = int((_time.monotonic() - _t0) * 1000)
+            _token_total = getattr(getattr(response, "usage", None), "total_tokens", None)
+            _body: dict[str, Any] = {
+                "message": f"LLM call completed: stage={stage}, model={model}, elapsed={_elapsed}ms",
+                "category": "llm",
+                "component": "llm_client",
+                "module": stage,
+                "model": model,
+                "tags": {"model": model, "stage": stage},
+                "elapsed_ms": _elapsed,
+            }
+            if task_id:
+                _body["tags"]["task_id"] = task_id
+                _body["task_id"] = task_id
+            if _token_total is not None:
+                _body["token_total"] = _token_total
+                _body["tags"]["token_total"] = str(_token_total)
+            try:
+                self._system_emitter.emit_sync(
+                    _body,
+                    severity_number=9,
+                    severity_text="INFO",
+                    correlation_id=task_id,
+                )
+            except Exception:
+                self.logger.warning("System emit S-P1 failed", exc_info=True)
+            return content
+        except Exception as e:
+            _elapsed = int((_time.monotonic() - _t0) * 1000)
+            _error_type = type(e).__name__
+            _error_msg = str(e)[:500]
+            _err_body: dict[str, Any] = {
+                "message": f"LLM call failed: stage={stage}, model={model}, error={_error_type}",
+                "category": "llm",
+                "component": "llm_client",
+                "module": stage,
+                "model": model,
+                "tags": {"model": model, "stage": stage, "error_type": _error_type},
+                "elapsed_ms": _elapsed,
+                "error_type": _error_type,
+                "error_message": _error_msg,
+            }
+            if task_id:
+                _err_body["tags"]["task_id"] = task_id
+                _err_body["task_id"] = task_id
+            try:
+                self._system_emitter.emit_sync(
+                    _err_body,
+                    severity_number=17,
+                    severity_text="ERROR",
+                    correlation_id=task_id,
+                )
+            except Exception:
+                self.logger.warning("System emit S-P2 failed", exc_info=True)
             self.logger.exception("LLM call failed")
             raise
 
@@ -552,11 +876,29 @@ class GenericRunner:
                 active_tasks=active_tasks,
                 max=max_concurrent,
             )
+            try:
+                self._system_emitter.emit_sync(
+                    {
+                        "message": (f"Task rejected: system busy, active_tasks={active_tasks}, max={max_concurrent}"),
+                        "category": "capacity",
+                        "component": "runner",
+                        "module": "start",
+                        "tags": {"task_id": task_id},
+                        "active_tasks": active_tasks,
+                        "max_concurrent": max_concurrent,
+                        "task_id": task_id,
+                    },
+                    severity_number=13,
+                    severity_text="WARN",
+                    correlation_id=task_id,
+                )
+            except Exception:
+                self.logger.warning("System emit S-P5 failed", exc_info=True)
             new_task = TaskResult(
                 id=f"result-{task_id}",
                 sentAt=datetime.now(BEIJING_TZ).isoformat(),
                 senderRole="partner",
-                senderId=self.agent_name,
+                senderId=self._aic,
                 taskId=task_id,
                 sessionId=command.sessionId,
                 status=TaskStatus(
@@ -575,7 +917,7 @@ class GenericRunner:
             id=f"result-{task_id}",
             sentAt=datetime.now(BEIJING_TZ).isoformat(),
             senderRole="partner",
-            senderId=self.agent_name,
+            senderId=self._aic,
             taskId=task_id,
             sessionId=command.sessionId,
             status=TaskStatus(
@@ -704,6 +1046,7 @@ class GenericRunner:
                 decision_config.get("llm_profile", "default"),
                 system_prompt,
                 user_content,
+                task_id=task_id,
             )
 
             # 调试日志：记录 LLM 原始响应
@@ -719,6 +1062,22 @@ class GenericRunner:
             decision = result.get("decision")
             reason = result.get("reason", "")
 
+            # Acceptance / flaky-LLM knob: force accept when Partner decision rejects
+            # in-scope travel tasks (set PARTNER_FORCE_ACCEPT_DECISION=1 in env).
+            if decision == "reject" and (os.environ.get("PARTNER_FORCE_ACCEPT_DECISION") or "").strip() in {
+                "1",
+                "true",
+                "TRUE",
+                "yes",
+            }:
+                self.logger.warning(
+                    "PARTNER_FORCE_ACCEPT_DECISION: overriding reject → accept",
+                    task_id=task_id,
+                    original_reason=reason,
+                )
+                decision = "accept"
+                reason = reason or "forced accept (PARTNER_FORCE_ACCEPT_DECISION)"
+
             # 调试日志：输出 decision 阶段的 LLM 决策
             self.logger.info(
                 "Decision stage result",
@@ -726,6 +1085,25 @@ class GenericRunner:
                 decision=decision,
                 reason=reason,
             )
+
+            # B1: 审计——收到 Start 命令，decision 完成
+            _accepted = decision != "reject"
+            try:
+                await self._audit_emitter.emit(
+                    AuditBody(
+                        actor=AuditActor(id=command.senderId or "unknown", type="agent"),
+                        action=AuditAction(name="receive_task_start", type="aip_protocol"),
+                        target=AuditTarget(type="task", id=task_id),
+                        result=AuditResult(
+                            status="success" if _accepted else "failure",
+                            reason=reason if not _accepted else None,
+                        ),
+                    ),
+                    trace_id=command.sessionId,
+                    correlation_id=task_id,
+                )
+            except Exception:
+                self.logger.warning("Audit emit B1 failed", exc_info=True)
 
             if decision == "reject":
                 # 请求不在服务范围内，进入 Rejected 终态
@@ -799,6 +1177,7 @@ class GenericRunner:
                 analysis_config.get("llm_profile", "default"),
                 system_prompt,
                 user_content,
+                task_id=task_id,
             )
 
             # 调试日志：记录 LLM 原始响应
@@ -815,6 +1194,22 @@ class GenericRunner:
             decision = result.get("decision")
             reason = result.get("reason", "")
             requirements = result.get("requirements", {})
+
+            # Same acceptance knob as decision stage: analysis reject can flake on
+            # round-trip / scope wording even when the task is in-scope.
+            if decision == "reject" and (os.environ.get("PARTNER_FORCE_ACCEPT_DECISION") or "").strip() in {
+                "1",
+                "true",
+                "TRUE",
+                "yes",
+            }:
+                self.logger.warning(
+                    "PARTNER_FORCE_ACCEPT_DECISION: overriding analysis reject → accept",
+                    task_id=task_id,
+                    original_reason=reason,
+                )
+                decision = "accept"
+                reason = reason or "forced accept (PARTNER_FORCE_ACCEPT_DECISION)"
 
             # 调试日志：记录解析结果
             self.logger.info(
@@ -944,7 +1339,13 @@ class GenericRunner:
         user_request: str,
         prod_config: dict[str, Any],
         global_slots: dict[str, Any],
+        *,
+        task_id: str | None = None,
     ) -> str:
+        skill_name = self.skills_config.get(skill_id, {}).get("name", skill_id)
+        _module = skill_id.rsplit(".", 1)[-1] if "." in skill_id else skill_id
+        _t0 = _time.monotonic()
+
         skills_prompts = self.prompts.get("skills", {})
         skill_prompt_tmpl = skills_prompts.get(skill_id, {}).get("system", "")
         if not skill_prompt_tmpl:
@@ -970,18 +1371,62 @@ class GenericRunner:
         )
 
         try:
-            # Call LLM for this skill
             skill_response = await self._call_llm(
                 "skill",
                 prod_config.get("llm_profile", "default"),
                 skill_system_prompt,
                 "Please execute the skill based on system instructions.",
+                task_id=task_id,
             )
-            skill_name = self.skills_config.get(skill_id, {}).get("name", skill_id)
+            _elapsed = int((_time.monotonic() - _t0) * 1000)
+            try:
+                _s3_body: dict[str, Any] = {
+                    "message": f"Skill executed: skill_id={skill_id}, elapsed={_elapsed}ms",
+                    "category": "skill",
+                    "component": "runner",
+                    "module": _module,
+                    "tags": {"skill_id": skill_id},
+                    "elapsed_ms": _elapsed,
+                    "skill_id": skill_id,
+                }
+                if task_id:
+                    _s3_body["task_id"] = task_id
+                    _s3_body["tags"]["task_id"] = task_id
+                self._system_emitter.emit_sync(
+                    _s3_body,
+                    severity_number=9,
+                    severity_text="INFO",
+                    correlation_id=task_id,
+                )
+            except Exception:
+                self.logger.warning("System emit S-P3 failed", exc_info=True)
             return f"【{skill_name}】\n{skill_response}"
         except Exception as e:
+            _elapsed = int((_time.monotonic() - _t0) * 1000)
+            try:
+                _s4_body: dict[str, Any] = {
+                    "message": f"Skill failed: skill_id={skill_id}, error={type(e).__name__}",
+                    "category": "skill",
+                    "component": "runner",
+                    "module": _module,
+                    "tags": {"skill_id": skill_id, "error_type": type(e).__name__},
+                    "elapsed_ms": _elapsed,
+                    "skill_id": skill_id,
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)[:500],
+                }
+                if task_id:
+                    _s4_body["task_id"] = task_id
+                    _s4_body["tags"]["task_id"] = task_id
+                self._system_emitter.emit_sync(
+                    _s4_body,
+                    severity_number=17,
+                    severity_text="ERROR",
+                    correlation_id=task_id,
+                )
+            except Exception:
+                self.logger.warning("System emit S-P4 failed", exc_info=True)
             self.logger.exception("Skill execution failed", skill_id=skill_id)
-            skill_name = self.skills_config.get(skill_id, {}).get("name", skill_id)
             return f"【{skill_name}】\n(Execution Failed: {e!s})"
 
     async def _run_production_stage(self, task_id: str) -> None:
@@ -1032,6 +1477,7 @@ class GenericRunner:
                             user_request,
                             prod_config,
                             global_slots,
+                            task_id=task_id,
                         )
                         if out:
                             skill_outputs.append(out)
@@ -1045,6 +1491,7 @@ class GenericRunner:
                             user_request,
                             prod_config,
                             global_slots,
+                            task_id=task_id,
                         )
                         for skill_id in selected_skills
                     ]
@@ -1093,6 +1540,7 @@ class GenericRunner:
                     prod_config.get("llm_profile", "default"),
                     system_prompt,
                     user_prompt,
+                    task_id=task_id,
                 )
 
             product = Product(

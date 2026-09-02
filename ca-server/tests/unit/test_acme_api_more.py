@@ -29,6 +29,7 @@ from app.acme.model import OrderStatus
 from app.acme.schema import JWSRequest
 
 _stub = cast("Any", SimpleNamespace)
+_rsa_jwk = {"kty": "RSA", "n": "AQAB", "e": "AQAB"}
 
 
 @pytest.fixture
@@ -442,7 +443,7 @@ async def test_create_account_only_return_existing(
     monkeypatch.setattr("app.acme.api.get_registry_client", lambda: _stub())
     monkeypatch.setattr(
         "app.acme.api.parse_jws_request",
-        AsyncMock(return_value=({"jwk": {"kty": "RSA"}}, {"onlyReturnExisting": True}, "s")),
+        AsyncMock(return_value=({"jwk": _rsa_jwk}, {"onlyReturnExisting": True}, "s")),
     )
     monkeypatch.setattr("app.acme.api.JWKService.compute_jwk_thumbprint", lambda _jwk: "thumb")
     monkeypatch.setattr("app.acme.api.verify_jws_signature", lambda *_args, **_kwargs: True)
@@ -470,7 +471,7 @@ async def test_create_account_new_account_path(
         "app.acme.api.parse_jws_request",
         AsyncMock(
             return_value=(
-                {"jwk": {"kty": "RSA"}, "url": "https://ca.example.com/acme/new-account"},
+                {"jwk": _rsa_jwk, "url": "https://ca.example.com/acme/new-account"},
                 {"externalAccountBinding": {"protected": "p", "payload": "q", "signature": "s"}},
                 "s",
             )
@@ -510,7 +511,7 @@ async def test_create_account_only_return_existing_not_found_raises(
     monkeypatch.setattr("app.acme.api.get_registry_client", lambda: _stub())
     monkeypatch.setattr(
         "app.acme.api.parse_jws_request",
-        AsyncMock(return_value=({"jwk": {"kty": "RSA"}}, {"onlyReturnExisting": True}, "s")),
+        AsyncMock(return_value=({"jwk": _rsa_jwk}, {"onlyReturnExisting": True}, "s")),
     )
     monkeypatch.setattr("app.acme.api.JWKService.compute_jwk_thumbprint", lambda _jwk: "thumb")
 

@@ -1,0 +1,10 @@
+---
+# Ubuntu 22.04 — 发行版仓库仅 Redis 6.x（不满足 monitor-server 依赖的 Redis
+# Functions），须改用 redis.io 官方 APT 源取得 ≥7（本设计 §5.2/§6.4，硬性）。
+redis_os_repo_setup: true
+redis_os_packages:
+  - redis
+redis_os_service_name: redis-server
+redis_os_config_path: /etc/redis/redis.conf
+redis_os_data_dir: /var/lib/redis
+redis_os_run_user: redis

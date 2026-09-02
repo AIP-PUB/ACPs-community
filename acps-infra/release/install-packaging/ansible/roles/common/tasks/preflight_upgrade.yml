@@ -1,0 +1,330 @@
+---
+# preflight_upgrade.yml — preflight_upgrade（mode 无关入口）
+#
+# 期望 extra-var acps_upgrade_components（CSV 字符串或列表）。必需（比
+# 自动检测变更组件更安全）。设置控制器 fact _acps_upgrade_components
+# （规范 key）。对所选组件可选依赖 TCP/HTTP 探测。
+#
+# 规范 key 与 register-state / manifest 对齐（discovery 使用
+# discovery_server_{{ variant }}）。别名：discovery_server → discovery_server_<variant>。
+#
+# host 分支（H4）：对所选 app_release 组件检查控制节点 artifacts/apps 制品存在。
+
+- name: 要求 acps_upgrade_components (explicit for safety)
+  ansible.builtin.assert:
+    that:
+      - acps_upgrade_components is defined
+      - (acps_upgrade_components | string | length) > 0
+        or (acps_upgrade_components is sequence and (acps_upgrade_components | length) > 0)
+    fail_msg: >-
+      acps_upgrade_components is required (comma-separated or list), e.g.
+      -e acps_upgrade_components=registry_server
+      or -e '{"acps_upgrade_components":["registry_server","ca_server"]}'
+
+- name: 规范化 requested upgrade keys
+  ansible.builtin.set_fact:
+    _acps_upgrade_raw: >-
+      {{
+        acps_upgrade_components
+        if (acps_upgrade_components is sequence and acps_upgrade_components is not string)
+        else ((acps_upgrade_components | string).split(','))
+      }}
+
+- name: Canonicalize upgrade keys (discovery alias)
+  ansible.builtin.set_fact:
+    _acps_upgrade_components: >-
+      {{
+        _acps_upgrade_raw
+        | map('trim')
+        | reject('equalto', '')
+        | map(
+            'regex_replace',
+            '^discovery_server$',
+            'discovery_server_' ~ (discovery_server_variant | default('cpu'))
+          )
+        | list
+        | unique
+      }}
+
+- name: 缺失时失败： upgrade list empty after normalize
+  ansible.builtin.assert:
+    that:
+      - (_acps_upgrade_components | length) > 0
+    fail_msg: "acps_upgrade_components normalized to empty list"
+
+- name: Known upgradeable component keys (C order catalog)
+  ansible.builtin.set_fact:
+    _acps_upgrade_known: >-
+      {{
+        [
+          'postgresql',
+          'keycloak',
+          'registry_server',
+          'ca_server',
+          'acps_cli',
+          'discovery_server_cpu',
+          'discovery_server_gpu',
+          'redis',
+          'rabbitmq',
+          'mq_auth_server',
+          'redpanda',
+          'victoria_metrics',
+          'clickhouse',
+          'minio',
+          'opensearch',
+          'monitor_server',
+          'demo_partner',
+          'demo_leader',
+          'amp_forwarder',
+        ]
+      }}
+
+- name: Reject unknown upgrade keys
+  ansible.builtin.assert:
+    that:
+      - item in _acps_upgrade_known
+    fail_msg: >-
+      Unknown upgrade component {{ item }}. Known: {{ _acps_upgrade_known | join(', ') }}
+  loop: "{{ _acps_upgrade_components }}"
+
+- name: Map key → enabled flag
+  ansible.builtin.set_fact:
+    _acps_upgrade_enabled_map: >-
+      {{
+        {
+          'postgresql': postgresql_enabled | bool,
+          'keycloak': keycloak_enabled | bool,
+          'registry_server': registry_server_enabled | bool,
+          'ca_server': ca_server_enabled | bool,
+          'acps_cli': true,
+          'discovery_server_cpu': discovery_server_enabled | bool,
+          'discovery_server_gpu': discovery_server_enabled | bool,
+          'redis': redis_enabled | bool,
+          'rabbitmq': rabbitmq_enabled | bool,
+          'mq_auth_server': mq_auth_server_enabled | bool,
+          'redpanda': monitor_server_enabled | bool,
+          'victoria_metrics': monitor_server_enabled | bool,
+          'clickhouse': monitor_server_enabled | bool,
+          'minio': monitor_server_enabled | bool,
+          'opensearch': monitor_server_enabled | bool,
+          'monitor_server': monitor_server_enabled | bool,
+          'demo_partner': demo_partner_enabled | bool,
+          'demo_leader': demo_leader_enabled | bool,
+          'amp_forwarder': (
+            (amp_forwarder_enabled | default(true) | bool)
+            and (
+              (demo_partner_enabled | default(false) | bool)
+              or (demo_leader_enabled | default(false) | bool)
+            )
+          ),
+        }
+      }}
+
+- name: Reject disabled components in upgrade list
+  ansible.builtin.assert:
+    that:
+      - _acps_upgrade_enabled_map[item] | bool
+    fail_msg: "Cannot upgrade {{ item }}: component disabled in inventory/group_vars"
+  loop: "{{ _acps_upgrade_components }}"
+
+- name: 解析 follow-refresh-trust（§9.5.9 / BP13；CSV 含 ca_server 默认 true）
+  ansible.builtin.set_fact:
+    _acps_upgrade_follow_refresh_trust: >-
+      {{
+        (acps_upgrade_follow_refresh_trust | bool)
+        if (acps_upgrade_follow_refresh_trust is defined)
+        else ('ca_server' in _acps_upgrade_components)
+      }}
+    _acps_upgrade_follow_refresh_opt_out: >-
+      {{
+        (acps_upgrade_follow_refresh_trust is defined)
+        and (not (acps_upgrade_follow_refresh_trust | bool))
+        and ('ca_server' in _acps_upgrade_components)
+      }}
+
+- name: 宣告 follow-refresh-trust 决议
+  ansible.builtin.debug:
+    msg: >-
+      follow_refresh_trust={{ _acps_upgrade_follow_refresh_trust }}
+      (ca_server_in_csv={{ 'ca_server' in _acps_upgrade_components }};
+      explicit={{ acps_upgrade_follow_refresh_trust is defined }};
+      opt_out={{ _acps_upgrade_follow_refresh_opt_out }})
+
+- name: 初始化 upgrade 摘要（§9.5.8 / BP12 committed vs requested）
+  ansible.builtin.copy:
+    dest: "{{ acps_control_root }}/work/.upgrade-run-summary.json"
+    mode: "0644"
+    content: |
+      {
+        "requested": {{ _acps_upgrade_components | to_json }},
+        "committed": [],
+        "failed_at": null,
+        "status": "running"
+      }
+  delegate_to: localhost
+  become: false
+
+- name: 解析 dependency probe targets for selected components
+  ansible.builtin.set_fact:
+    _acps_upgrade_dep_probes: >-
+      {{
+        (
+          [{'label': 'postgresql', 'host_group': 'postgresql', 'port': postgresql_port}]
+          if (
+            (
+              ['registry_server', 'ca_server', 'discovery_server_cpu', 'discovery_server_gpu', 'keycloak']
+              | intersect(_acps_upgrade_components)
+              | length
+            ) > 0
+            and (postgresql_enabled | bool)
+          )
+          else []
+        )
+        + (
+          [{
+            'label': 'registry_server',
+            'host_group': 'registry_server',
+            'url': 'http://' ~ (hostvars | acps_group_addr(groups, 'registry_server'))
+                   ~ ':' ~ registry_server_public_port ~ '/health',
+          }]
+          if (
+            (
+              ['ca_server', 'discovery_server_cpu', 'discovery_server_gpu', 'mq_auth_server']
+              | intersect(_acps_upgrade_components)
+              | length
+            ) > 0
+            and (registry_server_enabled | bool)
+            and ('registry_server' not in _acps_upgrade_components)
+          )
+          else []
+        )
+      }}
+
+- name: 等待 dependency TCP ports
+  when: item.port is defined
+  ansible.builtin.wait_for:
+    host: "{{ hostvars | acps_group_addr(groups, item.host_group) }}"
+    port: "{{ item.port }}"
+    timeout: 30
+  loop: "{{ _acps_upgrade_dep_probes }}"
+  loop_control:
+    label: "{{ item.label }}:{{ item.port | default('http') }}"
+
+- name: 等待 dependency HTTP health
+  when: item.url is defined
+  ansible.builtin.uri:
+    url: "{{ item.url }}"
+    method: GET
+    status_code: [200]
+  register: _dep_http
+  until: _dep_http is succeeded
+  retries: 15
+  delay: 2
+  loop: "{{ _acps_upgrade_dep_probes }}"
+  loop_control:
+    label: "{{ item.label }}"
+
+- name: Show upgrade selection
+  ansible.builtin.debug:
+    msg: >-
+      upgrade components={{ _acps_upgrade_components | join(',') }};
+      skip_smoke={{ acps_upgrade_skip_smoke | default(false) | bool }};
+      renew-certs=not-invoked-by-default
+
+# --- host：检查所选 app_release 制品在控制节点存在 -------------------------
+
+- name: host preflight — app_release 组件集合
+  when: (acps_deploy_mode | default('image')) == 'host'
+  ansible.builtin.set_fact:
+    _acps_upgrade_host_app_keys: >-
+      {{
+        _acps_upgrade_components
+        | intersect([
+            'registry_server',
+            'ca_server',
+            'discovery_server_cpu',
+            'discovery_server_gpu',
+            'mq_auth_server',
+            'monitor_server',
+            'demo_partner',
+            'demo_leader',
+          ])
+      }}
+
+- name: host preflight — 解析并检查 app-release 制品
+  when:
+    - (acps_deploy_mode | default('image')) == 'host'
+    - (_acps_upgrade_host_app_keys | default([]) | length) > 0
+  block:
+    - name: host preflight — manifest 查找 app-release 文件名
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_tools_python | default('python3') }}"
+          - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+          - "--manifest"
+          - "{{ acps_manifest_path }}"
+          - "--table"
+          - "apps"
+          - "--component"
+          - "{{ item }}"
+      loop: "{{ _acps_upgrade_host_app_keys }}"
+      register: _acps_upgrade_host_manifests
+      changed_when: false
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_become: false
+
+    - name: host preflight — 检查 artifacts/apps 归档存在
+      ansible.builtin.stat:
+        path: >-
+          {{
+            acps_artifacts_apps
+            | default(acps_release_root ~ '/artifacts/apps')
+          }}/{{ (item.stdout | from_json).app_release }}
+      loop: "{{ _acps_upgrade_host_manifests.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: _acps_upgrade_host_artifact_stats
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_become: false
+
+    - name: host preflight — 制品缺失时失败
+      when: >-
+        not (item.stat.exists | default(false) | bool)
+        or (item.stat.size | default(0) | int) <= 0
+      ansible.builtin.fail:
+        msg: >-
+          preflight_upgrade (host): app-release artifact missing/empty for
+          {{ item.item.item }} at {{ item.stat.path | default('?') }}.
+          Build/install package must place archives under artifacts/apps/.
+      loop: "{{ _acps_upgrade_host_artifact_stats.results }}"
+      loop_control:
+        label: "{{ item.item.item }}"
+
+- name: host preflight — control CLI 制品（若选中）
+  when:
+    - (acps_deploy_mode | default('image')) == 'host'
+    - "'acps_cli' in _acps_upgrade_components"
+  block:
+    - name: host preflight — 查找 artifacts/control app-release
+      ansible.builtin.find:
+        paths: "{{ acps_artifacts_control }}"
+        patterns: ["acps-cli-*-app-release-*.tar.gz", "*-app-release-*.tar.gz"]
+      register: _acps_upgrade_host_cli_arts
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_become: false
+
+    - name: host preflight — CLI 制品缺失时失败
+      when: >-
+        (_acps_upgrade_host_cli_arts.matched | int == 0)
+        and not (acps_cli_allow_source_fallback | default(false) | bool)
+      ansible.builtin.fail:
+        msg: >-
+          preflight_upgrade (host): acps-cli app-release missing under
+          {{ acps_artifacts_control }}. Build/install package must place
+          acps-cli-*-app-release-*.tar.gz there.

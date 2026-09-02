@@ -1,0 +1,108 @@
+---
+# 刷新 demo ACS 树中的 trust-bundle.pem；随后规范化。
+# 期望： _tb_consumer (kind demo_partner|demo_leader), acps_trust_bundle_local,
+# acps_trust_bundle_sha256, acps_force_trust_bundle_refresh
+#
+# 注意：delegate_to / task vars 中勿依赖同文件 set_fact 的 _tb_demo_host
+#（部分 Ansible 版本在委托模板阶段不可见）。一律内联 groups[...]。
+
+- name: 要求 demo target host
+  ansible.builtin.assert:
+    that:
+      - (groups[_tb_consumer.target_group] | default([])) | length > 0
+    fail_msg: "No hosts in group {{ _tb_consumer.target_group }} for trust refresh"
+
+- name: 解析 demo target
+  ansible.builtin.set_fact:
+    _tb_demo_host: "{{ groups[_tb_consumer.target_group] | first }}"
+    _tb_demo_runtime: "{{ hostvars[groups[_tb_consumer.target_group] | first].acps_runtime_root | default(acps_runtime_root) }}"
+    _tb_demo_root: "{{ (hostvars[groups[_tb_consumer.target_group] | first].acps_runtime_root | default(acps_runtime_root)) }}/{{ _tb_consumer.target_certs_rel }}"
+
+- name: 确保 staging on demo target
+  ansible.builtin.file:
+    path: "{{ hostvars[groups[_tb_consumer.target_group] | first].acps_runtime_root | default(acps_runtime_root) }}/staging"
+    state: directory
+    mode: "0755"
+  delegate_to: "{{ groups[_tb_consumer.target_group] | first }}"
+  vars:
+    ansible_connection: "{{ hostvars[groups[_tb_consumer.target_group] | first].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[groups[_tb_consumer.target_group] | first].ansible_become | default(true)) | bool }}"
+
+- name: stage fresh trust-bundle on demo target
+  ansible.builtin.copy:
+    src: "{{ acps_trust_bundle_local }}"
+    dest: "{{ hostvars[groups[_tb_consumer.target_group] | first].acps_runtime_root | default(acps_runtime_root) }}/staging/trust-bundle-refresh.pem"
+    mode: "0644"
+  delegate_to: "{{ groups[_tb_consumer.target_group] | first }}"
+  vars:
+    ansible_connection: "{{ hostvars[groups[_tb_consumer.target_group] | first].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[groups[_tb_consumer.target_group] | first].ansible_become | default(true)) | bool }}"
+
+- name: Scan / refresh demo trust-bundle.pem paths
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ hostvars[groups[_tb_consumer.target_group] | first].ansible_python_interpreter | default('python3') }}"
+    ROOT="{{ _tb_demo_root }}"
+    FORCE="{{ acps_force_trust_bundle_refresh | bool | lower }}"
+    WANT="{{ acps_trust_bundle_sha256 }}"
+    SRC="{{ _tb_demo_runtime }}/staging/trust-bundle-refresh.pem"
+    "$PY" - "$ROOT" "$FORCE" "$WANT" "$SRC" <<'PY'
+    import hashlib, shutil, sys
+    from pathlib import Path
+
+    root = Path(sys.argv[1])
+    force = sys.argv[2].lower() in ("1", "true", "yes")
+    want = sys.argv[3].strip()
+    src = Path(sys.argv[4])
+    if not root.is_dir():
+        print("changed=0 paths=0 missing_root=1")
+        raise SystemExit(0)
+    # demo-partner:.../partners/online/*/trust-bundle.pem
+    # demo-leader:.../leader/atr/trust-bundle.pem
+    if root.name == "online":
+        paths = sorted(root.glob("*/trust-bundle.pem"))
+    else:
+        paths = [root / "trust-bundle.pem"]
+    changed = 0
+    for path in paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        cur = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else ""
+        if force or cur != want:
+            shutil.copyfile(src, path)
+            path.chmod(0o644)
+            changed += 1
+    print(f"changed={changed} paths={len(paths)}")
+    PY
+  args:
+    executable: /bin/bash
+  register: _tb_demo_refresh
+  delegate_to: "{{ groups[_tb_consumer.target_group] | first }}"
+  vars:
+    ansible_connection: "{{ hostvars[groups[_tb_consumer.target_group] | first].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[groups[_tb_consumer.target_group] | first].ansible_become | default(true)) | bool }}"
+  changed_when: "'changed=0' not in (_tb_demo_refresh.stdout | default(''))"
+
+- name: 记录 changed demo profile
+  when: _tb_demo_refresh is changed
+  ansible.builtin.set_fact:
+    acps_trust_bundle_changed_profiles: >-
+      {{
+        (acps_trust_bundle_changed_profiles + [_tb_consumer.profile])
+        | unique
+        | list
+      }}
+
+- name: 规范化 demo ownership after trust refresh
+  when: _tb_demo_refresh is changed or (acps_force_trust_bundle_refresh | bool)
+  ansible.builtin.include_tasks: demo_normalize.yml
+  vars:
+    cert_provision_profile: "{{ 'demo-partner' if _tb_consumer.kind == 'demo_partner' else 'demo-leader' }}"
+
+- name: Cleanup staged trust on demo target
+  ansible.builtin.file:
+    path: "{{ _tb_demo_runtime }}/staging/trust-bundle-refresh.pem"
+    state: absent
+  delegate_to: "{{ groups[_tb_consumer.target_group] | first }}"
+  vars:
+    ansible_connection: "{{ hostvars[groups[_tb_consumer.target_group] | first].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[groups[_tb_consumer.target_group] | first].ansible_become | default(true)) | bool }}"

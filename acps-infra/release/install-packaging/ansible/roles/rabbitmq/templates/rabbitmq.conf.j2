@@ -1,0 +1,44 @@
+# 由 ACPs install-packaging 生成（image 模式）— 请勿手改，重跑 site.yml 会覆盖。
+# 同机：auth_http 用 Compose 服务名 mq-auth-server；分机：用 advertise FQDN
+# （容器须经 compose extra_hosts 解析，见 compose.yml.j2）。
+
+# ===== TLS listeners =====
+listeners.ssl.default = 5671
+listeners.tcp = none
+
+ssl_options.cacertfile = /certs/acps-root-ca.pem
+ssl_options.certfile = /certs/rabbitmq-server.pem
+ssl_options.keyfile = /certs/rabbitmq-server.key
+ssl_options.verify = verify_peer
+ssl_options.fail_if_no_peer_cert = true
+ssl_options.versions.1 = tlsv1.3
+# leaf → intermediate → root 需要 depth>=2（仅 root 在 trust 时）
+ssl_options.depth = 2
+ssl_options.ciphers.1 = TLS_AES_256_GCM_SHA384
+ssl_options.ciphers.2 = TLS_CHACHA20_POLY1305_SHA256
+ssl_options.ciphers.3 = TLS_AES_128_GCM_SHA256
+
+# ===== Management API =====
+management.tcp.port = 15672
+
+# ===== Authentication =====
+auth_mechanisms.1 = EXTERNAL
+auth_mechanisms.2 = PLAIN
+ssl_cert_login_from = common_name
+
+# ===== Authorization backends =====
+auth_backends.1 = internal
+auth_backends.2 = cache
+
+auth_cache.cached_backend = http
+auth_cache.cache_ttl = 15000
+
+auth_http.user_path = https://{{ _mq_auth_http_host }}:{{ mq_auth_server_auth_api_port | default(9008) }}/auth/user
+auth_http.vhost_path = https://{{ _mq_auth_http_host }}:{{ mq_auth_server_auth_api_port | default(9008) }}/auth/vhost
+auth_http.resource_path = https://{{ _mq_auth_http_host }}:{{ mq_auth_server_auth_api_port | default(9008) }}/auth/resource
+auth_http.topic_path = https://{{ _mq_auth_http_host }}:{{ mq_auth_server_auth_api_port | default(9008) }}/auth/topic
+auth_http.http_method = post
+auth_http.ssl_options.cacertfile = /certs/acps-root-ca.pem
+auth_http.ssl_options.certfile = /certs/rabbitmq-client.pem
+auth_http.ssl_options.keyfile = /certs/rabbitmq-client.key
+auth_http.ssl_options.verify = verify_peer

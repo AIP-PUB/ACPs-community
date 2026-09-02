@@ -1,0 +1,24 @@
+---
+# business.yml — demo 部署后业务验收。
+# 与 smoke.yml 并列。固定 A–D 流水线的产品入口。
+# 无分段选择类产品参数。
+
+- name: 业务验收
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: 要求启用 demo partner 与 leader
+      ansible.builtin.assert:
+        that:
+          - demo_partner_enabled | bool
+          - demo_leader_enabled | bool
+        fail_msg: >-
+          business.yml requires demo_partner_enabled=true AND demo_leader_enabled=true.
+          Enable both demos in inventory (or -e), deploy via site.yml phases 12–13
+          (and Phase 14 AMP Forwarder / 14b alive-sync), then re-run.
+          Without demos, use smoke.yml for basic smoke only — business acceptance is unavailable.
+
+    - name: 运行 demo 后业务验收流水线
+      ansible.builtin.include_role:
+        name: business_acceptance

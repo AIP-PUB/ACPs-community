@@ -1,0 +1,11 @@
+---
+# Ubuntu — Team RabbitMQ APT 仓库 + erlang（本设计 §5.2/§6.4）。
+# ubuntu20 (focal)：Team RabbitMQ 官方 erlang 仓最高仅到 26.x，而 rabbitmq-server
+# ≥4.2.9 要求 erlang ≥27；故 pin 到仍兼容 erlang 26 的末版 4.2.8-1。
+# ubuntu22 (jammy)：走仓内候选（当前 4.3.x + erlang 27）。
+rabbitmq_os_service_name: rabbitmq-server
+rabbitmq_os_config_dir: /etc/rabbitmq
+rabbitmq_os_data_dir: /var/lib/rabbitmq
+rabbitmq_os_run_user: rabbitmq
+rabbitmq_os_package_ubuntu20: "rabbitmq-server=4.2.8-1"
+rabbitmq_os_package_default: rabbitmq-server

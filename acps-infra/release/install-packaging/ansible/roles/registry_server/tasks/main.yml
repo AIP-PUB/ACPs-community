@@ -1,0 +1,479 @@
+---
+- name: registry 禁用时结束
+  when: not (registry_server_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: stage registry 镜像/app-release
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: registry_server
+    acps_artifact_kind: app_release
+    acps_host_app_pip_packages: ["registry-server"]
+
+- name: 派生连接 facts
+  ansible.builtin.set_fact:
+    _pg_host: "{{ hostvars | acps_group_addr(groups, 'postgresql', managed=postgresql_managed | bool, external_host=postgresql_external_host | default(None)) }}"
+    _ca_host: "{{ hostvars | acps_group_addr(groups, 'ca_server') }}"
+    _registry_host: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+    _keycloak_host: "{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+
+# site.yml 阶段 3 强制 listener=false、阶段 6b 再 true。重跑若照写 app.env/compose
+# 会 false↔true 振荡并拆装 9002（B4）。mTLS 已在跑时保持 true（host 与 image 同构）。
+- name: host 幂等 — 探测 registry mTLS 单元是否已在跑
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.command:
+    argv:
+      - systemctl
+      - is-active
+      - acps-registry_server_mtls.service
+  register: _acps_registry_mtls_active
+  changed_when: false
+  failed_when: false
+
+- name: host 幂等 — 已启用 mTLS 时勿被 phase_3 临时 false 打回
+  when:
+    - acps_deploy_mode == 'host'
+    - (_acps_registry_mtls_active.rc | default(1) | int) == 0
+    - not (registry_server_enable_mtls_listener | bool)
+  ansible.builtin.set_fact:
+    registry_server_enable_mtls_listener: true
+
+- name: image 幂等 — 探测 registry_server_mtls 容器是否已在跑
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - -f
+      - "{% raw %}{{.State.Running}}{% endraw %}"
+      - "{{ acps_compose_project_prefix }}-registry_server_mtls-1"
+  register: _acps_registry_mtls_image
+  changed_when: false
+  failed_when: false
+
+- name: image 幂等 — 已启用 mTLS 时勿被 phase_3 临时 false 打回
+  when:
+    - acps_deploy_mode == 'image'
+    - (_acps_registry_mtls_image.stdout | default('') | trim | lower) == 'true'
+    - not (registry_server_enable_mtls_listener | bool)
+  ansible.builtin.set_fact:
+    registry_server_enable_mtls_listener: true
+
+- name: "派生 acps_psql.sh mode 参数（同机 image 用 container；跨机一律 host/--host）"
+  ansible.builtin.set_fact:
+    _pg_psql_mode_args: >-
+      {{
+        ('--mode image --container ' ~ acps_compose_project_prefix ~ '-postgresql-1')
+        if (
+          acps_deploy_mode == 'image'
+          and inventory_hostname in (groups['postgresql'] | default([]))
+        )
+        else ('--mode host --host ' ~ _pg_host ~ ' --port ' ~ (postgresql_port | string))
+      }}
+
+
+- name: 准备 registry config/certs/data 目录
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ acps_runtime_root }}/config/registry_server"
+    - "{{ acps_runtime_root }}/certs/registry_server"
+    - "{{ acps_data_root }}/registry_server/uploads"
+
+- name: 同步基础 TOML 配置（排除 production.toml — 由下方 j2 渲染）
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/templates/config/registry_server/{{ item }}"
+    dest: "{{ acps_runtime_root }}/config/registry_server/{{ item }}"
+    mode: "0644"
+  loop:
+    - default.toml
+    - development.toml
+    - testing.toml
+  register: _reg_config_copy
+
+- name: 渲染 production.toml 覆盖
+  ansible.builtin.template:
+    src: production.toml.j2
+    dest: "{{ acps_runtime_root }}/config/registry_server/production.toml"
+    mode: "0644"
+  register: _reg_toml_render
+
+- name: 渲染 registry .env
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ acps_runtime_root }}/config/registry_server/.env"
+    mode: "0600"
+  register: _reg_env_render
+
+- name: 渲染 registry host 应用单元（app.env + systemd api）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_app_unit.yml
+  vars:
+    acps_compose_service_name: registry_server
+    acps_host_install_dest: "{{ acps_host_app_install_dest }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/registry_server/app.env"
+    acps_host_env_template_abs: "{{ playbook_dir }}/../roles/registry_server/templates/env.j2"
+    acps_host_component_id: registry-server-api
+
+- name: 渲染 compose 片段（始终 api；启用时 mtls；image-only）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ acps_compose_services_dir }}/registry_server.yml"
+    mode: "0644"
+  register: _reg_compose_render
+
+- name: 计算 registry TLS 材料 digest（无侧车或材料变更 → recreate；B4 mTLS 防抖留 S7）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/registry_server"
+    acps_tls_digest_files:
+      - server.pem
+      - server.key
+      - trust-bundle.pem
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/registry-tls-material.sha256"
+    acps_tls_digest_persist: false
+
+- name: 判定 registry 是否应 force recreate（image；禁止无条件 true）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.set_fact:
+    _reg_force_recreate: >-
+      {{
+        (_reg_config_copy is changed)
+        or (_reg_toml_render is changed)
+        or (_reg_env_render is changed)
+        or (
+          (_reg_compose_render is defined)
+          and (_reg_compose_render is changed)
+        )
+        or (_tls_material_digest_changed | default(true) | bool)
+        or (acps_force_app_reinstall | default(false) | bool)
+        or (acps_force_registry_restart | default(false) | bool)
+      }}
+
+- name: Alembic 迁移 registry
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: db_migrate.yml
+  vars:
+    acps_compose_service_name: registry_server
+    acps_host_migrate_env:
+      APP_ENV: production
+      DATABASE_URL: "postgresql+asyncpg://{{ registry_db_user | acps_urlquote }}:{{ registry_db_password | acps_urlquote }}@{{ _pg_host }}:{{ postgresql_port }}/{{ registry_db_name }}"
+
+- name: 部署 registry_server（9001，image：compose）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: registry_server
+    acps_compose_force_recreate: "{{ _reg_force_recreate | bool }}"
+
+- name: 监听器启用时部署 registry_server_mtls（image：compose）
+  when:
+    - acps_deploy_mode == 'image'
+    - registry_server_enable_mtls_listener | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: registry_server_mtls
+    acps_compose_force_recreate: "{{ _reg_force_recreate | bool }}"
+
+- name: 持久化 registry TLS digest（本轮 recreate 后）
+  when:
+    - acps_deploy_mode == 'image'
+    - _reg_force_recreate | default(false) | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/registry_server"
+    acps_tls_digest_files:
+      - server.pem
+      - server.key
+      - trust-bundle.pem
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/registry-tls-material.sha256"
+    acps_tls_digest_persist: true
+
+- name: 渲染 registry_server-mtls systemd 单元（host，监听器启用时；共享 app.env）
+  when:
+    - acps_deploy_mode == 'host'
+    - registry_server_enable_mtls_listener | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_systemd.yml
+  vars:
+    acps_compose_service_name: registry_server_mtls
+    acps_host_install_dest: "{{ acps_host_app_install_dest }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/registry_server/app.env"
+    acps_host_component_id: registry-server-mtls
+
+- name: 部署 registry_server（9001，host：systemd）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: registry_server
+
+- name: 开放 registry 广告端口（firewalld/ufw；image/host 同构）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports: >-
+      {{
+        [registry_server_public_port]
+        + ([registry_server_mtls_port] if (registry_server_enable_mtls_listener | bool) else [])
+      }}
+
+- name: 监听器启用时部署 registry_server_mtls（host：systemd）
+  when:
+    - acps_deploy_mode == 'host'
+    - registry_server_enable_mtls_listener | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: registry_server_mtls
+
+- name: Health 9001
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: health_http.yml
+  vars:
+    acps_health_url: "http://127.0.0.1:{{ registry_server_public_port }}/health"
+
+# B9：phase 6b 成功条件含 advertise:9002 mTLS 握手（复用 tls_plane_smoke 子集）。
+# 仅当 play 显式要求（site 阶段 6b 设 registry_server_require_mtls_health=true）。
+# 禁止在 phase 3 因 B4 防抖把 enable 拉回 true 时误跑本检查（那时 9002 可能正被 recreate）。
+- name: Health 9002 mTLS handshake（advertise）
+  when:
+    - registry_server_enable_mtls_listener | bool
+    - registry_server_require_mtls_health | default(false) | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    SCRIPT="{{ acps_release_root }}/scripts/tls_plane_smoke.py"
+    CERTS="{{ acps_control_root }}/work/certs"
+    "$PY" "$SCRIPT" \
+      --control-certs "$CERTS" \
+      --timeout "{{ acps_tls_smoke_timeout | default(10) }}" \
+      --registry-host "{{ hostvars | acps_group_addr(groups, 'registry_server') }}" \
+      --registry-mtls-port "{{ registry_server_mtls_port }}"
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  vars:
+    ansible_connection: local
+  become: false
+  register: _reg_mtls_9002_health
+  changed_when: false
+  retries: "{{ acps_tls_smoke_retries | default(5) }}"
+  delay: "{{ acps_tls_smoke_delay | default(3) }}"
+  until: _reg_mtls_9002_health.rc == 0
+
+- name: 将 acps_psql.sh stage 到目标
+  when: not (keycloak_enabled | bool)
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_acps_psql.yml
+
+- name: 确保本地 admin is_active（部分构建 seed 可能仍为 inactive）
+  when: not (keycloak_enabled | bool)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    export PGPASSWORD='{{ registry_db_password }}'
+    "{{ acps_runtime_root }}/staging/acps_psql.sh" \
+      {{ _pg_psql_mode_args }} \
+      --user {{ registry_db_user }} --db {{ registry_db_name }} \
+      --sql "UPDATE account_user SET is_active = true WHERE username = '{{ registry_admin_username }}' AND is_active = false;"
+  args:
+    executable: /bin/bash
+  changed_when: true
+  no_log: true
+
+- name: 确保 bootstrap CLIENT 用户存在（local auth）
+  when: not (keycloak_enabled | bool)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ registry_server_public_port }}/api/v1/auth/register"
+    method: POST
+    body_format: json
+    body:
+      username: "{{ registry_bootstrap_username | default('installer') }}"
+      password: "{{ registry_bootstrap_password | default('installer123') }}"
+      name: "Installer"
+      email: "{{ registry_bootstrap_username | default('installer') }}@local.acps"
+    # B18：仅约定成功/幂等码；连接错误与 5xx（及未列状态）由 uri 默认失败
+    status_code: [200, 201, 409]
+  register: _reg_user
+
+# Registry approval may overwrite ACS provider from verified-provider snapshot.
+# ACS/CA 不要求 provider.organization。identity/org 校验种子为可选
+# install helpers so system bootstrap still has a usable provider after approval when enabled.
+- name: 重置不一致的 bootstrap 验证标志（无 verified 行）
+  when:
+    - not (keycloak_enabled | bool)
+    - (registry_bootstrap_seed_identity_verification | default(true) | bool)
+      or (registry_bootstrap_seed_org_verification | default(false) | bool)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    export PGPASSWORD='{{ registry_db_password }}'
+    BOOT_USER='{{ registry_bootstrap_username | default("installer") }}'
+    NEED_ID='{{ registry_bootstrap_seed_identity_verification | default(true) | bool | lower }}'
+    NEED_ORG='{{ registry_bootstrap_seed_org_verification | default(false) | bool | lower }}'
+    "{{ acps_runtime_root }}/staging/acps_psql.sh" \
+      {{ _pg_psql_mode_args }} \
+      --user {{ registry_db_user }} --db {{ registry_db_name }} <<SQL
+    DO \$\$
+    DECLARE
+      uid uuid;
+      has_id boolean;
+      has_org boolean;
+      need_reset boolean := false;
+    BEGIN
+      SELECT id INTO uid FROM account_user WHERE username = '${BOOT_USER}';
+      IF uid IS NULL THEN
+        RETURN;
+      END IF;
+      SELECT EXISTS(
+        SELECT 1 FROM identity_verification
+        WHERE user_id = uid AND status = 'APPROVED' AND deleted_at IS NULL
+      ) INTO has_id;
+      SELECT EXISTS(
+        SELECT 1 FROM org_verification
+        WHERE user_id = uid AND status = 'APPROVED' AND deleted_at IS NULL
+      ) INTO has_org;
+      IF '${NEED_ID}' = 'true' AND NOT has_id THEN
+        need_reset := true;
+      END IF;
+      IF '${NEED_ORG}' = 'true' AND NOT has_org THEN
+        need_reset := true;
+      END IF;
+      IF need_reset THEN
+        UPDATE account_user
+          SET identity_verified = false,
+              org_verified = false,
+              current_identity_id = NULL,
+              current_org_id = NULL
+          WHERE id = uid;
+        DELETE FROM identity_verification WHERE user_id = uid;
+        DELETE FROM org_verification WHERE user_id = uid;
+      END IF;
+    END \$\$;
+    SQL
+  args:
+    executable: /bin/bash
+  changed_when: true
+  no_log: true
+
+- name: 为验证 seed 登录 bootstrap 用户
+  when:
+    - not (keycloak_enabled | bool)
+    - (registry_bootstrap_seed_identity_verification | default(true) | bool)
+      or (registry_bootstrap_seed_org_verification | default(false) | bool)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ registry_server_public_port }}/api/v1/auth/login"
+    method: POST
+    body_format: form-urlencoded
+    body:
+      username: "{{ registry_bootstrap_username | default('installer') }}"
+      password: "{{ registry_bootstrap_password | default('installer123') }}"
+    status_code: [200]
+  register: _boot_login
+
+- name: 确保 bootstrap 身份验证（自动批准）
+  when:
+    - not (keycloak_enabled | bool)
+    - registry_bootstrap_seed_identity_verification | default(true) | bool
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ registry_server_public_port }}/api/v1/verification/identity"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ _boot_login.json.access_token }}"
+    body_format: json
+    body:
+      id_type: CN_ID_CARD
+      id_number: "{{ registry_bootstrap_id_number | default('310101199001011234') }}"
+      real_name: "{{ registry_bootstrap_real_name | default('Installer') }}"
+    status_code: [200, 201, 409]
+  register: _boot_identity
+  failed_when: >-
+    (_boot_identity.status not in [200, 201, 409])
+    or (
+      _boot_identity.status in [200, 201]
+      and (_boot_identity.json.status | default('')) != 'APPROVED'
+    )
+
+- name: 确保 bootstrap 组织验证（自动批准，可选）
+  when:
+    - not (keycloak_enabled | bool)
+    - registry_bootstrap_seed_org_verification | default(false) | bool
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ registry_server_public_port }}/api/v1/verification/org"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ _boot_login.json.access_token }}"
+    body_format: json
+    body:
+      org_name: "{{ registry_bootstrap_org_name | default('ACPs工作组') }}"
+      usci: "{{ registry_bootstrap_usci | default('91310000123456789X') }}"
+      legal_rep_name: "{{ registry_bootstrap_real_name | default('Installer') }}"
+      legal_rep_id_number: "{{ registry_bootstrap_id_number | default('310101199001011234') }}"
+    status_code: [200, 201, 409]
+  register: _boot_org
+  failed_when: >-
+    (_boot_org.status not in [200, 201, 409])
+    or (
+      _boot_org.status in [200, 201]
+      and (_boot_org.json.status | default('')) != 'APPROVED'
+    )
+
+- name: 断言 bootstrap 验证可用于已启用 seed
+  when:
+    - not (keycloak_enabled | bool)
+    - (registry_bootstrap_seed_identity_verification | default(true) | bool)
+      or (registry_bootstrap_seed_org_verification | default(false) | bool)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    export PGPASSWORD='{{ registry_db_password }}'
+    NEED_ID='{{ registry_bootstrap_seed_identity_verification | default(true) | bool | lower }}'
+    NEED_ORG='{{ registry_bootstrap_seed_org_verification | default(false) | bool | lower }}'
+    row="$("{{ acps_runtime_root }}/staging/acps_psql.sh" \
+      {{ _pg_psql_mode_args }} \
+      --user {{ registry_db_user }} --db {{ registry_db_name }} --tuples-only --no-align --sql "
+        SELECT coalesce(identity_verified::text,'f') || ' ' || coalesce(org_verified::text,'f') || ' ' ||
+               coalesce(current_org_id::text,'')
+        FROM account_user WHERE username = '{{ registry_bootstrap_username | default('installer') }}';
+      ")"
+    id_ok=true
+    org_ok=true
+    id_flag="$(echo "$row" | awk '{print $1}')"
+    org_flag="$(echo "$row" | awk '{print $2}')"
+    org_id="$(echo "$row" | awk '{print $3}')"
+    if [[ "$NEED_ID" == "true" && "$id_flag" != "t" && "$id_flag" != "true" ]]; then
+      id_ok=false
+    fi
+    if [[ "$NEED_ORG" == "true" && ( "$org_flag" != "t" && "$org_flag" != "true" || -z "$org_id" ) ]]; then
+      org_ok=false
+    fi
+    [[ "$id_ok" == true && "$org_ok" == true ]]
+  args:
+    executable: /bin/bash
+  no_log: true

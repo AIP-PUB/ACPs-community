@@ -1,12 +1,12 @@
 [首页](../README.md)
 
-AIA：智能体身份认证流程（ACPs-spec-AIA-v02.01）
+AIA：智能体身份认证流程（ACPs-spec-AIA-v02.02）
 
 # 1. 文档定义
 
-本文档为 ACPs 智能体协作协议体系中的智能体身份认证（Agent Identity Authentication，AIA）流程定义，版本号 v02.01。
+本文档为 ACPs 智能体协作协议体系中的智能体身份认证（Agent Identity Authentication，AIA）流程定义，版本号 v02.02。
 
-文档全称为 ACPs-spec-AIA-v02.01。
+文档全称为 ACPs-spec-AIA-v02.02。
 
 文档编写者：禹可（北京邮电大学），宋昊哲（北京邮电大学），李胤铭（北京邮电大学），刘军（北京邮电大学），李珂（北京邮电大学），陈科良（北京邮电大学），胡晓峰（北京邮电大学），马镝（北京邮电大学）。
 
@@ -48,27 +48,32 @@ AIA：智能体身份认证流程（ACPs-spec-AIA-v02.01）
 
 然后是服务端参数，包括：
 
-（4）服务端发送CertificateRequest（表明需要客户端发送客户端证书）、Encrypted Extensions（用于携带那些不是用来确定加密参数的 ClientHello 扩展的响应）；
+（4）服务端发送Encrypted Extensions（用于携带那些不是用来确定加密参数的 ClientHello 扩展的响应）、CertificateRequest（表明需要客户端发送客户端证书）；
 
 最后是身份认证，包括：
 
 （5）服务端发送CAI（服务端证书）、CertificateVerify（选择一个ClientHello中signature_algorithms提供的签名算法，然后使用服务端证书中的公钥所对应的私钥对之前所有握手消息的哈希值进行签名）、Finished（握手结束）；
 
-（6）客户端发送CAI（客户端证书）、CertificateVerify、Finished（握手结束）；
+（6）客户端收到服务端的CAI和CertificateVerify后，先对服务端进行身份验证，验证步骤如下：
+* 客户端收到服务端的 CAI 后，通过以下的步骤验证服务端的 CAI：
 
-（7）客户端和服务端对对方的CAI和CertificateVerify进行验证，验证步骤如下：
-* 双方收到 CAI 后，通过以下的步骤验证对方的 CAI：
+    ①　将 CAI 的明文和签名分开，然后将明文使用与 CASP 相同的Hash算法进行映射，得到摘要Hash1。
 
-    ①　先将 CAI 的明文和签名分开，然后将明文使用与 CASP 相同的Hash算法进行映射，得到第一个Hash值Hash1。
+    ②　使用 CASP 的公钥，按照 CAI 采用的签名算法（如ECDSA、RSA-PSS）对Hash1和CAI中的签名执行验签运算。
 
-    ②　使用 CASP 的公钥对 CAI 中签名进行解密，得到第二个Hash值Hash2。
-
-    ③　比对Hash1和Hash2是否相同，相同则表明 CAI 未被篡改，其中的明文信息全部可信。
+    ③　验签通过则表明 CAI 未被篡改，其中的明文信息全部可信。
 
     然后对 CAI 中的明文信息进行验证，主要将对方的 AIC 和 CAI 中的AIC进行比对。
-* 双方收到CertificateVerify后，使用signature_algorithms指定的签名算法和对方证书中的公钥对此签名进行解密得到Hash3，然后使用计算所有握手消息的哈希值Hash4，比对Hash3和Hash4是否相同。
 
-（8） 验证成功后即可开始加密数据传输。
+* 客户端收到服务端的CertificateVerify后，使用signature_algorithms指定的签名算法和对方证书中的公钥，对CertificateVerify中的签名执行验签运算；验签的数据为所有握手消息的哈希值，验签通过则表明服务端确实持有与CAI中公钥对应的私钥，且握手消息未被篡改。
+
+（7）客户端对服务端验证通过后，向服务端发送CAI（客户端证书）、CertificateVerify、Finished（握手结束）；
+
+（8）服务端收到客户端的CAI和CertificateVerify后，按同样的步骤验证客户端的CAI和CertificateVerify；双方各自验证收到的Finished内容正确后，mTLS握手完成。
+
+（9） 验证成功后即可开始加密数据传输。
+
+完成 mTLS 握手后，通信框架**必须**将从 CAI 中提取出的对端 AIC 作为 peer AIC 传递给上层协议处理逻辑。AIP 等上层协议在启用身份绑定时，MUST 使用该 peer AIC 与业务消息中的 `senderId` 或等价身份字段做一致性校验。
 
 # 4. 用户身份认证流程
 

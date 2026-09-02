@@ -350,7 +350,7 @@ class TestUpdateUserPassword:
         session.queue_result(user)
 
         with (
-            patch("app.account.service_account.verify_password", return_value=True),
+            patch("app.account.service_account.verify_password", return_value=(True, False)),
             patch("app.account.service_auth.validate_password_complexity"),
             patch("app.account.service_account.get_password_hash", return_value="new_hash"),
         ):
@@ -379,7 +379,7 @@ class TestUpdateUserPassword:
         session.queue_result(user)
 
         with (
-            patch("app.account.service_account.verify_password", return_value=False),
+            patch("app.account.service_account.verify_password", return_value=(False, False)),
             pytest.raises(AccountError) as exc_info,
         ):
             await svc.update_user_password(

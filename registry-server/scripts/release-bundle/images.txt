@@ -1,3 +1,0 @@
-# 生产镜像清单 — 用于离线部署时批量 pull/save
-postgres:17-alpine
-nginx:1.27-alpine

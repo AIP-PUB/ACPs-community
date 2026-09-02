@@ -1,7 +1,7 @@
 """
 ACS (Agent Capability Specification) 数据模型定义
 
-基于 ACPs-spec-ACS-v02.01 规范定义的智能体能力描述数据模型。
+基于 ACPs-spec-ACS-v02.02 规范定义的智能体能力描述数据模型。
 使用 Pydantic V2 实现类型验证和序列化。
 """
 
@@ -446,7 +446,7 @@ class AgentCapabilitySpec(BaseModel):
     完整描述了智能体的身份信息、功能能力、技术特性和服务接口。
     用于智能体的注册、发现、匹配和协作。
 
-    基于 ACPs-spec-ACS-v02.01 规范。
+    基于 ACPs-spec-ACS-v02.02 规范。
     """
 
     # === 身份信息（由注册服务分配和维护）===

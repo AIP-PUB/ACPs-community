@@ -80,7 +80,7 @@ def _managed_e2e_base_url() -> Generator[str]:
     env["DATABASE_URL"] = env["TEST_DATABASE_URL"]
     env["TEST_DATABASE_URL"] = env["TEST_DATABASE_URL"]
     env["REGISTRY_SERVER_MOCK"] = "true"
-    _set_env_default_if_blank(env, "CA_SERVER_ADMIN_API_TOKEN", "test-ca-admin-token")
+    _set_env_default_if_blank(env, "CA_SERVER_ADMIN_API_TOKEN", "local-ca-admin-token")
     _set_env_default_if_blank(env, "CA_SERVER_INTERNAL_API_TOKEN", "test-ca-internal-token")
 
     with log_path.open("w+", encoding="utf-8") as log_file:
@@ -128,7 +128,7 @@ async def client(e2e_base_url: str) -> AsyncGenerator[AsyncClient]:
     async with AsyncClient(
         base_url=e2e_base_url,
         headers={
-            "Authorization": f"Bearer {os.getenv('CA_SERVER_ADMIN_API_TOKEN', '').strip() or 'test-ca-admin-token'}"
+            "Authorization": f"Bearer {os.getenv('CA_SERVER_ADMIN_API_TOKEN', '').strip() or 'local-ca-admin-token'}"
         },
     ) as e2e_client:
         yield e2e_client

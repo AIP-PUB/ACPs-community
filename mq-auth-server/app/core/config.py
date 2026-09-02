@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import os
 import tomllib
 from functools import lru_cache
 from pathlib import Path
@@ -111,14 +112,21 @@ class Settings(BaseSettings):
     # 便捷访问方法 — server
     @property
     def host(self) -> str:
-        return str(self.toml.get("server", {}).get("host", "0.0.0.0"))
+        # 默认监听全部接口是服务预期行为（与 default.toml / ruff S104 豁免一致）。
+        return str(self.toml.get("server", {}).get("host", "0.0.0.0"))  # nosec B104
 
     @property
     def group_api_port(self) -> int:
+        override = os.getenv("MQ_AUTH_GROUP_API_PORT", "").strip()
+        if override:
+            return int(override)
         return int(self.toml.get("server", {}).get("group_api_port", 9007))
 
     @property
     def auth_api_port(self) -> int:
+        override = os.getenv("MQ_AUTH_AUTH_API_PORT", "").strip()
+        if override:
+            return int(override)
         return int(self.toml.get("server", {}).get("auth_api_port", 9008))
 
     # 便捷访问方法 — cache

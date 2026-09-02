@@ -78,6 +78,7 @@ class TestDecisionStage:
             assert task is not None
             assert task.taskId == message.taskId
             assert task.status.state == TaskState.Accepted
+            assert task.senderId == runner._aic
 
             # 等待后台处理完成
             await asyncio.sleep(0.5)
@@ -447,6 +448,7 @@ class TestConcurrencyControl:
 
             # 应该被拒绝
             assert task.status.state == TaskState.Rejected
+            assert task.senderId == runner._aic
 
             # 验证拒绝原因包含"busy"
             data_items = task.status.dataItems or []

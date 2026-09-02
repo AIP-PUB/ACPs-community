@@ -30,8 +30,12 @@ def get_sync_db_url(async_url: str) -> str:
     return async_url
 
 
-# Override sqlalchemy.url with sync version of DATABASE_URL
-config.set_main_option("sqlalchemy.url", get_sync_db_url(settings.DATABASE_URL))
+# Override sqlalchemy.url with sync version of DATABASE_URL.
+# ConfigParser treats '%' as interpolation; URL-encoded passwords (%21 etc.) need '%%'.
+config.set_main_option(
+    "sqlalchemy.url",
+    get_sync_db_url(settings.DATABASE_URL).replace("%", "%%"),
+)
 
 
 def run_migrations_offline() -> None:

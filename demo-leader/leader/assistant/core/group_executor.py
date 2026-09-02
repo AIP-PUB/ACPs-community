@@ -11,6 +11,7 @@ Leader Agent Platform - 群组模式任务执行器
 
 import asyncio
 import logging
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -45,10 +46,10 @@ logger = logging.getLogger(__name__)
 class GroupExecutorConfig:
     """群组模式执行器配置"""
 
-    # 状态收敛配置
-    max_wait_seconds: int = 300  # 最大等待时间（秒）
+    # 状态收敛配置 — ACPS_GROUP_MAX_WAIT_SECONDS overrides for slow LLM / acceptance.
+    max_wait_seconds: int = int((os.environ.get("ACPS_GROUP_MAX_WAIT_SECONDS") or "600").strip() or "600")
     poll_interval_ms: int = 1000  # 状态检查间隔（毫秒）
-    max_execution_rounds: int = 300  # 最大检查轮次
+    max_execution_rounds: int = 600  # 最大检查轮次
 
     # Partner 邀请配置
     invite_timeout_seconds: int = 60  # 邀请超时时间（秒）
@@ -123,6 +124,10 @@ class GroupTaskExecutor:
         short_session = session_id[-8:] if len(session_id) > 8 else session_id
         short_task = active_task_id[-12:] if len(active_task_id) > 12 else active_task_id
         exec_start_time = asyncio.get_event_loop().time()
+
+        from assistant.message_setup import start_trace
+
+        start_trace()
 
         result = ExecutionResult(phase=ExecutionPhase.STARTING)
 
@@ -340,6 +345,13 @@ class GroupTaskExecutor:
         for dim_id, selections in planning_result.selected_partners.items():
             for selection in selections:
                 partner_aic = selection.partner_aic
+                # Discovery 可能把 Leader 自身 ACS 一并召回；禁止自邀入组。
+                if partner_aic and partner_aic == self.leader_aic:
+                    logger.warning(
+                        "[GroupExecutor] skip self-invite partner_aic=%s (leader)",
+                        partner_aic[-12:],
+                    )
+                    continue
 
                 # 生成 AIP Task ID
                 aip_task_id = f"{active_task_id}:{partner_aic}"

@@ -1,0 +1,231 @@
+---
+# amp_forwarder/tasks/main_host.yml — host 模式：fluent-bit vendor_bundle + systemd
+# tail 六类 amp_*.jsonl → Redpanda amp.* topics（本设计 §5.5 / §8.2.1）
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: 派生 Kafka brokers（host：广告地址，禁 Docker DNS / 开发机绝对路径）
+  ansible.builtin.set_fact:
+    _amp_fw_brokers: "{{ _redpanda_host }}:{{ redpanda_kafka_port }}"
+    _amp_fw_log_base: "{{ acps_log_root }}"
+    _amp_fw_state_dir: "{{ acps_data_root }}/amp_forwarder"
+    _amp_fw_parsers_file: "{{ acps_runtime_root }}/config/amp_forwarder/parsers.conf"
+
+- name: 确保 demo AMP log dirs exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+  loop: "{{
+      ([acps_log_root ~ '/demo_leader'] if (_amp_fw_has_leader | bool) else [])
+      + ([acps_log_root ~ '/demo_partner'] if (_amp_fw_has_partner | bool) else [])
+    }}"
+
+- name: 确保 amp_forwarder config and state dirs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+  loop:
+    - "{{ acps_runtime_root }}/config/amp_forwarder"
+    - "{{ acps_data_root }}/amp_forwarder"
+
+- name: stage amp_forwarder vendor_bundle（fluent-bit 官方 tarball）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: amp_forwarder
+    acps_artifact_kind: vendor_bundle
+
+# fluent-bit linux-amd64 官方包 NEEDED=libsasl2.so.2；EL 系 cyrus-sasl-lib
+# 仅提供 .so.3，Debian/Ubuntu 仅有 .so.2。双向在 vendor lib/ 放兼容副本 +
+# LD_LIBRARY_PATH，避免 ExecStart 127。
+- name: RedHat — 为 fluent-bit 提供 libsasl2.so.2 兼容副本（自 .so.3）
+  when: (ansible_facts['os_family'] | default(ansible_os_family) | default('')) == 'RedHat'
+  block:
+    - name: 定位本机 libsasl2.so.3
+      ansible.builtin.shell: |
+        set -euo pipefail
+        for p in /lib64/libsasl2.so.3 /usr/lib64/libsasl2.so.3 \
+                 /lib/libsasl2.so.3 /usr/lib/libsasl2.so.3; do
+          if [[ -e "$p" ]]; then readlink -f "$p"; exit 0; fi
+        done
+        echo "libsasl2.so.3 not found; install cyrus-sasl-lib" >&2
+        exit 1
+      args:
+        executable: /bin/bash
+      register: _amp_fw_sasl3
+      changed_when: false
+
+    - name: 复制为 vendor lib/libsasl2.so.2
+      ansible.builtin.copy:
+        src: "{{ _amp_fw_sasl3.stdout | trim }}"
+        dest: "{{ acps_vendor_install_dest }}/lib/libsasl2.so.2"
+        remote_src: true
+        mode: "0755"
+        owner: "{{ acps_systemd_user }}"
+        group: "{{ acps_systemd_group }}"
+
+- name: Debian — 为可能的 EL 链 fluent-bit 提供 libsasl2.so.3 兼容副本
+  when: (ansible_facts['os_family'] | default(ansible_os_family) | default('')) == 'Debian'
+  block:
+    - name: 定位本机 libsasl2.so.2
+      ansible.builtin.shell: |
+        set -euo pipefail
+        for p in /lib/x86_64-linux-gnu/libsasl2.so.2 /usr/lib/x86_64-linux-gnu/libsasl2.so.2 \
+                 /lib/aarch64-linux-gnu/libsasl2.so.2 /usr/lib/aarch64-linux-gnu/libsasl2.so.2; do
+          if [[ -e "$p" ]]; then readlink -f "$p"; exit 0; fi
+        done
+        echo "libsasl2.so.2 not found; install libsasl2-2" >&2
+        exit 1
+      args:
+        executable: /bin/bash
+      register: _amp_fw_sasl2
+      changed_when: false
+
+    - name: 复制为 vendor lib/libsasl2.so.3
+      ansible.builtin.copy:
+        src: "{{ _amp_fw_sasl2.stdout | trim }}"
+        dest: "{{ acps_vendor_install_dest }}/lib/libsasl2.so.3"
+        remote_src: true
+        mode: "0755"
+        owner: "{{ acps_systemd_user }}"
+        group: "{{ acps_systemd_group }}"
+
+- name: 渲染 fluent-bit parsers.conf
+  ansible.builtin.template:
+    src: parsers.conf.j2
+    dest: "{{ acps_runtime_root }}/config/amp_forwarder/parsers.conf"
+    mode: "0644"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+  register: _amp_fw_parsers_render
+
+- name: 渲染 fluent-bit.conf（host 路径）
+  ansible.builtin.template:
+    src: fluent-bit.conf.j2
+    dest: "{{ acps_runtime_root }}/config/amp_forwarder/fluent-bit.conf"
+    mode: "0644"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+  register: _amp_fw_conf_render
+
+- name: 渲染 amp_forwarder EnvironmentFile（含 LD_LIBRARY_PATH；禁止 copy+lineinfile 互踩导致每轮 changed）
+  ansible.builtin.copy:
+    content: |
+      # amp_forwarder host mode — brokers in fluent-bit.conf; file kept for systemd contract.
+      {% if (ansible_facts['os_family'] | default(ansible_os_family) | default('')) in ['RedHat', 'Debian'] -%}
+      LD_LIBRARY_PATH={{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}/lib
+      {% endif %}
+    dest: "{{ acps_runtime_root }}/config/amp_forwarder/.env"
+    mode: "0600"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+  register: _amp_fw_env_render
+
+- name: 渲染 amp_forwarder systemd 单元
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_systemd.yml
+  vars:
+    acps_compose_service_name: amp_forwarder
+    acps_host_install_dest: "{{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/amp_forwarder/.env"
+    acps_host_entrypoint: >-
+      {{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}/bin/fluent-bit
+      -c {{ acps_runtime_root }}/config/amp_forwarder/fluent-bit.conf
+    acps_host_unit_description: "ACPS AMP Forwarder / Fluent Bit (host vendor_bundle)"
+
+- name: Rocky SELinux：amp_forwarder 状态目录打标签
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: selinux_restore_path.yml
+  vars:
+    acps_selinux_path: "{{ acps_data_root }}/amp_forwarder"
+
+- name: 解析本轮上游 broker bounce
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_tls_upstream_bounce.yml
+
+- name: 计算 amp_forwarder 配置 digest（conf/parsers；B16 材料侧车）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/config/amp_forwarder"
+    acps_tls_digest_files:
+      - fluent-bit.conf
+      - parsers.conf
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/amp-forwarder-conf.sha256"
+    acps_tls_digest_persist: false
+
+- name: 检查 amp_forwarder 单元是否已 active（首装补起）
+  become: true
+  ansible.builtin.command:
+    argv: [systemctl, is-active, acps-amp_forwarder.service]
+  register: _amp_fw_pre_active
+  changed_when: false
+  failed_when: false
+
+- name: 判定 amp_forwarder 是否应 force recreate/restart
+  ansible.builtin.set_fact:
+    _amp_fw_force_recreate: >-
+      {{
+        (_amp_fw_parsers_render is changed)
+        or (_amp_fw_conf_render is changed)
+        or (_amp_fw_env_render is changed)
+        or (_tls_material_digest_changed | default(false) | bool)
+        or (_acps_redis_bounced_this_run | default(false) | bool)
+        or (
+          (_amp_fw_pre_active.stdout | default('') | trim) != 'active'
+        )
+        or (acps_force_amp_forwarder_restart | default(false) | bool)
+      }}
+
+- name: 部署 amp_forwarder（systemd enable --now）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: amp_forwarder
+    acps_component_key: amp_forwarder
+    # conf/env/digest 变更 OR redis bounced OR 首装（unit 未 active）；禁止每次无条件 force。
+    acps_compose_force_recreate: "{{ _amp_fw_force_recreate | bool }}"
+
+- name: 持久化 amp_forwarder 配置 digest（仅 recreate 后）
+  when: _amp_fw_force_recreate | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/config/amp_forwarder"
+    acps_tls_digest_files:
+      - fluent-bit.conf
+      - parsers.conf
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/amp-forwarder-conf.sha256"
+    acps_tls_digest_persist: true
+
+- name: 确认 amp_forwarder systemd 单元 active
+  become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+  ansible.builtin.command:
+    argv: [systemctl, is-active, acps-amp_forwarder.service]
+  register: _amp_fw_active
+  changed_when: false
+  failed_when: (_amp_fw_active.stdout | default('') | trim) != 'active'
+
+- name: amp_forwarder 就绪（host）
+  ansible.builtin.debug:
+    msg: >-
+      amp_forwarder active on {{ inventory_hostname }};
+      brokers={{ _amp_fw_brokers }};
+      logs={{ acps_log_root }}/demo_*

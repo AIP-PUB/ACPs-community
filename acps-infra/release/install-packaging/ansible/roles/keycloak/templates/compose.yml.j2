@@ -1,0 +1,39 @@
+services:
+  keycloak:
+    image: {{ acps_effective_image_tag }}
+    command:
+      - start
+      - --http-enabled=true
+      # Multi-node image-mode: JWT/OIDC discovery must use advertise URL, not docker DNS.
+      - --hostname=http://{{ acps_advertise_host | default(ansible_host) | default('localhost') }}:{{ keycloak_port }}
+      - --hostname-strict=false
+      - --proxy-headers=xforwarded
+      - --health-enabled=true
+      - --import-realm
+    env_file:
+      - {{ acps_runtime_root }}/config/keycloak/.env
+    ports:
+      - "{{ keycloak_port }}:8080"
+    volumes:
+      - {{ acps_data_root }}/keycloak:/opt/keycloak/data:z
+      - {{ acps_runtime_root }}/config/keycloak/realms:/opt/keycloak/data/import:ro,z
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; cat <&3 | grep -q '200'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    restart: unless-stopped
+{% set _acps_extra_hosts = hostvars | acps_compose_extra_hosts(groups) %}
+{% if _acps_extra_hosts %}
+    extra_hosts:
+{% for _eh in _acps_extra_hosts %}
+      - "{{ _eh }}"
+{% endfor %}
+{% endif %}
+    networks:
+      - {{ acps_docker_network }}

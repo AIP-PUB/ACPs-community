@@ -1,0 +1,283 @@
+---
+# install_app_release.yml —
+# 通用 app-release 落地：解包 → 规范化布局（wheelhouse/ + scripts/）→ 用 pinned
+# python 建 venv → 离线 `pip install --no-index --find-links wheelhouse`。
+# 供 control_acps_cli（控制节点 CLI；S4）与 host 业务应用
+# （roles/common/tasks/stage_artifact_host_app_release.yml；S8+）共用一份实现。
+# 设计依据：2026-07-24-host-mode-packaging-and-install-design.md §4.3。
+#
+# 运行时机（本机 hosts:localhost+connection:local，或远程 ssh 业务机）由调用方
+# 的 play/role 决定；本 task 按 ansible_connection 自适应 become，调用方无需
+# 另行处理（对齐 install_python role 的既有模式）。
+#
+# 前提：归档须已在*当前目标主机*文件系统可见——跨机搬运（如从控制节点分发到
+# 远程业务机）由调用方在 include 本文件之前完成。
+#
+# 入参（vars，调用方传入）：
+#   acps_app_install_dest    （必填）落地根目录；下含 wheelhouse/ scripts/ venv/
+#   acps_app_release_archive （二者之一）已解析好的归档绝对路径；优先于下面两项
+#   acps_app_release_dir / acps_app_release_glob
+#                             （二者之一，未给 acps_app_release_archive 时按此
+#                             find 归档；多命中取路径排序最后一个，对齐既有
+#                             「文件名含版本号」约定）
+#   acps_app_pip_packages     （必填）list（推荐）或空格分隔字符串，wheelhouse
+#                             离线安装的原始包说明符，如 CLI：
+#                             ['acps-sdk[oidc]', 'acps-cli']（无需调用方预先做
+#                             shell 转义，本 task 统一 quote）
+#   acps_app_python_bin       （可选）覆盖用解释器；未给时用全局 acps_python_bin
+#   acps_app_python_strict    （可选，默认 acps_deploy_mode == 'host'）
+#                             true：解释器缺失/不可执行 → 立即 fail（host 硬约束，
+#                             §6.2）；false：浮动兜底（uv python install/find，
+#                             再 system python3；对齐既有 image 控制节点行为）
+#   acps_app_console_script   （可选）venv/bin/ 下需存在的入口脚本名，如 'acps-cli'
+#   acps_app_verify_bootstrap_runtime
+#                             （可选，默认 true）校验 scripts/bootstrap_runtime.py 存在
+#   acps_app_copy_manifest    （可选，默认 true）保留 build-manifest.toml 供诊断
+#   acps_app_keep_app_assets  （可选，默认 false）保留 app/ 下运行期资源（config/
+#                             alembic/ alembic.ini runtime-package.toml 等），扁平
+#                             复制到落地根目录（与 image-packaging/lib/build_context.py
+#                             生成的 runtime-app/ 布局对齐，供 host 业务应用的 systemd
+#                             WorkingDirectory 使用；S8）。control_acps_cli 等无 app/
+#                             的归档不受影响（默认 false，且仅 true 时才要求 app/ 存在）。
+#
+# 出参（facts）：
+#   acps_app_install_venv     落地 venv 目录（{{ acps_app_install_dest }}/venv）
+#   acps_app_install_python   该 venv 内解释器绝对路径
+
+- name: install_app_release 需要落地根目录
+  ansible.builtin.assert:
+    that:
+      - acps_app_install_dest is defined
+      - (acps_app_install_dest | string | length) > 0
+    fail_msg: "install_app_release.yml requires acps_app_install_dest (destination root)."
+
+- name: install_app_release 需要至少一个 pip 包
+  ansible.builtin.assert:
+    that:
+      - acps_app_pip_packages is defined
+      - (acps_app_pip_packages | length) > 0
+    fail_msg: "install_app_release.yml requires acps_app_pip_packages (list, or space-separated string)."
+
+- name: 解析本次调用的有效参数
+  ansible.builtin.set_fact:
+    _acps_app_dest: "{{ acps_app_install_dest }}"
+    _acps_app_pip_packages_str: >-
+      {{
+        (acps_app_pip_packages if acps_app_pip_packages is not string else acps_app_pip_packages.split())
+        | map('quote') | join(' ')
+      }}
+    _acps_app_python_strict: "{{ acps_app_python_strict | default(acps_deploy_mode == 'host') | bool }}"
+    _acps_app_verify_bootstrap: "{{ acps_app_verify_bootstrap_runtime | default(true) | bool }}"
+    _acps_app_copy_manifest: "{{ acps_app_copy_manifest | default(true) | bool }}"
+    _acps_app_console_script: "{{ acps_app_console_script | default('') }}"
+    _acps_app_keep_app_assets: "{{ acps_app_keep_app_assets | default(false) | bool }}"
+
+- name: 按目录 + glob 发现 app-release 归档（未显式传入 acps_app_release_archive 时）
+  when: (acps_app_release_archive | default('') | string | length) == 0
+  block:
+    - name: install_app_release 按目录发现归档时需要 acps_app_release_dir / _glob
+      ansible.builtin.assert:
+        that:
+          - acps_app_release_dir is defined
+          - (acps_app_release_dir | string | length) > 0
+          - acps_app_release_glob is defined
+          - (acps_app_release_glob | length) > 0
+        fail_msg: >-
+          install_app_release.yml requires either acps_app_release_archive,
+          or both acps_app_release_dir and acps_app_release_glob.
+
+    - name: 按 glob 查找 app-release 归档
+      ansible.builtin.find:
+        paths: "{{ acps_app_release_dir }}"
+        patterns: "{{ acps_app_release_glob }}"
+      register: _acps_app_release_find
+
+    - name: 断言至少命中一个归档
+      ansible.builtin.assert:
+        that:
+          - (_acps_app_release_find.matched | int) > 0
+        fail_msg: >-
+          No app-release archive under {{ acps_app_release_dir }}
+          matching {{ acps_app_release_glob }}.
+
+    - name: 记录发现的归档路径（多命中取路径排序最后一个）
+      ansible.builtin.set_fact:
+        _acps_app_archive: "{{ (_acps_app_release_find.files | sort(attribute='path') | last).path }}"
+
+- name: 记录显式传入的归档路径
+  when: (acps_app_release_archive | default('') | string | length) > 0
+  ansible.builtin.set_fact:
+    _acps_app_archive: "{{ acps_app_release_archive }}"
+
+- name: 落地 app-release（解包 → 规范化 → venv → 离线 pip）
+  become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+  block:
+    - name: 确保落地根目录存在
+      ansible.builtin.file:
+        path: "{{ _acps_app_dest }}"
+        state: directory
+        mode: "0755"
+
+    - name: stage 空解压目录
+      ansible.builtin.file:
+        path: "{{ _acps_app_dest }}/_unpack"
+        state: "{{ item }}"
+        mode: "0755"
+      loop:
+        - absent
+        - directory
+
+    - name: 解压 app-release（便携 tar；Ansible unarchive 需要 GNU tar）
+      ansible.builtin.command:
+        argv:
+          - tar
+          - -xzf
+          - "{{ _acps_app_archive }}"
+          - -C
+          - "{{ _acps_app_dest }}/_unpack"
+
+    - name: 将 app-release 布局规范化到落地根目录
+      ansible.builtin.shell: |
+        set -euo pipefail
+        DEST="{{ _acps_app_dest }}"
+        UNPACK="${DEST}/_unpack"
+        # 优先嵌套单一顶层目录（正式装配布局），否则扁平。
+        # 忽略部分 tar 工具创建的 macOS AppleDouble 残留（._*）。
+        ROOT="${UNPACK}"
+        n=$(find "${UNPACK}" -mindepth 1 -maxdepth 1 -type d ! -name '._*' | wc -l | tr -d ' ')
+        only=$(find "${UNPACK}" -mindepth 1 -maxdepth 1 -type d ! -name '._*' | head -n 1)
+        if [[ "${n}" == "1" && -n "${only}" && -d "${only}" ]]; then
+          ROOT="${only}"
+        fi
+        # wheelhouse
+        if [[ -d "${ROOT}/wheelhouse" ]]; then
+          rm -rf "${DEST}/wheelhouse"
+          cp -a "${ROOT}/wheelhouse" "${DEST}/wheelhouse"
+        else
+          echo "app-release missing wheelhouse/ under ${ROOT}" >&2
+          find "${UNPACK}" -maxdepth 2 -print >&2 || true
+          exit 2
+        fi
+        # scripts：顶层 scripts/（控制节点构建）或 app/scripts/
+        # 业务 app（host）通常无 bootstrap_runtime.py；仅 CLI 强制要求。
+        rm -rf "${DEST}/scripts"
+        if [[ -d "${ROOT}/scripts" ]]; then
+          cp -a "${ROOT}/scripts" "${DEST}/scripts"
+        elif [[ -d "${ROOT}/app/scripts" ]]; then
+          cp -a "${ROOT}/app/scripts" "${DEST}/scripts"
+        {% if _acps_app_verify_bootstrap %}
+        else
+          echo "app-release missing scripts/ (need bootstrap_runtime.py)" >&2
+          exit 2
+        {% else %}
+        else
+          echo "app-release has no scripts/ (ok: acps_app_verify_bootstrap_runtime=false)"
+        {% endif %}
+        fi
+        {% if _acps_app_copy_manifest %}
+        # 保留 manifest 供诊断
+        [[ -f "${ROOT}/build-manifest.toml" ]] && cp -a "${ROOT}/build-manifest.toml" "${DEST}/"
+        {% endif %}
+        {% if _acps_app_keep_app_assets %}
+        # 保留 app/ 下运行期资源（config/、alembic/、alembic.ini、runtime-package.toml、
+        # .env.example、*.service 等），扁平复制到落地根目录——与
+        # image-packaging/lib/build_context.py 生成 runtime-app/（= 容器
+        # /opt/acps/app）的布局对齐一致，使 Path.cwd()/"config" 解析与 alembic.ini
+        # 的相对 script_location 在 host WorkingDirectory 下行为等同容器（本设计 §5.2）。
+        # scripts/ 已由上面的通用逻辑处理，此处排除避免覆盖/冗余。
+        if [[ -d "${ROOT}/app" ]]; then
+          find "${ROOT}/app" -mindepth 1 -maxdepth 1 ! -name scripts -exec cp -a {} "${DEST}/" \;
+        else
+          echo "app-release missing app/ (required when acps_app_keep_app_assets=true)" >&2
+          exit 2
+        fi
+        {% endif %}
+        rm -rf "${UNPACK}"
+      args:
+        executable: /bin/bash
+
+    - name: 解析可用的 pinned python（acps_python_bin 优先；策略见 acps_app_python_strict）
+      block:
+        # 显式重置为空串（而非依赖 `is (not) defined`）：同一 play/run 内
+        # install_app_release.yml 可能被多次 include（S8 host 应用逐组件调用），
+        # `set_fact` 产生的事实会在同一 host 的整个 run 中持续存在，`is defined`
+        # 会误读到*上一次调用*残留的值，导致本次候选解析被错误跳过。
+        - name: 重置本次调用的解释器解析状态，记录候选解释器路径
+          ansible.builtin.set_fact:
+            _acps_app_python_bin: ""
+            _acps_app_python_candidate: "{{ acps_app_python_bin | default(acps_python_bin | default(''), true) }}"
+
+        - name: 校验候选解释器是否存在且可执行
+          when: (_acps_app_python_candidate | length) > 0
+          ansible.builtin.stat:
+            path: "{{ _acps_app_python_candidate }}"
+          register: _acps_app_python_stat
+
+        - name: 候选有效 → 采用为 pinned 解释器
+          when: >-
+            (_acps_app_python_candidate | length) > 0
+            and (_acps_app_python_stat.stat.exists | default(false))
+            and (_acps_app_python_stat.stat.executable | default(false))
+          ansible.builtin.set_fact:
+            _acps_app_python_bin: "{{ _acps_app_python_candidate }}"
+
+        - name: strict 模式下候选缺失/不可执行 → 立即 fail（禁止浮动 python3）
+          when:
+            - (_acps_app_python_bin | length) == 0
+            - _acps_app_python_strict
+          ansible.builtin.fail:
+            msg: >-
+              install_app_release: acps_python_bin='{{ _acps_app_python_candidate }}' 缺失或不可执行，
+              且 acps_app_python_strict=true（默认 acps_deploy_mode=host）。
+              请先修复 install_python role（pinned uv + CPython 就位）；strict 模式下
+              禁止浮动 python3 兜底（本设计 §6.2）。
+
+        - name: 非 strict 且候选缺失/不可执行：浮动兜底解析（对齐既有 image 控制节点行为）
+          when: (_acps_app_python_bin | length) == 0
+          ansible.builtin.shell: |
+            set -euo pipefail
+            PY=""
+            if command -v uv >/dev/null 2>&1; then
+              uv python install {{ acps_python_version }} || true
+              PY=$(uv python find {{ acps_python_version }} 2>/dev/null || true)
+            fi
+            PY="${PY:-$(command -v python3)}"
+            [[ -x "$PY" ]] || { echo "no usable python3 found on PATH" >&2; exit 2; }
+            echo "$PY"
+          args:
+            executable: /bin/bash
+          register: _acps_app_python_fallback
+          changed_when: false
+
+        - name: 记录浮动兜底解析出的解释器
+          when: (_acps_app_python_bin | length) == 0
+          ansible.builtin.set_fact:
+            _acps_app_python_bin: "{{ _acps_app_python_fallback.stdout | trim }}"
+
+    - name: 创建 venv 并从 wheelhouse 离线安装（{{ _acps_app_pip_packages_str }}）
+      ansible.builtin.shell: |
+        set -euo pipefail
+        DEST="{{ _acps_app_dest }}"
+        PY="{{ _acps_app_python_bin }}"
+        "$PY" -m venv "${DEST}/venv"
+        "${DEST}/venv/bin/pip" install --upgrade pip
+        "${DEST}/venv/bin/pip" install --no-index --find-links "${DEST}/wheelhouse" {{ _acps_app_pip_packages_str }}
+        {% if _acps_app_verify_bootstrap %}
+        test -f "${DEST}/scripts/bootstrap_runtime.py"
+        {% endif %}
+      args:
+        executable: /bin/bash
+
+    - name: 校验入口 console script（如指定）
+      when: (_acps_app_console_script | length) > 0
+      ansible.builtin.command:
+        argv:
+          - test
+          - -x
+          - "{{ _acps_app_dest }}/venv/bin/{{ _acps_app_console_script }}"
+      changed_when: false
+
+- name: 记录 install_app_release facts
+  ansible.builtin.set_fact:
+    acps_app_install_venv: "{{ _acps_app_dest }}/venv"
+    acps_app_install_python: "{{ _acps_app_dest }}/venv/bin/python"

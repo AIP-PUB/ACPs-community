@@ -1,0 +1,13 @@
+---
+# demo_partner — image / host 分派入口
+- name: demo_partner 禁用时结束
+  when: not (demo_partner_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 demo_partner（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.include_tasks: main_image.yml
+
+- name: host 分支：app_release venv/systemd（Step 17）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

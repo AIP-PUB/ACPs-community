@@ -167,14 +167,14 @@ class TestExtractCommonName:
         assert extract_common_name(cert) == VALID_AIC
 
     def test_no_common_name_attribute_returns_none(self) -> None:
-        cert: dict[str, Any] = {"subject": ((("organizationName", "ACPS"),),)}
+        cert: dict[str, Any] = {"subject": ((("organizationName", "ACPs"),),)}
         assert extract_common_name(cert) is None
 
     def test_multiple_attributes_finds_common_name(self) -> None:
         cert: dict[str, Any] = {
             "subject": (
                 (("countryName", "CN"),),
-                (("organizationName", "ACPS"),),
+                (("organizationName", "ACPs"),),
                 (("commonName", VALID_AIC),),
             )
         }

@@ -23,11 +23,17 @@ from app.core.config import settings
 def get_sync_db_url(async_url: str) -> str:
     if async_url.startswith("postgresql+asyncpg"):
         return async_url.replace("postgresql+asyncpg", "postgresql+psycopg", 1)
+    if async_url.startswith("postgresql://"):
+        return async_url.replace("postgresql://", "postgresql+psycopg://", 1)
     return async_url
 
 
-# Override sqlalchemy.url with sync version of database_url
-config.set_main_option("sqlalchemy.url", get_sync_db_url(settings.database_url))
+# Override sqlalchemy.url with sync version of database_url.
+# ConfigParser treats '%' as interpolation; URL-encoded passwords (%21 etc.) need '%%'.
+config.set_main_option(
+    "sqlalchemy.url",
+    get_sync_db_url(settings.database_url).replace("%", "%%"),
+)
 
 
 def run_migrations_offline() -> None:

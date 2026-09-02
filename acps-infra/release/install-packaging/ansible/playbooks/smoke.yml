@@ -1,0 +1,40 @@
+---
+# smoke.yml — 仅基础 smoke。
+# 产品路径：acps_smoke_kind=basic（默认）。
+# 已弃用兼容：acps_smoke_kind=business 仍会调用遗留 smoke_business /
+# biz_* 探测 — 业务验收请优先使用 playbooks/business.yml.
+
+- name: Smoke 套件
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    acps_smoke_kind: basic
+  tasks:
+    - name: 校验 smoke 类型
+      ansible.builtin.assert:
+        that:
+          - acps_smoke_kind in ['basic', 'business']
+        fail_msg: >-
+          acps_smoke_kind must be basic|business.
+          Product path is basic only; for post-demo business acceptance use
+          playbooks/business.yml (acps_smoke_kind=business is deprecated).
+
+    - name: 基础 smoke
+      when: acps_smoke_kind == 'basic'
+      ansible.builtin.include_role:
+        name: smoke_basic
+
+    - name: 警告已弃用的 business 类型（兼容别名）
+      when: acps_smoke_kind == 'business'
+      ansible.builtin.debug:
+        msg: >-
+          DEPRECATED: acps_smoke_kind=business / biz_* probes are not the product
+          business-acceptance path. Prefer:
+          ansible-playbook -i … playbooks/business.yml -e @inventories/secrets.yml
+          (requires demo_partner_enabled and demo_leader_enabled).
+
+    - name: 遗留 business smoke（已弃用兼容）
+      when: acps_smoke_kind == 'business'
+      ansible.builtin.include_role:
+        name: smoke_business

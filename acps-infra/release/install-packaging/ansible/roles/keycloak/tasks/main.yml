@@ -1,0 +1,290 @@
+---
+- name: keycloak 禁用时结束
+  when: not (keycloak_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 Keycloak（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: stage keycloak 镜像
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: keycloak
+        acps_artifact_kind: vendor_bundle
+
+    - name: 派生对等主机
+      ansible.builtin.set_fact:
+        _pg_host: "{{ hostvars | acps_group_addr(groups, 'postgresql') }}"
+        _registry_host: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+        _monitor_host: "{{ hostvars | acps_group_addr(groups, 'monitor_server') }}"
+        _leader_host: "{{ hostvars | acps_group_addr(groups, 'demo_leader') }}"
+        _keycloak_hostname: "{{ acps_advertise_host | default(ansible_host) | default('localhost') }}"
+
+    - name: 准备 keycloak 目录
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ acps_runtime_root }}/config/keycloak"
+        - "{{ acps_runtime_root }}/config/keycloak/realms"
+        - "{{ acps_data_root }}/keycloak"
+
+    - name: 列出 realm JSON 模板（排除 macOS AppleDouble ._* 文件）
+      ansible.builtin.find:
+        paths: "{{ acps_release_root }}/templates/keycloak/realms"
+        patterns: "*.json"
+        excludes: "._*"
+        file_type: file
+      delegate_to: localhost
+      become: false
+      register: _kc_realm_files
+
+    - name: 同步 realm JSON 到 import 目录
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "{{ acps_runtime_root }}/config/keycloak/realms/{{ item.path | basename }}"
+        mode: "0644"
+      loop: "{{ _kc_realm_files.files }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+      register: _kc_realm_sync
+
+    - name: 从 realm import 目录移除 AppleDouble 垃圾（macOS 打包制品）
+      ansible.builtin.shell: |
+        set -euo pipefail
+        find "{{ acps_runtime_root }}/config/keycloak/realms" -name '._*' -type f -delete
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: 渲染 keycloak env
+      ansible.builtin.template:
+        src: env.j2
+        dest: "{{ acps_runtime_root }}/config/keycloak/.env"
+        mode: "0600"
+      register: _kc_env_render
+
+    - name: 渲染 keycloak compose
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/keycloak.yml"
+        mode: "0644"
+      register: _kc_compose_render
+
+    - name: 判定 keycloak 是否应 force recreate（env/compose/realm/镜像变更/显式 force）
+      ansible.builtin.set_fact:
+        _kc_force_recreate: >-
+          {{
+            (_kc_env_render is changed)
+            or (_kc_compose_render is changed)
+            or (
+              (_kc_realm_sync.results | default([])
+                | selectattr('changed') | list | length) > 0
+            )
+            or (acps_image_need_load | default(false) | bool)
+            or (acps_force_image_load | default(false) | bool)
+            or (acps_force_vendor_reinstall | default(false) | bool)
+            or (acps_force_keycloak_restart | default(false) | bool)
+          }}
+
+    - name: 部署 keycloak
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: keycloak
+        acps_compose_force_recreate: "{{ _kc_force_recreate | bool }}"
+
+    - name: 等待 Keycloak HTTP 端口
+      ansible.builtin.wait_for:
+        host: "127.0.0.1"
+        port: "{{ keycloak_port }}"
+        timeout: 180
+
+    - name: 开放 keycloak 广告端口（firewalld/ufw；与 host 同构）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: open_advertise_ports.yml
+      vars:
+        acps_open_ports:
+          - "{{ keycloak_port }}"
+          - "{{ keycloak_management_port | default(9090) }}"
+
+    - name: 等待 Keycloak realm 发现（registry）
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ keycloak_port }}/realms/acps-registry/.well-known/openid-configuration"
+        method: GET
+        status_code: [200]
+      register: _kc_ready
+      retries: 40
+      delay: 3
+      until: _kc_ready is succeeded
+
+    - name: 解析 keycloak 容器名
+      ansible.builtin.shell: |
+        set -euo pipefail
+        docker ps --format '{% raw %}{{.Names}}{% endraw %}' | grep -E '{{ acps_compose_project_prefix }}-keycloak' | head -n1
+      args:
+        executable: /bin/bash
+      register: _kc_container
+      changed_when: false
+
+    - name: 要求 keycloak 容器
+      ansible.builtin.assert:
+        that:
+          - _kc_container.stdout | length > 0
+        fail_msg: "Keycloak container not found after compose up"
+
+    - name: 将 keycloak bootstrap 脚本 stage 到目标
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ acps_runtime_root }}/staging/{{ item | basename }}"
+        mode: "0755"
+      loop:
+        - "{{ acps_release_root }}/scripts/keycloak_bootstrap_eddsa.sh"
+        - "{{ acps_release_root }}/scripts/keycloak_install_bootstrap.sh"
+
+    # B22：realm/安装客户端已可用则跳过全量 bootstrap；仅 force 或版本变更全量跑。
+    - name: 探测 Keycloak 安装面是否已就绪（可跳过全量 bootstrap）
+      when:
+        - not (acps_force_keycloak_bootstrap | default(false) | bool)
+        - not (acps_image_need_load | default(false) | bool)
+        - not (acps_force_image_load | default(false) | bool)
+        - not (acps_force_vendor_reinstall | default(false) | bool)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        PY="{{ ansible_python_interpreter | default('python3') }}"
+        "$PY" - <<'PY'
+        import json, urllib.error, urllib.parse, urllib.request
+        from urllib.parse import urlparse, urlunparse
+        port = "{{ keycloak_port }}"
+        realms = ("acps-registry", "acps-monitor", "acps-leader")
+        for realm in realms:
+            url = f"http://127.0.0.1:{port}/realms/{realm}/.well-known/openid-configuration"
+            with urllib.request.urlopen(url, timeout=10) as resp:
+                if resp.status != 200:
+                    raise SystemExit(f"realm_probe_fail:{realm}:{resp.status}")
+        issuer = f"http://127.0.0.1:{port}/realms/acps-registry"
+        disc = json.load(urllib.request.urlopen(issuer + "/.well-known/openid-configuration"))
+        ep = urlparse(disc["token_endpoint"])
+        pub = urlparse(issuer)
+        token_url = urlunparse((pub.scheme, pub.netloc, ep.path, "", ep.query, ""))
+        data = urllib.parse.urlencode({
+          "grant_type": "password",
+          "client_id": "{{ keycloak_registry_install_client_id | default('registry-install') }}",
+          "username": "{{ registry_admin_username }}",
+          "password": "{{ registry_admin_password }}",
+          "scope": "openid profile email",
+        }).encode()
+        req = urllib.request.Request(token_url, data=data, method="POST",
+          headers={"Content-Type": "application/x-www-form-urlencoded"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+          body = json.load(resp)
+        if not body.get("access_token"):
+            raise SystemExit("token_missing")
+        print("keycloak_bootstrap_skip_ok")
+        PY
+      args:
+        executable: /bin/bash
+      register: _kc_bootstrap_skip_probe
+      failed_when: false
+      changed_when: false
+      no_log: true
+
+    - name: 判定是否运行 Keycloak 全量安装 bootstrap
+      ansible.builtin.set_fact:
+        _kc_run_bootstrap: >-
+          {{
+            (acps_force_keycloak_bootstrap | default(false) | bool)
+            or (acps_image_need_load | default(false) | bool)
+            or (acps_force_image_load | default(false) | bool)
+            or (acps_force_vendor_reinstall | default(false) | bool)
+            or (
+              (_kc_bootstrap_skip_probe.rc | default(1) | int) != 0
+            )
+          }}
+
+    - name: 运行 Keycloak 安装 bootstrap（EdDSA + clients + 便利用户）
+      when: _kc_run_bootstrap | bool
+      ansible.builtin.shell: |
+        set -euo pipefail
+        export KEYCLOAK_CONTAINER='{{ _kc_container.stdout | trim }}'
+        export KEYCLOAK_ADMIN='{{ keycloak_admin_user }}'
+        export KEYCLOAK_ADMIN_PASSWORD='{{ keycloak_admin_password }}'
+        export REGISTRY_WEB_BASE_URL='http://{{ _registry_host }}:{{ registry_server_public_port }}'
+        export MONITOR_WEB_BASE_URL='http://{{ _monitor_host }}:{{ monitor_server_port }}'
+        export LEADER_WEB_BASE_URL='http://{{ _leader_host }}:{{ demo_leader_web_port | default(9030) }}'
+        export REGISTRY_ADMIN_USERNAME='{{ registry_admin_username }}'
+        export REGISTRY_ADMIN_PASSWORD='{{ registry_admin_password }}'
+        export REGISTRY_USER_USERNAME='{{ registry_bootstrap_username | default(registry_admin_username) }}'
+        export REGISTRY_USER_PASSWORD='{{ registry_bootstrap_password | default(registry_admin_password) }}'
+        export MONITOR_ADMIN_USERNAME='{{ monitor_oidc_admin_username | default("monitor-admin") }}'
+        export MONITOR_ADMIN_PASSWORD='{{ monitor_oidc_admin_password | default(registry_admin_password) }}'
+        export REGISTRY_INSTALL_CLIENT_ID='{{ keycloak_registry_install_client_id | default("registry-install") }}'
+        export MONITOR_INSTALL_CLIENT_ID='{{ keycloak_monitor_install_client_id | default("monitor-install") }}'
+        export LEADER_INSTALL_CLIENT_ID='{{ keycloak_leader_install_client_id | default("leader-install") }}'
+        export LEADER_USER_USERNAME='{{ leader_oidc_user_username | default("leader-user") }}'
+        export LEADER_USER_PASSWORD='{{ leader_oidc_user_password | default("demo123") }}'
+        bash '{{ acps_runtime_root }}/staging/keycloak_install_bootstrap.sh'
+      args:
+        executable: /bin/bash
+
+    - name: 跳过 Keycloak 全量 bootstrap（realm/客户端已存在）
+      when: not (_kc_run_bootstrap | bool)
+      ansible.builtin.debug:
+        msg: >-
+          Keycloak install bootstrap skipped
+          (realms+install client password-grant already ok;
+          set acps_force_keycloak_bootstrap=true to re-run)
+
+    - name: 探测 Keycloak password-grant（便利账户）
+      # 在业务主机上运行；不得使用 acps_tools_python / ansible_playbook_python
+      # （它们指向控制节点解释器路径，会导致远程 SSH 失败）。
+      # 给 PY 加引号：本机一体机仍可能注入带空格的控制节点路径
+      # (e.g. pipx under ~/Library/Application Support/...).
+      ansible.builtin.shell: |
+        set -euo pipefail
+        PY="{{ ansible_python_interpreter | default('python3') }}"
+        # Discovery may advertise docker DNS (http://keycloak:8080/...); rewrite token URL to host port.
+        "$PY" - <<'PY'
+        import json, urllib.parse, urllib.request
+        from urllib.parse import urlparse, urlunparse
+        issuer = "http://127.0.0.1:{{ keycloak_port }}/realms/acps-registry"
+        disc = json.load(urllib.request.urlopen(issuer + "/.well-known/openid-configuration"))
+        ep = urlparse(disc["token_endpoint"])
+        pub = urlparse(issuer)
+        token_url = urlunparse((pub.scheme, pub.netloc, ep.path, "", ep.query, ""))
+        data = urllib.parse.urlencode({
+          "grant_type": "password",
+          "client_id": "{{ keycloak_registry_install_client_id | default('registry-install') }}",
+          "username": "{{ registry_admin_username }}",
+          "password": "{{ registry_admin_password }}",
+          "scope": "openid profile email",
+        }).encode()
+        req = urllib.request.Request(token_url, data=data, method="POST",
+          headers={"Content-Type": "application/x-www-form-urlencoded"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+          body = json.load(resp)
+        assert body.get("access_token"), body
+        print("keycloak_password_grant_ok")
+        PY
+      args:
+        executable: /bin/bash
+      register: _kc_probe
+      changed_when: false
+
+    - name: Keycloak 阶段就绪
+      ansible.builtin.debug:
+        msg: "Keycloak ready (OIDC early-bind path); probe={{ _kc_probe.stdout | trim }}"
+
+- name: host 分支：Quarkus vendor_bundle + systemd + OIDC（本设计 §5.5 / Step 10）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

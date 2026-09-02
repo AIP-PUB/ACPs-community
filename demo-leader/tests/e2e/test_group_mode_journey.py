@@ -20,6 +20,7 @@ Leader Agent Platform - E2E Tests: Group Mode Complete Journey
 """
 
 import logging
+import os
 import ssl
 import time
 import uuid
@@ -51,7 +52,10 @@ PARTNER_HEALTH_KEY = LEADER_ATR_DIR / "client.key"
 # 轮询配置
 POLL_INTERVAL = 2.0  # Group 模式需要更长的轮询间隔
 MAX_POLL_TIME = 120  # 超时时间（秒）
-MAX_POLL_TIME_TASK = 180  # 任务执行的最大等待时间
+MAX_POLL_TIME_TASK = float(os.getenv("LEADER_E2E_POLL_TIMEOUT", "240"))
+HEALTH_CHECK_TIMEOUT = 20.0
+HEALTH_CHECK_REQUEST_TIMEOUT = 15.0
+E2E_REQUEST_TIMEOUT = float(os.getenv("LEADER_E2E_REQUEST_TIMEOUT", "240"))
 
 
 # =============================================================================
@@ -84,10 +88,13 @@ def check_service_health(
 
     try:
         verify_context = client_verify or build_partner_health_ssl_context()
-        with httpx.Client(timeout=10.0, verify=verify_context) as client:
+        with httpx.Client(timeout=HEALTH_CHECK_TIMEOUT, verify=verify_context) as client:
             # 检查 Leader 服务（通过尝试获取一个不存在的 session）
             try:
-                leader_resp = client.get(f"{base_url}/api/v1/result/health_check_test", timeout=5.0)
+                leader_resp = client.get(
+                    f"{base_url}{API_PREFIX}/result/health-check-session",
+                    timeout=HEALTH_CHECK_REQUEST_TIMEOUT,
+                )
                 # 404 表示服务正常但 session 不存在，这是预期的
                 if leader_resp.status_code not in [200, 404]:
                     issues.append(f"Leader unhealthy: {leader_resp.status_code}")
@@ -96,7 +103,10 @@ def check_service_health(
 
             # 检查 Partner 服务
             try:
-                partner_resp = client.get(f"{partner_url}/health", timeout=5.0)
+                partner_resp = client.get(
+                    f"{partner_url}/health",
+                    timeout=HEALTH_CHECK_REQUEST_TIMEOUT,
+                )
                 if partner_resp.status_code != 200:
                     issues.append(f"Partner unhealthy: {partner_resp.status_code}")
             except httpx.HTTPError as exc:
@@ -107,7 +117,7 @@ def check_service_health(
                 rabbitmq_resp = client.get(
                     f"{RABBITMQ_MGMT_URL}/api/overview",
                     auth=("admin", "devpass"),
-                    timeout=5.0,
+                    timeout=HEALTH_CHECK_REQUEST_TIMEOUT,
                 )
                 if rabbitmq_resp.status_code != 200:
                     issues.append(f"RabbitMQ unhealthy: {rabbitmq_resp.status_code}")
@@ -140,7 +150,7 @@ def submit_query(
         payload["activeTaskId"] = active_task_id
 
     logger.info(f"[Submit] Query: {query[:60]}... (session: {session_id or 'new'})")
-    response = client.post(api_url("/submit"), json=payload, timeout=60.0)
+    response = client.post(api_url("/submit"), json=payload, timeout=E2E_REQUEST_TIMEOUT)
 
     # 处理 LLM 服务问题
     if response.status_code == 500:
@@ -168,7 +178,7 @@ def submit_query(
 
 def get_result(client: httpx.Client, session_id: str) -> dict[str, Any]:
     """获取会话结果"""
-    response = client.get(api_url(f"/result/{session_id}"), timeout=30.0)
+    response = client.get(api_url(f"/result/{session_id}"), timeout=E2E_REQUEST_TIMEOUT)
     try:
         data = response.json()
     except Exception:
@@ -186,7 +196,7 @@ def cancel_session(client: httpx.Client, session_id: str, active_task_id: str) -
         "activeTaskId": active_task_id,
         "clientRequestId": f"cancel_{uuid.uuid4().hex[:8]}",
     }
-    response = client.post(api_url("/cancel"), json=payload, timeout=30.0)
+    response = client.post(api_url("/cancel"), json=payload, timeout=E2E_REQUEST_TIMEOUT)
     try:
         data = response.json()
     except Exception:
@@ -435,7 +445,7 @@ def configure_runtime(e2e_runtime):
 @pytest.fixture(scope="module")
 def http_client(configure_runtime):
     """创建 HTTP 客户端"""
-    with httpx.Client(timeout=60.0, verify=configure_runtime.client_ssl_context) as client:
+    with httpx.Client(timeout=E2E_REQUEST_TIMEOUT, verify=configure_runtime.client_ssl_context) as client:
         yield client
 
 
@@ -836,7 +846,7 @@ def test_group_mode_quick_check(configure_runtime):
     if not healthy:
         pytest.skip(f"Services not available: {message}")
 
-    with httpx.Client(timeout=60.0, verify=configure_runtime.client_ssl_context) as client:
+    with httpx.Client(timeout=E2E_REQUEST_TIMEOUT, verify=configure_runtime.client_ssl_context) as client:
         # 发送简单的 group 模式请求
         query = "你好，能帮我推荐北京的酒店吗？"
         result = submit_query(client, query, mode="group")

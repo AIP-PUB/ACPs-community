@@ -10,10 +10,12 @@ AIP v2 群组模式数据模型定义
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
+import uuid
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .aip_base_model import Message
 from .aip_rpc_model import JSONRPCError, JSONRPCRequest, JSONRPCResponse
@@ -236,22 +238,77 @@ class GroupInvitationError(BaseModel):
     data: Optional[GroupInvitationErrorData] = None
 
 
-class InboxGroupInvitation(BaseModel):
+class InboxGroupInvitation(Message):
     """通过 inbox.topic 发送的群组邀请。"""
 
     type: Literal["group-invitation"] = "group-invitation"
+    senderRole: Literal["leader"] = "leader"
+    groupId: str
     protocol: str
     expiresAt: str
     invitationToken: str
     group: GroupInfo
     amqp: AMQPConfig
 
+    @model_validator(mode="before")
+    @classmethod
+    def _fill_legacy_identity_fields(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        group = data.get("group")
+        group_id = data.get("groupId")
+        if group_id is None and isinstance(group, dict):
+            group_id = group.get("groupId")
+        if group_id is None and isinstance(group, GroupInfo):
+            group_id = group.groupId
+        if group_id is not None:
+            data["groupId"] = group_id
+        if data.get("senderId") is None and isinstance(group, dict):
+            leader = group.get("leader")
+            if isinstance(leader, dict):
+                leader_aic = leader.get("aic")
+                if leader_aic:
+                    data["senderId"] = leader_aic
+        if data.get("senderId") is None and isinstance(group, GroupInfo) and group.leader:
+            data["senderId"] = group.leader.aic
+        data.setdefault("id", f"invite-{uuid.uuid4()}")
+        data.setdefault("sentAt", datetime.now(timezone.utc).isoformat())
+        data.setdefault("senderRole", "leader")
+        return data
 
-class InboxGroupInvitationError(BaseModel):
+    @model_validator(mode="after")
+    def _validate_identity_consistency(self) -> "InboxGroupInvitation":
+        if self.groupId != self.group.groupId:
+            raise ValueError("groupId must equal group.groupId")
+        if self.senderId != self.group.leader.aic:
+            raise ValueError("senderId must equal group.leader.aic")
+        return self
+
+
+class InboxGroupInvitationError(Message):
     """Partner 通过 inbox.topic 回传的邀请错误。"""
 
     type: Literal["group-invitation-error"] = "group-invitation-error"
+    senderRole: Literal["partner"] = "partner"
     groupId: str
-    partnerAic: str
+    partnerAic: Optional[str] = None
     invitationToken: str
     error: GroupInvitationError
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fill_legacy_sender_id(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        if data.get("senderId") is None and data.get("partnerAic") is not None:
+            data["senderId"] = data["partnerAic"]
+        data.setdefault("id", f"invite-err-{uuid.uuid4()}")
+        data.setdefault("sentAt", datetime.now(timezone.utc).isoformat())
+        data.setdefault("senderRole", "partner")
+        return data
+
+    @model_validator(mode="after")
+    def _validate_identity_consistency(self) -> "InboxGroupInvitationError":
+        if self.partnerAic is not None and self.partnerAic != self.senderId:
+            raise ValueError("partnerAic must equal senderId when present")
+        return self

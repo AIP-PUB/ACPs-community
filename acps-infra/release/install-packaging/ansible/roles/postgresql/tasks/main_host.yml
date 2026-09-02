@@ -1,0 +1,192 @@
+---
+# postgresql/tasks/main_host.yml — host 模式：OS 包 PostgreSQL(+pgvector) 落地
+# （本设计 §5.5 / §6.4）。
+# 流程：install_packages（含 initdb）→ 配置监听/认证 → enable systemd →
+# 设置 superuser 密码 → 建库/建用户/CREATE EXTENSION vector（幂等，走 S2
+# acps_psql.sh --mode host）→ 健康检查。
+#
+# PG 现无 TLS 合同（image 侧同样未对 PG 启用 TLS），host 分支保持一致，不在此
+# 引入新证书面；连接鉴权用 scram-sha-256 密码认证（本设计 §5.2/§6.4）。
+
+- name: 加载 OS 系族默认（包名/服务名/数据目录/配置目录）
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
+- name: 确保运行时目录（{{ acps_runtime_root }}/staging 等；image 专属子任务在其内部自跳过）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: 安装 PostgreSQL OS 包（ensure_repos + install_packages + initdb）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: postgresql
+    acps_artifact_kind: os_package
+
+- name: 解析本机 advertise 地址（监听 + pg_hba 覆盖用）
+  ansible.builtin.set_fact:
+    _pg_advertise_host: "{{ acps_advertise_host | default(ansible_host) | default(inventory_hostname) }}"
+
+# 同机 JDBC/应用常以 advertise FQDN 连 PG；Ubuntu 等默认 /etc/hosts 仅有短主机名。
+- name: 确保 PG advertise 主机名有本机 IPv4 /etc/hosts 条目
+  when:
+    - _pg_advertise_host is match('^[A-Za-z]')
+    - ansible_default_ipv4.address is defined
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^\s*\d+\.\d+\.\d+\.\d+\s+.*\b{{ _pg_advertise_host | regex_escape }}\b'
+    line: "{{ ansible_default_ipv4.address }} {{ _pg_advertise_host }}"
+    state: present
+  become: true
+
+# 监听须用本机 IPv4，勿把 hostname 写进 listen_addresses：
+# PG 在启动时解析 hostname；若当时 /etc/hosts/DNS 尚无该名，只会绑 localhost，
+# 随后 JDBC 用 FQDN→IP 连接会被 refused（Ubuntu 默认短主机名常见）。
+- name: 配置 listen_addresses（localhost + 本机 IPv4；不用 Compose 服务名）
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_os_config_dir }}/postgresql.conf"
+    regexp: '^\s*#?\s*listen_addresses\s*='
+    line: "listen_addresses = 'localhost{% if ansible_default_ipv4.address is defined %},{{ ansible_default_ipv4.address }}{% endif %}'"
+  become: true
+  register: _pg_listen_conf
+
+- name: 配置 PG 监听端口（对齐 postgresql_port，默认 5432）
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_os_config_dir }}/postgresql.conf"
+    regexp: '^\s*#?\s*port\s*='
+    line: "port = {{ postgresql_port }}"
+  become: true
+  register: _pg_port_conf
+
+- name: 放行应用侧 scram-sha-256 TCP 认证（幂等，标记块管理）
+  ansible.builtin.blockinfile:
+    path: "{{ postgresql_os_config_dir }}/pg_hba.conf"
+    marker: "# {mark} ACPS managed (host-mode app TCP auth)"
+    block: |
+      host    all             all             0.0.0.0/0               scram-sha-256
+      host    all             all             ::0/0                   scram-sha-256
+  become: true
+  register: _pg_hba_conf
+
+- name: 首次 enable + 启动 PostgreSQL（配置变更时 restart，否则仅 started，不清数据）
+  ansible.builtin.systemd:
+    name: "{{ postgresql_os_service_name }}"
+    enabled: true
+    state: >-
+      {{ 'restarted' if (_pg_listen_conf.changed or _pg_port_conf.changed or _pg_hba_conf.changed) else 'started' }}
+    daemon_reload: true
+  become: true
+
+- name: 等待 PG 端口就绪
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ postgresql_port }}"
+    timeout: 60
+
+- name: 等待 postgres 接受本地连接（pg_isready，TCP 层面探活，无需 OS postgres 身份）
+  # 不用 become_user: postgres：该机制在部分发行版上会触发已知问题——Ubuntu 上
+  # Ansible 为无 root 权限的 become_user 准备临时文件时用 ACL chmod
+  # （"A+user:...:allow" 语法）报错；Rocky 上 su/sudo 到非 root 用户的执行环境
+  # 未必继承外层 secure_path，导致裸命令名找不到（PGDG 二进制不在标准 PATH）。
+  # 用 host+port 连接的 pg_isready 走 TCP，不涉及本地 socket peer 认证，本就
+  # 不需要以 OS postgres 用户身份运行；统一改为 become: true（root）+ 绝对路径。
+  ansible.builtin.command:
+    argv: ["{{ postgresql_os_bin_dir }}/pg_isready", -h, 127.0.0.1, -p, "{{ postgresql_port }}"]
+  become: true
+  register: _pg_ready
+  retries: 30
+  delay: 2
+  until: _pg_ready.rc == 0
+  changed_when: false
+
+- name: 设置 postgres 超级用户密码（本地 socket peer 认证，供后续 TCP 密码登录）
+  # 理由同上：不用 become_user: postgres，而是以 root 身份显式 `sudo -u`
+  # 切到 postgres 再跑 psql（本地 socket，走 peer 认证）；psql 用绝对路径，
+  # 不依赖 sudo 目标用户 shell 的 PATH。
+  ansible.builtin.command:
+    argv:
+      - sudo
+      - -u
+      - "{{ postgresql_superuser }}"
+      - "{{ postgresql_os_bin_dir }}/psql"
+      - -v
+      - ON_ERROR_STOP=1
+      - -c
+      - "ALTER USER {{ postgresql_superuser }} WITH PASSWORD '{{ postgresql_superuser_password }}'"
+  become: true
+  changed_when: false
+  no_log: true
+
+- name: 开放 postgresql 广告端口（firewalld/ufw，幂等）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ postgresql_port }}"
+
+- name: 将 acps_psql.sh stage 到本机（host：PG 主机本地执行建库/扩展 SQL）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_acps_psql.yml
+
+- name: 确保 DBs/users/vector 扩展 idempotently（host：本地 TCP，密码认证）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    export PGPASSWORD='{{ postgresql_superuser_password }}'
+    PSQL="{{ acps_runtime_root }}/staging/acps_psql.sh"
+    run() { "$PSQL" --mode host --host 127.0.0.1 --port {{ postgresql_port }} --user {{ postgresql_superuser }} --db {{ postgresql_superuser_db }} --sql "$1"; }
+    ensure_user() {
+      local u="$1" p="$2"
+      # 角色已存在时仍须对齐口令：清场不彻底 / 换 secrets 重装时，仅 IF NOT EXISTS
+      # 会导致 Keycloak 等组件 JDBC 口令与库内角色不一致并闪退。
+      run "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='${u}') THEN CREATE USER \"${u}\" WITH PASSWORD '${p}'; ELSE ALTER USER \"${u}\" WITH PASSWORD '${p}'; END IF; END \$\$;"
+    }
+    ensure_db() {
+      local db="$1" owner="$2"
+      exists=$("$PSQL" --mode host --host 127.0.0.1 --port {{ postgresql_port }} --user {{ postgresql_superuser }} --db {{ postgresql_superuser_db }} --tuples-only --no-align --sql "SELECT 1 FROM pg_database WHERE datname='${db}'" | tr -d '[:space:]')
+      if [[ "$exists" != "1" ]]; then
+        run "CREATE DATABASE \"${db}\" OWNER \"${owner}\""
+      fi
+    }
+    ensure_user '{{ registry_db_user }}' '{{ registry_db_password }}'
+    ensure_db '{{ registry_db_name }}' '{{ registry_db_user }}'
+    ensure_user '{{ ca_db_user }}' '{{ ca_db_password }}'
+    ensure_db '{{ ca_db_name }}' '{{ ca_db_user }}'
+    ensure_user '{{ discovery_db_user }}' '{{ discovery_db_password }}'
+    ensure_db '{{ discovery_db_name }}' '{{ discovery_db_user }}'
+    ensure_user '{{ monitor_db_user }}' '{{ monitor_db_password }}'
+    ensure_db '{{ monitor_db_name }}' '{{ monitor_db_user }}'
+    if [[ '{{ keycloak_enabled | bool }}' == 'True' ]]; then
+      ensure_user '{{ keycloak_db_user }}' '{{ keycloak_db_password }}'
+      ensure_db '{{ keycloak_db_name }}' '{{ keycloak_db_user }}'
+    fi
+    "$PSQL" --mode host --host 127.0.0.1 --port {{ postgresql_port }} --user {{ postgresql_superuser }} --db {{ discovery_db_name }} \
+      --sql 'CREATE EXTENSION IF NOT EXISTS vector'
+  args:
+    executable: /bin/bash
+  register: _pg_ensure_host
+  retries: 15
+  delay: 2
+  until: _pg_ensure_host.rc == 0
+  no_log: true
+
+- name: 校验 pgvector 扩展在 discovery 库可用（健康检查）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    export PGPASSWORD='{{ postgresql_superuser_password }}'
+    "{{ acps_runtime_root }}/staging/acps_psql.sh" --mode host --host 127.0.0.1 --port {{ postgresql_port }} \
+      --user {{ postgresql_superuser }} --db {{ discovery_db_name }} --tuples-only --no-align \
+      --sql "SELECT extversion FROM pg_extension WHERE extname='vector'"
+  args:
+    executable: /bin/bash
+  register: _pg_vector_check
+  changed_when: false
+  no_log: true
+
+- name: 断言 vector 扩展已启用
+  ansible.builtin.assert:
+    that:
+      - _pg_vector_check.stdout | trim | length > 0
+    fail_msg: "pgvector extension not found in {{ discovery_db_name }} on {{ inventory_hostname }}"

@@ -136,7 +136,7 @@ class Settings(BaseSettings):
 
     @property
     def app_version(self) -> str:
-        return str(self._toml.get("app", {}).get("version", "2.1.0"))
+        return str(self._toml.get("app", {}).get("version", "2.2.0"))
 
     @property
     def docs_enabled(self) -> bool:
@@ -152,7 +152,7 @@ class Settings(BaseSettings):
 
     @property
     def uvicorn_host(self) -> str:
-        return str(self._toml.get("server", {}).get("host", "0.0.0.0"))
+        return str(self._toml.get("server", {}).get("host", "0.0.0.0"))  # nosec B104
 
     @property
     def uvicorn_port(self) -> int:
@@ -226,16 +226,17 @@ class Settings(BaseSettings):
     def validate_certificate_discovery_urls(self) -> None:
         """校验证书中的 OCSP / CRL 发现地址配置"""
         discovery_urls = {
-            "ca.ocsp_responder_url": self.ocsp_responder_url,
-            "ca.crl_distribution_point_url": self.crl_distribution_point_url,
+            "ca.ocsp_responder_url": ("OCSP_RESPONDER_URL", self.ocsp_responder_url),
+            "ca.crl_distribution_point_url": ("CRL_DISTRIBUTION_POINT_URL", self.crl_distribution_point_url),
         }
 
-        for setting_name, url in discovery_urls.items():
+        for setting_name, (env_var, url) in discovery_urls.items():
             hostname = _validate_absolute_http_url(setting_name, url)
 
             if self.app_env == "production" and (_is_loopback_host(hostname) or _is_placeholder_host(hostname)):
                 raise ValueError(
-                    f"{setting_name} must be explicitly configured to an externally reachable hostname in production"
+                    f"{setting_name} must be explicitly configured to an externally reachable hostname "
+                    f"in production (inject {env_var})"
                 )
 
     @property

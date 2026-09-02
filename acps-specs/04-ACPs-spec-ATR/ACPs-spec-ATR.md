@@ -1,12 +1,12 @@
 [首页](../README.md)
 
-ATR：智能体可信注册（ACPs-spec-ATR-v02.01）
+ATR：智能体可信注册（ACPs-spec-ATR-v02.02）
 
 # 1. 文档定义
 
-本文档为 ACPs 智能体协作协议体系中的智能体可信注册（Agent Trusted Registration ，ATR）流程定义，版本号 v02.01。
+本文档为 ACPs 智能体协作协议体系中的智能体可信注册（Agent Trusted Registration ，ATR）流程定义，版本号 v02.02。
 
-文档全称为 ACPs-spec-ATR-v02.01。
+文档全称为 ACPs-spec-ATR-v02.02。
 
 文档编写者：刘军（北京邮电大学），宋昊哲（北京邮电大学），李胤铭（北京邮电大学），李珂（北京邮电大学），禹可（北京邮电大学），胡晓峰（北京邮电大学），马镝（北京邮电大学），陈科良（北京邮电大学），高歌（中国电子技术标准化研究院）。
 
@@ -68,6 +68,8 @@ ATR：智能体可信注册（ACPs-spec-ATR-v02.01）
 (11) Order 状态进入 `ready` 后，CA Client 生成密鑰对和 CSR 并提交给 CA Server，CA Server 根据 CSR 及 ACS 信息进行证书签发；
 
 (12) CA Server 根据智能体详细信息构造证书：**CN** 使用 AIC（不附加域名后缀）；**SubjectAlternativeName** 包含 `URI:acps://{AIC}` 协议标识符，以及 ACS 的 `certificate.altNames` 中声明的 DNS/IP SAN；**extendedKeyUsage** 按请求用途单独签发（clientAuth 证书仅含 `clientAuth`，serverAuth 证书仅含 `serverAuth`，两种用途需分别申请）；**有效期** 使用 `certificate.requestedValidity` 指定的天数（超过上限则按上限签发）。最后智能体供应商向 CA Server 发起证书下载请求获取最终的智能体身份证书。
+
+证书 Subject `CN` **必须** 使用 AIC。若证书中包含 `SubjectAlternativeName` 的 `URI:acps://{AIC}`，该 SAN AIC **必须** 与 Subject `CN` 中的 AIC 保持一致。验证方在两者同时存在但不一致时 **必须** 判定该证书身份无效。
 
 ## 3.3 智能体实体可信注册流程
 

@@ -87,6 +87,9 @@ async def test_agent_lifecycle_create_submit_review_and_publish(client, db_sessi
     processed = process_response.json()
     assert processed["approval_status"] == "APPROVED"
     assert processed["aic"]
+    aic_parts = processed["aic"].split(".")
+    assert aic_parts[5] == "1"
+    assert len(aic_parts[6]) >= 1
 
     public_response = await client.get(f"/api/v1/agent/public/{agent_id}")
     assert public_response.status_code == 200

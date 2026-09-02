@@ -170,9 +170,9 @@ def test_config_reads_registration_profile_from_toml():
     cfg = Config(
         toml_section={
             "display_name": "Demo Client",
-            "org_name": "ACPS Demo",
+            "org_name": "ACPs Demo",
         }
     )
 
     assert cfg.display_name == "Demo Client"
-    assert cfg.org_name == "ACPS Demo"
+    assert cfg.org_name == "ACPs Demo"

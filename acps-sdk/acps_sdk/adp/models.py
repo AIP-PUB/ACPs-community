@@ -16,7 +16,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Literal, Optional, Tuple, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
 
 from .constants import (
     FILTER_LOGIC_AND,
@@ -605,6 +605,24 @@ class DiscoveryResult(BaseModel):
     )
 
     model_config = ConfigDict(populate_by_name=True)
+
+    alive_map: Optional[Dict[str, Dict[str, Any]]] = Field(
+        default=None,
+        alias="aliveMap",
+        description=(
+            "AMP alive-sync 注入的在线状态映射（可选）。"
+            "键为 AIC，值为对应的 AliveView 输出字典（含 alive、lastSeenAt 等字段）。"
+            "仅本地产出的结果（非转发透传）携带此字段；"
+            "转发结果原样透传上游的 aliveMap，不覆盖。"
+            "alive-sync 未启用或无数据时为 None，序列化时通过 exclude_none 省略。"
+        ),
+    )
+
+    _alive_enrichable: bool = PrivateAttr(default=False)
+    """内部标记：True 表示此结果由本地 DiscoveryService 产出，可注入 aliveMap。
+    转发回传结果（来自下游）保持 False，防止本地覆盖透传的 aliveMap（ADP §4.2.3）。
+    不序列化（PrivateAttr）。
+    """
 
     def iter_agent_skills(
         self,

@@ -288,4 +288,4 @@ if adp_error and adp_error.is_client_error():
 
 ## 参考
 
-- [ACPs-spec-ADP-v02.01](../../../acps-specs/06-ACPs-spec-ADP/ACPs-spec-ADP.md) - 智能体发现过程
+- [ACPs-spec-ADP-v02.02](../../../acps-specs/06-ACPs-spec-ADP/ACPs-spec-ADP.md) - 智能体发现过程

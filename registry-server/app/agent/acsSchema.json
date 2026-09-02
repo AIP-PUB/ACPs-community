@@ -24,7 +24,7 @@
     "protocolVersion": {
       "type": "string",
       "description": "此智能体支持的 ACPs 协议版本，用于协议兼容性检查和版本匹配。",
-      "examples": ["02.01"]
+      "examples": ["02.02"]
     },
     "name": {
       "type": "string",

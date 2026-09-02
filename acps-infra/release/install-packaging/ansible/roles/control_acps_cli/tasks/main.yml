@@ -1,0 +1,342 @@
+---
+# 从 artifacts/control app-release 在控制节点安装 acps-cli（默认必需）。
+#
+# H4 / S2 host 升级：
+#   - acps_host_release_dest 已设 → 安装到 releases/<ver>/，再 cutover current
+#   - acps_skip_stage_artifact / acps_host_cli_rollback → 跳过解包，仅重渲染 + smoke
+# 首装 / image：仍落扁平 {{ acps_control_root }}/acps-cli（兼容）；升级后为
+#   releases/+current，并维护 venv→current/venv 兼容软链。
+
+- name: 确保 control 工作区目录
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ acps_control_root }}"
+    - "{{ acps_control_root }}/acps-cli"
+    - "{{ acps_control_root }}/work/certs"
+    - "{{ acps_control_root }}/work/staging"
+    - "{{ acps_control_root }}/work/tokens"
+    - "{{ acps_control_root }}/logs"
+
+- name: 解析 control CLI 本次落地 dest
+  ansible.builtin.set_fact:
+    _acps_cli_skip_install: >-
+      {{
+        (acps_skip_stage_artifact | default(false) | bool)
+        or (acps_host_cli_rollback | default(false) | bool)
+      }}
+    _acps_cli_use_releases: >-
+      {{
+        ((acps_host_release_dest | default('') | string | length) > 0)
+        or (acps_host_cli_upgrade | default(false) | bool)
+        or (acps_host_layout | default('') | string) == 'releases'
+      }}
+    _acps_cli_install_dest: >-
+      {{
+        (acps_host_release_dest | string)
+        if ((acps_host_release_dest | default('') | string | length) > 0)
+        else (
+          (acps_control_root ~ '/acps-cli/current')
+          if (
+            (acps_skip_stage_artifact | default(false) | bool)
+            or (acps_host_cli_rollback | default(false) | bool)
+          )
+          else (acps_control_root ~ '/acps-cli')
+        )
+      }}
+
+- name: 查找 app-release 制品
+  when: not (_acps_cli_skip_install | bool)
+  ansible.builtin.find:
+    paths: "{{ acps_artifacts_control }}"
+    patterns: ["acps-cli-*-app-release-*.tar.gz", "*-app-release-*.tar.gz"]
+  register: _cli_artifacts
+
+- name: 除非允许显式源码回退，否则要求 app-release
+  when: not (_acps_cli_skip_install | bool)
+  ansible.builtin.assert:
+    that:
+      - (_cli_artifacts.matched | int > 0) or (acps_cli_allow_source_fallback | default(false) | bool)
+    fail_msg: >-
+      No acps-cli app-release under {{ acps_artifacts_control }}.
+      请将 acps-cli-*-app-release-*.tar.gz 放在该目录。
+      Source fallback is disabled (set acps_cli_allow_source_fallback=true only for dev).
+
+- name: 存在时从 app-release 安装（解包 → 规范化 → venv → 离线 pip；共用 install_app_release.yml）
+  when:
+    - not (_acps_cli_skip_install | bool)
+    - (_cli_artifacts.matched | int > 0)
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: install_app_release.yml
+  vars:
+    acps_app_install_dest: "{{ _acps_cli_install_dest }}"
+    acps_app_release_archive: "{{ (_cli_artifacts.files | sort(attribute='path') | last).path }}"
+    # 需要 oidc extra：acps-cli 启动时导入 acps_sdk.oidc。
+    # acps_app_python_bin 走 acps_python_bin（install_python S7 钉版本解释器）；
+    # strict 与否由 install_app_release.yml 按 acps_deploy_mode 默认（host 严格
+    # fail、image 控制节点保留浮动兜底，对齐现状）——本设计 §4.3 / §6.2。
+    acps_app_pip_packages:
+      - "acps-sdk[oidc]"
+      - "acps-cli"
+    acps_app_console_script: acps-cli
+
+# 注意：勿在本 block 子任务 vars 里写
+#   acps_host_release_dest: "{{ acps_host_release_dest }}"
+# Ansible 会把 block when 套到子任务上，task vars 先遮蔽同名变量再求 when，
+# 形成自引用递归（首装 site 即炸）。升级路径由 upgrade_one set_fact 注入；
+# cutover 直接读外层 fact，无需再经 vars 透传。
+- name: host 升级 — cutover current → staged release + compat 软链
+  when:
+    - not (_acps_cli_skip_install | bool)
+    - (_cli_artifacts is defined)
+    - (_cli_artifacts.matched | default(0) | int > 0)
+    - (acps_host_release_dest | default('') | string | length) > 0
+  block:
+    - name: cutover control CLI current
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: cutover_host_current.yml
+      vars:
+        acps_component_key: acps_cli
+        acps_host_component_root: "{{ acps_control_root }}/acps-cli"
+
+    - name: 写入 .installed_app_release marker（版本目录）
+      ansible.builtin.copy:
+        dest: "{{ acps_host_release_dest }}/.installed_app_release"
+        content: "{{ (_cli_artifacts.files | sort(attribute='path') | last).path | basename }}\n"
+        mode: "0644"
+
+    - name: 刷新 compat 软链（venv/scripts → current；旧路径仍可用）
+      ansible.builtin.shell: |
+        set -euo pipefail
+        ROOT="{{ acps_control_root }}/acps-cli"
+        ln -sfn current/venv "${ROOT}/venv"
+        if [[ -d "${ROOT}/current/scripts" ]]; then
+          ln -sfn current/scripts "${ROOT}/scripts"
+        fi
+      args:
+        executable: /bin/bash
+
+- name: 记录 control CLI artifact fact（供 commit_state）
+  when:
+    - not (_acps_cli_skip_install | bool)
+    - (_cli_artifacts is defined)
+    - (_cli_artifacts.matched | default(0) | int > 0)
+  ansible.builtin.set_fact:
+    acps_image_meta: >-
+      {{
+        {
+          'file': ((_cli_artifacts.files | sort(attribute='path') | last).path | basename),
+          'app_release': ((_cli_artifacts.files | sort(attribute='path') | last).path | basename),
+        }
+      }}
+
+- name: 开发回退 — 经 uv 从同级 acps-cli checkout 链接/安装
+  when:
+    - not (_acps_cli_skip_install | bool)
+    - (_cli_artifacts is defined)
+    - (_cli_artifacts.matched | int == 0)
+    - acps_cli_allow_source_fallback | default(false) | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    CLI_SRC="{{ acps_cli_source_path | default(acps_release_root ~ '/../../../acps-cli') }}"
+    CLI_SRC="$(cd "$CLI_SRC" && pwd)"
+    if [[ ! -f "$CLI_SRC/pyproject.toml" ]]; then
+      echo "Neither app-release nor acps-cli source found at $CLI_SRC" >&2
+      exit 2
+    fi
+    echo "NOTE: using local acps-cli source (dev fallback; air-gap path needs artifacts/control app-release)" >&2
+    cd "$CLI_SRC"
+    uv sync
+    DEST="{{ _acps_cli_install_dest }}"
+    mkdir -p "$DEST"
+    ln -sfn "$CLI_SRC/.venv" "$DEST/venv"
+    mkdir -p "$DEST/scripts"
+    rsync -a "$CLI_SRC/scripts/" "$DEST/scripts/" || cp -a "$CLI_SRC/scripts/." "$DEST/scripts/"
+  args:
+    executable: /bin/bash
+
+- name: 解析 CLI 可执行路径（current 优先，扁平兼容）
+  ansible.builtin.set_fact:
+    _acps_cli_bin_candidates:
+      - "{{ acps_control_root }}/acps-cli/current/venv/bin/acps-cli"
+      - "{{ acps_control_root }}/acps-cli/venv/bin/acps-cli"
+    _acps_cli_py_candidates:
+      - "{{ acps_control_root }}/acps-cli/current/venv/bin/python"
+      - "{{ acps_control_root }}/acps-cli/venv/bin/python"
+
+- name: 探测 CLI bin
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: "{{ _acps_cli_bin_candidates }}"
+  register: _acps_cli_bin_stats
+
+- name: 选定 CLI bin / python
+  ansible.builtin.set_fact:
+    _acps_cli_bin: >-
+      {{
+        (_acps_cli_bin_stats.results | selectattr('stat.exists') | map(attribute='item') | list | first)
+        | default(_acps_cli_bin_candidates[1])
+      }}
+
+- name: 由 CLI bin 派生 python
+  ansible.builtin.set_fact:
+    _acps_cli_python: "{{ (_acps_cli_bin | dirname) }}/python"
+
+- name: 为 CLI 配置解析 registry/ca advertise
+  ansible.builtin.set_fact:
+    _registry_host: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+    _ca_host: "{{ hostvars | acps_group_addr(groups, 'ca_server') }}"
+    _discovery_host: "{{ hostvars | acps_group_addr(groups, 'discovery_server') }}"
+    _mq_host: "{{ hostvars | acps_group_addr(groups, 'mq_auth_server') }}"
+    _keycloak_host: "{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+    _monitor_host: "{{ hostvars | acps_group_addr(groups, 'monitor_server') }}"
+
+# Keycloak --hostname 使用 advertise URL（image/host 相同）；JWT iss 与 public base 一致。
+# 仍安装 sitecustomize 重写，兼容旧 discovery 缓存或误配 docker DNS。
+- name: 持久化 Keycloak public base 供控制节点 OIDC 刷新重写
+  when: keycloak_enabled | bool
+  ansible.builtin.copy:
+    content: "http://{{ _keycloak_host }}:{{ keycloak_port }}\n"
+    dest: "{{ acps_control_root }}/work/oidc_public_base"
+    mode: "0644"
+
+- name: 记录控制节点 OIDC session issuer（须与 JWT iss 一致）
+  when: keycloak_enabled | bool
+  ansible.builtin.set_fact:
+    _acps_oidc_session_issuer_registry: "http://{{ _keycloak_host }}:{{ keycloak_port }}/realms/acps-registry"
+    _acps_oidc_session_issuer_monitor: "http://{{ _keycloak_host }}:{{ keycloak_port }}/realms/acps-monitor"
+
+- name: 将 sitecustomize OIDC 重写安装到 control CLI venv
+  when: keycloak_enabled | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    VENV="$(dirname "{{ _acps_cli_bin }}")"
+    VENV="$(cd "$VENV/.." && pwd)"
+    SITE="$("$VENV/bin/python" -c 'import site; print(site.getsitepackages()[0])')"
+    cp "{{ acps_release_root }}/scripts/sitecustomize_oidc_rewrite.py" "$SITE/sitecustomize.py"
+    # Smoke：discovery 须经可达 URL 成功；token_endpoint 不得残留 docker DNS。
+    export ACPS_OIDC_PUBLIC_BASE_FILE="{{ acps_control_root }}/work/oidc_public_base"
+    "$VENV/bin/python" - <<'PY'
+    from acps_sdk.oidc.client import OidcDeviceClient, OidcDeviceClientConfig
+    import httpx
+    issuer = """{{ _acps_oidc_session_issuer_registry }}"""
+    cfg = OidcDeviceClientConfig(
+        issuer=issuer,
+        client_id="registry-install",
+        scopes=("openid",),
+        require_https=False,
+    )
+    with httpx.Client(timeout=30.0) as http, OidcDeviceClient(cfg, http_client=http) as client:
+        doc = client.get_discovery_document()
+        assert "keycloak:8080" not in (doc.token_endpoint or ""), doc.token_endpoint
+        print("oidc rewrite ok", doc.token_endpoint)
+    PY
+  args:
+    executable: /bin/bash
+
+- name: 渲染 acps-cli.toml（共享于组件根，不进 releases/）
+  ansible.builtin.template:
+    src: acps-cli.toml.j2
+    dest: "{{ acps_control_root }}/acps-cli/acps-cli.toml"
+    mode: "0600"
+
+- name: 经 install Direct Access Grant 建立 OIDC 会话（无人值守）
+  when: keycloak_enabled | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    SCRIPT="{{ acps_release_root }}/scripts/oidc_password_login.py"
+    # 供*控制节点*拉取 token 的主机发布 Keycloak URL
+    # （可能与业务主机不同；远程拓扑切勿假设 loopback）。
+    # session-issuer 必须与 JWT iss 一致（advertise URL）。
+    FETCH_ISSUER_REG="http://{{ _keycloak_host }}:{{ keycloak_port }}/realms/acps-registry"
+    FETCH_ISSUER_MON="http://{{ _keycloak_host }}:{{ keycloak_port }}/realms/acps-monitor"
+    PUBLIC_BASE="http://{{ _keycloak_host }}:{{ keycloak_port }}"
+    SESSION_ISSUER_REG="{{ _acps_oidc_session_issuer_registry }}"
+    SESSION_ISSUER_MON="{{ _acps_oidc_session_issuer_monitor }}"
+    TOK="{{ acps_control_root }}/work/tokens"
+    mkdir -p "$TOK"
+    "$PY" "$SCRIPT" \
+      --issuer "$FETCH_ISSUER_REG" \
+      --public-base "$PUBLIC_BASE" \
+      --client-id "{{ keycloak_registry_install_client_id | default('registry-install') }}" \
+      --username "{{ registry_bootstrap_username | default(registry_admin_username) }}" \
+      --password "{{ registry_bootstrap_password | default(registry_admin_password) }}" \
+      --token-file "$TOK/registry-user.json" \
+      --service registry --account-kind user \
+      --session-issuer "$SESSION_ISSUER_REG"
+    "$PY" "$SCRIPT" \
+      --issuer "$FETCH_ISSUER_REG" \
+      --public-base "$PUBLIC_BASE" \
+      --client-id "{{ keycloak_registry_install_client_id | default('registry-install') }}" \
+      --username "{{ registry_admin_username }}" \
+      --password "{{ registry_admin_password }}" \
+      --token-file "$TOK/registry-admin.json" \
+      --service registry --account-kind admin \
+      --session-issuer "$SESSION_ISSUER_REG"
+    {% if monitor_server_enabled | bool %}
+    "$PY" "$SCRIPT" \
+      --issuer "$FETCH_ISSUER_MON" \
+      --public-base "$PUBLIC_BASE" \
+      --client-id "{{ keycloak_monitor_install_client_id | default('monitor-install') }}" \
+      --username "{{ monitor_oidc_admin_username | default('monitor-admin') }}" \
+      --password "{{ monitor_oidc_admin_password | default(registry_admin_password) }}" \
+      --token-file "$TOK/monitor-admin.json" \
+      --service monitor --account-kind admin \
+      --session-issuer "$SESSION_ISSUER_MON"
+    {% endif %}
+    CLI="{{ _acps_cli_bin }}"
+    CFG="{{ acps_control_root }}/acps-cli/acps-cli.toml"
+    "$CLI" --config "$CFG" auth status --json | "$PY" -c 'import json,sys; d=json.load(sys.stdin); assert d.get("authenticated"), d'
+    "$CLI" --config "$CFG" admin auth status --json | "$PY" -c 'import json,sys; d=json.load(sys.stdin); assert d.get("authenticated"), d'
+    echo "OIDC_SESSIONS_OK"
+  args:
+    executable: /bin/bash
+
+- name: Smoke acps-cli --help
+  ansible.builtin.command:
+    argv:
+      - "{{ _acps_cli_bin }}"
+      - --help
+  register: _cli_help
+  changed_when: false
+
+- name: 记录 python/cli facts
+  ansible.builtin.set_fact:
+    acps_cli_bin: "{{ _acps_cli_bin }}"
+    acps_cli_config: "{{ acps_control_root }}/acps-cli/acps-cli.toml"
+    acps_python_bin: "{{ _acps_cli_python }}"
+    cacheable: true
+
+# — control CLI 版本 state（位于 acps_control_root 父目录 / state/control/）
+# 升级路径由 upgrade_one 在 health 后 commit（acps_skip_state_commit=true）。
+- name: 提交 control acps-cli 版本 state
+  when: not (acps_skip_state_commit | default(false) | bool)
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: commit_state.yml
+  vars:
+    acps_state_scope: control
+    acps_runtime_root: "{{ acps_control_root | dirname }}"
+    acps_state_root: "{{ acps_control_root | dirname }}/state"
+    acps_state_version: "{{ acps_version }}"
+    acps_state_artifact_id: >-
+      {{
+        (acps_image_meta.file | default(''))
+        if ((acps_image_meta.file | default('') | string | length) > 0)
+        else (
+          ((_cli_artifacts.files | sort(attribute='path') | last).path | basename)
+          if (
+            (_cli_artifacts is defined)
+            and ((_cli_artifacts.matched | default(0) | int) > 0)
+          )
+          else 'acps-cli-source-fallback'
+        )
+      }}
+    acps_state_image_tag: ""
+    acps_state_layout: "{{ acps_host_layout | default('') }}"
+    acps_state_release_path: "{{ acps_host_release_path | default(acps_host_release_dest | default('')) }}"

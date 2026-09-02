@@ -1,0 +1,307 @@
+---
+# 集群级默认值。V1：acps_deploy_mode 为集群级，禁止混用 image/host。
+# 注意：本文件优先级高于 inventory 文件里的 all.vars；故 acps_deploy_mode
+# 必须在各 hosts*.yml 中设定，或用 -e 覆盖，勿在此写死为 image（否则
+# hosts.rocky9.yml / hosts.ubuntu22.yml 的 host 会被静默盖掉）。
+
+acps_version: "2.2.0"
+# acps_deploy_mode: 由 hosts*.yml 的 all.vars 或 -e 提供（image | host）
+# 业务镜像 / 应用发布包平台（= release-manifest 的 image_platform）。
+acps_platform: linux-arm64
+# 控制节点 CLI 平台（= release-manifest 的 control_platform）；可与 acps_platform 不同。
+# 安装包内应与 artifacts/control/ 下 CLI 包一致；留空则
+# 接受当前存在的 app-release（control_acps_cli 按 glob 解析）。
+acps_control_platform: "darwin-arm64"
+acps_release_root: "{{ (playbook_dir | dirname | dirname) }}"
+acps_artifacts_images: "{{ acps_release_root }}/artifacts/images"
+acps_artifacts_control: "{{ acps_release_root }}/artifacts/control"
+# host 模式业务 app-release 制品目录（build-install-package.sh --mode host 产出，
+# release-manifest.toml [apps.*] 的 app_release 文件名相对此目录）。
+acps_artifacts_apps: "{{ acps_release_root }}/artifacts/apps"
+# host 模式 vendor_bundle 制品目录（build-install-package.sh --mode host 产出，
+# release-manifest.toml [vendor.*] 的 file 字段相对此目录）。
+acps_artifacts_vendor: "{{ acps_release_root }}/artifacts/vendor"
+acps_manifest_path: "{{ acps_release_root }}/release-manifest.toml"
+# 优先使用 ansible-playbook 的解释器（3.11+）以便 tomllib 可用；裸 macOS
+# usr/bin/python3 常为 3.9，会导致 manifest_lookup 失败。
+acps_tools_python: "{{ ansible_playbook_python | default('python3') }}"
+
+# 路径默认值（本机非 root 可用 host_vars 覆盖）
+acps_runtime_root: /opt/acps
+acps_data_root: /var/lib/acps
+acps_log_root: /var/log/acps
+# acps_control_root：控制节点工作区（可与业务 runtime root 不同）。
+# 勿在本文件写死——本文件优先于 hosts*.yml 的 all.vars，写死会盖掉拓扑级覆盖。
+# 默认见 roles/common/defaults/main.yml；可在 hosts.yml all.vars / host_vars / -e 覆盖。
+# 多拓扑并行验收时须为每套解包目录设独立路径，勿共用同一个 control/work。
+
+# Registry bootstrap：identity/org 种子为可选辅助，用于审批后 verified-provider 重写。
+# ACS/CA 不要求 provider.organization。
+# 默认保留可用的 provider 快照供系统 ACME；任一设为 false 即跳过。
+registry_bootstrap_seed_identity_verification: true
+registry_bootstrap_seed_org_verification: true
+
+# 已废弃：旧版 biz_* / smoke_business 产品路径已下线。
+# 业务验收 = 可选 playbooks/business.yml（无分段产品参数）。
+# 下列变量仅保留给已废弃的 smoke.yml acps_smoke_kind=business 兼容。
+acps_business_smoke_enabled: false
+acps_business_smoke_groups: ""
+#
+acps_cert_renew_before_days: 30
+acps_force_cert_renew: false
+# 强制重新执行 demo T4 bootstrap（与换证独立；空 Registry + 旧本地材料场景）
+acps_force_demo_bootstrap: false
+# 强制重跑 Keycloak 全量安装 bootstrap（realm/客户端已存在时默认跳过；B22）
+acps_force_keycloak_bootstrap: false
+# 强制从安装包 docker load 镜像（忽略目标已有 tag / 已记录 digest）
+acps_force_image_load: false
+# renew-certs 可选 profile 过滤（空 = 所有已启用叶子 profile）。
+# 示例：["registry-9002", "redis"]
+acps_cert_renew_profiles: []
+# 续签后：当 due 集合非空时运行 smoke_basic + registry-9002 TLS 探针。
+acps_cert_renew_run_probe: true
+#
+acps_force_trust_bundle_refresh: false
+# 可选 profile 过滤（空 = 所有已启用 trust 消费方）。
+# 示例：["registry-9002", "redis", "mq-auth-server"]
+acps_trust_bundle_profiles: []
+# trust 文件变更后：重建 Compose 消费方（V1；不支持热加载）。
+acps_trust_bundle_reload: true
+# 变更/强制刷新后：运行 smoke_basic（含 TLS 平面硬门禁）。
+acps_trust_bundle_run_probe: true
+# TLS 平面握手验收（Redis TLS / AMQPS / mq-auth mTLS / registry 9002 / demo HTTPS）
+acps_tls_smoke_enabled: true
+acps_tls_smoke_timeout: 10
+acps_tls_smoke_retries: 5
+acps_tls_smoke_delay: 3
+# smoke_basic HTTP health（含 monitor:9009）冷启动重试（§9.5.5 / BP9）
+acps_smoke_http_retries: 15
+acps_smoke_http_delay: 4
+# renew due=[] 轻量 TLS 平面（§9.5.5 / BP5）；由 renew-certs playbook 置 true
+acps_smoke_tls_plane_only: false
+#
+# 默认：与 hosts.yml / secrets.yml 同级的 inventories/ca-materials/
+# 隐式 localhost（不在 inventory 主机列表）上 inventory_dir 可能未定义；
+# 固定用 playbook_dir 的父级 ansible/ 再进 inventories（site.yml 位于 playbooks/）。
+# 默认：与 hosts.yml / secrets.yml 同级的 inventories/ca-materials/
+# 隐式 localhost（不在 inventory 主机列表）上 inventory_dir 可能未定义；
+# 固定用 playbook_dir 的父级 ansible/ 再进 inventories（site.yml 位于 playbooks/）。
+acps_ca_materials_dir: "{{ playbook_dir | dirname }}/inventories/ca-materials"
+
+# image-mode compose 路径
+acps_compose_project_prefix: acps
+acps_docker_network: acps-net
+# 与宿主机业务网卡 MTU 对齐（lab 常见 ens* =1400）。容器默认 1500 而出口更小时，
+# 跨境 HTTPS（LLM）易出现间歇 SSL handshake timeout。daemon.json 与 acps-net 同值。
+acps_docker_mtu: 1400
+# 已存在的 acps-net MTU 不符时：默认失败并提示；true 时停栈删网重建（破坏性）。
+acps_docker_network_recreate: false
+acps_compose_dir: "{{ acps_runtime_root }}/compose"
+acps_compose_services_dir: "{{ acps_compose_dir }}/services"
+
+#
+# 控制节点 CLI 状态：{{ acps_runtime_root }}/state/control/acps_cli.json
+acps_state_root: "{{ acps_runtime_root }}/state"
+# 升级后跳过 smoke（不推荐）
+acps_upgrade_skip_smoke: false
+# 回滚后跳过 smoke（不推荐）
+acps_rollback_skip_smoke: false
+
+# Python：uv + 精确钉版本 CPython（本设计 §6.2 / E §3.1）；业务机与控制节点同法，
+# 由 install_python role 产出 acps_python_bin（绝对路径，cacheable fact）供各组件 venv 使用。
+# control 节点（site.yml 中 hosts: localhost + connection: local）用 HOME 下路径，
+# 避免无 sudo 写 /opt；远程业务机（真实 ssh 连接）用 /opt/uv-python
+# （本设计 §3.4 baseline-matrix [python].uv_python_root 默认值）。
+acps_uv_python_root: >-
+  {{ (ansible_connection | default('ssh') == 'local')
+     | ternary(lookup('env', 'HOME') ~ '/.local/share/uv-python', '/opt/uv-python') }}
+acps_python_version: "3.14.2"
+# uv 自身精确钉版本（非 latest）；对齐 ../baseline-matrix.toml [python].uv_version（S6）。
+# 构建 host 安装包时由 build-install-package.sh 按该文件回写本值，勿手改漂移。
+# 与 acps_python_version 存在耦合，须联合验证（install_python role 实测）：
+# --no-bin 需 uv>=0.8；cpython-3.14.2 下载索引需 uv>=0.10.0。
+acps_uv_version: "0.10.11"
+acps_python_bin: "" # 由 install_python role 填充（cacheable fact）；control_acps_cli 复用/覆盖为其 venv python
+acps_install_python: true # false 时该主机跳过 install_python（如仅承载 PG/Redis/RMQ、无应用进程的机器）
+# strict：安装/解析失败即 fail（host 模式，产品必需钉版本 Python 就位）。
+# 非 strict：失败仅告警+跳过，acps_python_bin 保持留空，依赖方（如 control_acps_cli）
+# 走浮动兜底（image 模式控制节点 phase 0b；S7 P2.1）。
+acps_install_python_strict: "{{ acps_deploy_mode == 'host' }}"
+acps_cli_allow_source_fallback: false # 闭环/离线：要求 artifacts/control app-release
+acps_systemd_user: acps # host-mode systemd 单元运行身份；image 路径未使用
+acps_systemd_group: acps
+# host-mode app_release 重装：即便版本 marker 未变也强制重新解包+离线 pip（调试用）。
+acps_force_app_reinstall: false
+# host-mode vendor_bundle 重装：即便 marker 未变也强制重新解包（调试用）。
+acps_force_vendor_reinstall: false
+# host 回滚：state.current.migrate_id 新于 previous 时须显式确认（不自动 downgrade schema）。
+acps_rollback_acknowledge_migrate: false
+# 升 ca_server 时是否 follow refresh-trust（§9.5.9 / BP13）。
+# 未定义时：CSV 含 ca_server → true；否则 false。显式 false → WARNING（矩阵禁用）。
+# acps_upgrade_follow_refresh_trust: true
+# host-mode vendor_bundle 落地根（stage_artifact_host_vendor_bundle.yml 使用）。
+vendor_bundle_install_roots:
+  keycloak: "{{ acps_runtime_root }}/keycloak"
+  temurin_jre17: "{{ acps_runtime_root }}/temurin_jre17"
+  redpanda: "{{ acps_runtime_root }}/redpanda"
+  victoria_metrics: "{{ acps_runtime_root }}/victoria_metrics"
+  clickhouse: "{{ acps_runtime_root }}/clickhouse"
+  minio: "{{ acps_runtime_root }}/minio"
+  opensearch: "{{ acps_runtime_root }}/opensearch"
+  amp_forwarder: "{{ acps_runtime_root }}/amp_forwarder"
+# 解包后定位 vendor home 根的 bin 标记（未登记则退化为单层顶目录启发式）。
+_vendor_bundle_bin_markers:
+  keycloak: bin/kc.sh
+  temurin_jre17: bin/java
+  redpanda: bin/rpk
+  victoria_metrics: victoria-metrics-prod
+  clickhouse: clickhouse
+  minio: minio
+  opensearch: bin/opensearch
+  amp_forwarder: bin/fluent-bit
+# host-mode ExecStart 兜底表（本设计 §5.2 三级解析的第 3 级）：
+# {acps_compose_service_name: entrypoint}。优先级低于 runtime-package.toml
+# [[components]].entrypoint 与角色显式 acps_host_entrypoint；两者都缺失时才查此表，
+# 仍缺失则 fail（禁止按组件 id 猜测 python -m 模块名）。须与 app-release 薄包
+# runtime-package.toml 保持同步（来源：各仓 scripts/just/project-hooks.sh）。
+host_component_entrypoints:
+  registry_server: "uvicorn app.main:app --host 0.0.0.0 --port 9001"
+  # 与 registry-server PACKAGE_RUNTIME_COMPONENTS 一致：python -m 才会启用 mTLS TLS。
+  registry_server_mtls: "python -m app.main_mtls"
+  ca_server: "uvicorn app.main:app --host 0.0.0.0 --port 9003"
+  discovery_server: "uvicorn app.main:app --host 0.0.0.0 --port 9005"
+  mq_auth_server: "mq-auth-server"
+  monitor_server: "uvicorn app.main:app --host 0.0.0.0 --port 9009"
+  demo_leader: "bash scripts/start-leader-api.sh"
+  demo_leader_web: "bash scripts/start-web-ui.sh"
+  demo_partner: "python -m partners.main"
+
+# S12 工程里程碑：仅开 AMP infra（redpanda/vm/minio/forwarder），monitor 关档。
+# 用法：-e amp_host_milestone=true -e monitor_server_enabled=false
+amp_host_milestone: false
+
+# ClickHouse host 资源上限（本设计 §8.2.1 / Step 15）
+clickhouse_max_server_memory_bytes: 2147483648 # 2 GiB
+clickhouse_max_query_memory_bytes: 1073741824 # 1 GiB
+clickhouse_native_port: 19000
+
+# OpenSearch host JVM 堆（本设计 §8.2.1 / Step 16）
+opensearch_heap_mb: 512
+
+# S18 — Monitor→Discovery alive-sync（host/image 共用语义）
+# discovery_server/templates/production.toml.j2 在 monitor_server_enabled=true 时
+# 渲染 provider_base_url + kafka_bootstrap_servers（host 走 inventory 广告地址）；
+# discovery_server/templates/env.j2 注入 ALIVE_SYNC_PROVIDER_BEARER_TOKEN
+# （= secrets monitor_heartbeat_sync_internal_token）。业务验收见 playbooks/business.yml。
+postgresql_enabled: true
+postgresql_managed: true
+redis_enabled: true
+redis_managed: true
+rabbitmq_enabled: true
+rabbitmq_managed: true
+keycloak_enabled: true
+keycloak_managed: true
+registry_server_enabled: true
+registry_server_managed: true
+ca_server_enabled: true
+ca_server_managed: true
+discovery_server_enabled: true
+discovery_server_managed: true
+mq_auth_server_enabled: true
+mq_auth_server_managed: true
+monitor_server_enabled: true # ★ 本地门控：启用 AMP+Monitor
+# 业务验收需要 demo_leader + demo_partner + Monitor + Discovery
+# + Monitor→Discovery 心跳同步（Relay + alive-sync）。D2 仅在 Discovery 断言，
+# 不得使用 Monitor heartbeat API。Keycloak OIDC 安装使用共享
+# monitor_heartbeat_sync_internal_token（Monitor HEARTBEAT_SYNC_INTERNAL_TOKEN /
+# Discovery ALIVE_SYNC_PROVIDER_BEARER_TOKEN），以便 alive-sync 引导 /sync/*。
+demo_partner_enabled: true
+demo_leader_enabled: true
+
+# Demo 端口
+demo_partner_port_food: 9021
+demo_partner_port_rural: 9022
+demo_partner_port_urban: 9023
+demo_partner_port_hotel: 9024
+demo_partner_port_transport: 9025
+demo_leader_web_port: 9030
+demo_leader_api_port: 9031
+# AMP Forwarder：stage_artifact 后从 [images.fluent_bit] 设置（image-packaging）。
+amp_forwarder_image: ""
+
+# Keycloak 安装客户端（Direct Access Grant，用于无人值守 bootstrap）
+keycloak_registry_install_client_id: registry-install
+keycloak_monitor_install_client_id: monitor-install
+keycloak_leader_install_client_id: leader-install
+keycloak_registry_cli_client_id: registry-cli
+keycloak_monitor_cli_client_id: monitor-cli
+# Leader realm demo 用户（业务验收 Step B/C password grant）
+leader_oidc_user_username: leader-user
+leader_oidc_user_password: demo123
+
+# 端口
+registry_server_public_port: 9001
+registry_server_mtls_port: 9002
+registry_server_enable_mtls_listener: false
+ca_server_port: 9003
+discovery_server_port: 9005
+# cpu|gpu — CPU 通常需在 secrets.yml 配置 discovery_llm_*/embedding_*
+# GPU 通常无需外部 LLM（密钥可能未使用）。见 secrets.example。
+discovery_server_variant: cpu
+mq_auth_server_group_api_port: 9007
+mq_auth_server_auth_api_port: 9008
+monitor_server_port: 9009
+keycloak_port: 9080
+keycloak_management_port: 9090
+postgresql_port: 5432
+redis_port: 6379
+rabbitmq_amqps_port: 5671
+rabbitmq_mgmt_port: 15672
+redpanda_kafka_port: 19092
+victoria_metrics_port: 8428
+clickhouse_http_port: 8123
+minio_api_port: 9000
+minio_console_port: 9004
+opensearch_http_port: 9200
+
+# 数据库身份
+postgresql_superuser: postgres
+postgresql_superuser_db: postgres
+registry_db_name: agent_registry
+registry_db_user: registry
+ca_db_name: agent_ca
+ca_db_user: ca
+discovery_db_name: agent_discovery
+discovery_db_user: discovery
+monitor_db_name: agent_monitor
+monitor_db_user: monitor
+keycloak_db_name: keycloak
+keycloak_db_user: keycloak
+
+# 证书额外 SAN
+# 超出 acps_advertise_host 的额外 SAN（cert_provision 注入 ACS）。
+# 跨主机控制→业务访问勿仅依赖 127.0.0.1。
+registry_server_tls_extra_sans:
+  - localhost
+  - 127.0.0.1
+  - host.docker.internal
+redis_tls_extra_sans:
+  - localhost
+  - 127.0.0.1
+  - host.docker.internal
+rabbitmq_tls_extra_sans:
+  - localhost
+  - 127.0.0.1
+  - host.docker.internal
+mq_auth_server_tls_extra_sans:
+  - localhost
+  - 127.0.0.1
+  - host.docker.internal
+  - mq_auth_server
+  - mq-auth-server
+
+# Ansible 最低版本
+acps_ansible_min_version: "2.16.0"
+
+# secrets 预检占位符标记
+acps_secrets_placeholder: "CHANGE_ME"

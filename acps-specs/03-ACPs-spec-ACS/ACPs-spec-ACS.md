@@ -1,12 +1,12 @@
 [首页](../README.md)
 
-ACS：智能体能力描述（ACPs-spec-ACS-v02.01）
+ACS：智能体能力描述（ACPs-spec-ACS-v02.02）
 
 # 1. 文档定义
 
-本文档为支持智能体互联的 ACPs 智能体协作协议体系中的智能体能力描述（Agent Capability Specification，ACS）标准定义，版本号 v02.01。
+本文档为支持智能体互联的 ACPs 智能体协作协议体系中的智能体能力描述（Agent Capability Specification，ACS）标准定义，版本号 v02.02。
 
-文档全称为 ACPs-spec-ACS-v02.01。
+文档全称为 ACPs-spec-ACS-v02.02。
 
 文档编写者：禹可（北京邮电大学），刘军（北京邮电大学），李珂（北京邮电大学），郭小练（北京邮电大学），李胤铭（北京邮电大学），宋昊哲（北京邮电大学），胡晓峰（北京邮电大学），马镝（北京邮电大学），陈科良（北京邮电大学）。
 
@@ -60,7 +60,7 @@ export interface AgentCapabilitySpec {
   /**
    * 此智能体支持的ACPs协议版本，用于协议兼容性检查和版本匹配。
    *
-   * @TJS-examples ["02.01"]
+   * @TJS-examples ["02.02"]
    */
   protocolVersion: string;
 
@@ -816,7 +816,7 @@ export interface AgentSkill {
   "lastModifiedTime": "2025-03-15T16:30:00+08:00",
 
   // ACPs协议版本
-  "protocolVersion": "02.01",
+  "protocolVersion": "02.02",
 
   // 智能体基本描述信息
   "name": "北京城区旅游规划助手",
@@ -926,11 +926,11 @@ export interface AgentSkill {
   "active": true,
   "lastModifiedTime": "2025-04-10T09:45:00+08:00",
 
-  "protocolVersion": "02.01",
+  "protocolVersion": "02.02",
 
   "name": "全国范围旅游助手",
   "description": "提供中国全国范围内的旅游信息服务和行程规划。覆盖全国34个省级行政区的主要旅游景点、特色文化、交通指南和住宿推荐。支持跨地区旅游路线规划，可协调其他地区专业智能体提供深度服务。",
-  "version": "2.1.0",
+  "version": "2.2.0",
 
   "iconUrl": "https://cdn.example.com/icons/national-tour-guide.png",
   "documentationUrl": "https://docs.example.com/national-tour-guide",
@@ -987,7 +987,7 @@ export interface AgentSkill {
       "id": "national-tour:destination-discovery",
       "name": "目的地发现",
       "description": "基于用户偏好、季节、预算等条件，在全国范围内发现和推荐合适的旅游目的地。涵盖自然风光、历史文化、美食体验、休闲度假等多种旅游类型。",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "tags": [
         "目的地推荐",
         "全国旅游",

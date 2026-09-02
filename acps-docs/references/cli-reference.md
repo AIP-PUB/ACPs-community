@@ -36,6 +36,23 @@ CLI 会按如下顺序查找配置文件：
 - 重复参数会在下文标注为“可重复”。这类参数可以多次传入。
 - 成对布尔开关会写成 `--foo/--no-foo`，下文会注明默认状态。
 
+### 1.4 选项位置
+
+组级选项（例如 `--config`、`--verbose`、`--server-url`、`--mtls-url`）可以写在对应子命令前面或后面，CLI 按选项所属的命令解析，不要求固定顺序。下面两种写法等价：
+
+```text
+acps-cli entity --mtls-url https://registry.example:8443 derive --ontology-aic <AIC>
+acps-cli entity derive --mtls-url https://registry.example:8443 --ontology-aic <AIC>
+```
+
+同一选项名被多层命令同时声明时，写在子命令前面的归当前组，写在该子命令后面的归更深层命令。例如 `cert --server-url` 覆盖 CA 地址，`cert eab --server-url` 覆盖 Registry 地址：
+
+```text
+acps-cli cert --server-url https://ca.example eab fetch --server-url https://registry.example --aic <AIC> --output eab.json
+```
+
+查看帮助时，把 `--help` 放在要查看的那一级命令后面：`acps-cli entity --help` 显示 `entity` 组选项，`acps-cli entity derive --help` 显示 `derive` 的选项。
+
 ## 2. 配置节速览
 
 默认配置样例位于项目根目录的 `acps-cli.toml`，主要分为以下几个配置节：
@@ -44,6 +61,7 @@ CLI 会按如下顺序查找配置文件：
 - `[auth]`：普通用户和管理员 token 文件路径
 - `[ca]`：CA 服务地址、账户密钥目录、私钥目录、证书目录、CSR 目录、trust bundle 路径
 - `[discovery]`：Discovery 服务地址
+- `[monitor]`：monitor-server 地址、AMP Query API 前缀、HTTP 超时
 - `[mq]`：mq-auth-server 的 Group API/Auth API 地址、Leader 证书、probe 证书、服务端 CA 文件、超时
 
 建议在开始使用前先检查：
@@ -52,6 +70,9 @@ CLI 会按如下顺序查找配置文件：
 - `[registry].mtls_base_url`
 - `[ca].base_url`
 - `[discovery].base_url`
+- `[monitor].base_url`
+- `[monitor].api_prefix`
+- `[monitor].timeout_seconds`
 - `[mq].group_api_url`
 - `[mq].auth_api_url`
 
@@ -65,6 +86,7 @@ CLI 会按如下顺序查找配置文件：
 | Registry 认证 | `AUTH_USER_TOKEN_FILE`, `AUTH_ADMIN_TOKEN_FILE`, `REGISTRY_USER_USERNAME`, `REGISTRY_USER_PASSWORD`, `REGISTRY_USER_NAME`, `REGISTRY_USER_ORG_NAME`, `REGISTRY_ADMIN_USERNAME`, `REGISTRY_ADMIN_PASSWORD` |
 | CA | `CA_BASE_URL`, `CA_SERVER_ADMIN_API_TOKEN`, `CA_ACCOUNT_KEYS_DIR`, `CA_PRIVATE_KEYS_DIR`, `CA_CERTS_DIR`, `CA_CSR_DIR`, `CA_TRUST_BUNDLE_PATH` |
 | Discovery | `DISCOVERY_BASE_URL` |
+| Monitor | `MONITOR_BASE_URL`, `MONITOR_API_PREFIX`, `MONITOR_TIMEOUT_SECONDS` |
 | MQ | `MQ_GROUP_API_URL`, `MQ_AUTH_API_URL`, `MQ_GROUP_CERT_FILE`, `MQ_GROUP_KEY_FILE`, `MQ_PROBE_CERT_FILE`, `MQ_PROBE_KEY_FILE`, `MQ_CA_FILE`, `MQ_TIMEOUT_SECONDS` |
 
 ## 3. 完整命令树
@@ -73,6 +95,7 @@ CLI 会按如下顺序查找配置文件：
 acps-cli
 ├── auth
 │   ├── login
+│   ├── logout
 │   ├── change-password
 │   └── whoami
 ├── agent
@@ -105,9 +128,43 @@ acps-cli
 ├── discover
 │   ├── status
 │   └── query
+├── monitor
+│   ├── status
+│   ├── heartbeat
+│   │   ├── summary
+│   │   ├── liveness
+│   │   └── query
+│   ├── metrics
+│   │   ├── snapshots
+│   │   ├── series
+│   │   └── rankings
+│   ├── access
+│   │   ├── events
+│   │   ├── operations
+│   │   ├── traces
+│   │   ├── trace
+│   │   ├── slow
+│   │   ├── errors
+│   │   └── topology
+│   ├── message
+│   │   ├── events
+│   │   ├── lifecycles
+│   │   ├── lifecycle
+│   │   ├── deadletters
+│   │   ├── destinations
+│   │   └── throughput
+│   ├── system
+│   │   └── events
+│   └── audit
+│       ├── records
+│       ├── record
+│       ├── anchors
+│       ├── verify
+│       └── verify-task
 └── admin
     ├── auth
     │   ├── login
+    │   ├── logout
     │   ├── change-password
     │   └── whoami
     ├── registry
@@ -115,9 +172,11 @@ acps-cli
     │   │   ├── list
     │   │   ├── approve
     │   │   └── reject
-    │   └── agent
+    │   ├── agent
     │       ├── disable
     │       └── enable
+    │   └── user
+    │       └── reset-password
     ├── ca
     │   ├── crl
     │   │   ├── list
@@ -189,6 +248,14 @@ Registry 共享组选项如下：
 
 - `--json`：以 JSON 输出结果
 
+### acps-cli auth logout
+
+用途：注销当前 Registry 用户，并清理本地保存的用户 token。
+
+参数：
+
+- `--json`：以 JSON 输出结果
+
 ### acps-cli auth change-password
 
 用途：交互式修改当前登录用户密码。
@@ -197,7 +264,7 @@ Registry 共享组选项如下：
 
 - `--json`：以 JSON 输出结果
 
-说明：命令会依次提示输入当前密码、新密码，并要求再次确认新密码。
+说明：命令会依次提示输入当前密码、新密码，并要求再次确认新密码。成功后会额外提示“密码已修改，建议重新登录”。
 
 ### acps-cli agent list
 
@@ -263,15 +330,47 @@ Registry 共享组选项如下：
 
 参数：
 
-- `--mtls-url`：覆盖 Registry `9002` mTLS 服务地址
+- `--mtls-url`：覆盖 Registry `9002` mTLS 服务地址。该选项定义在 `entity` 组上，可以写在 `derive` 前面或后面
 - `--ontology-aic`：必填，已审核通过的本体（ontology）AIC
-- `--payload-file`：派生实体 payload 的 JSON 文件路径
+- `--payload-file`：可选，派生实体 payload 的 UTF-8 JSON 文件路径
 - `--mtls-cert-file`：覆盖本体 mTLS 证书路径
 - `--mtls-key-file`：覆盖本体 mTLS 私钥路径
 - `--mtls-server-ca-file`：覆盖用于校验 Registry `9002` 服务端证书的 CA 文件
 - `--json`：以 JSON 输出结果
 
 说明：该命令依赖 Registry 的 mTLS 平面，通常需要 `[registry].mtls_base_url` 和对应证书材料都已正确配置。
+
+`--payload-file` 可省略。若提供，必须是 JSON 对象，允许的字段为：
+
+- `endPoints`：实体自己的服务端点列表。省略时沿用本体端点
+- `entityUserId`：绑定终端用户 ID
+- `entityMeta`：实体自定义元数据
+- `certificate`：实体证书签发配置，写入实体 ACS，供后续申请服务端证书时读取 SAN 和期望有效期。不继承本体的 `certificate`
+
+`ontologyAic` 不写在文件里，由 `--ontology-aic` 传入。其它字段会被拒绝。
+
+示例：
+
+```json
+{
+  "entityUserId": "user-001",
+  "entityMeta": { "scenario": "production" },
+  "endPoints": [
+    {
+      "url": "https://entity.example.com/callback",
+      "transport": "JSONRPC",
+      "security": []
+    }
+  ],
+  "certificate": {
+    "altNames": {
+      "dns": ["entity.example.com"],
+      "ip": ["10.0.1.50"]
+    },
+    "requestedValidity": 365
+  }
+}
+```
 
 ### acps-cli cert eab fetch
 
@@ -467,9 +566,240 @@ Registry 共享组选项如下：
 - 使用 `--request-json` 或 `--request-file` 时，命令行中的 `QUERY_STR`、`--limit`、forward 等选项会覆盖请求体中的同名字段
 - Forward 相关参数主要用于多跳转发和链路测试场景
 
-## 7. Registry 管理侧命令
+## 7. Monitor 用户侧命令
 
 ### 7.1 共享组选项
+
+`acps-cli monitor` 继承根级 `--config`、`--verbose`，并额外提供：
+
+- `--server-url`：覆盖 monitor-server 根地址
+- `--api-prefix`：覆盖 AMP Query API 前缀，默认是 `/acps-amp-v1`
+
+默认配置节如下：
+
+```toml
+[monitor]
+base_url = "http://localhost:9009"
+api_prefix = "/acps-amp-v1"
+timeout_seconds = 15
+```
+
+说明：
+
+- `monitor` 配置优先级遵循：命令行选项 > `MONITOR_*` 环境变量 > `[monitor]` > 默认值
+- `monitor status` 访问 `GET /health`，不会拼接 `api_prefix`
+- 其余业务命令访问 `{base_url}{api_prefix}/...`
+- `monitor` 查询命令默认输出 pretty JSON
+- 所有 POST 查询命令都支持 `--request-json` 或 `--request-file`
+- `--request-json` 与 `--request-file` 互斥，内容必须是 JSON object
+- 当同时提供 request 与快捷参数时，CLI 会用快捷参数覆盖请求体中的同名标量字段、`timeRange` 和 `page`
+- 快捷 filter 只会合并到 `logic=and` 且不含 `groups` 的简单 `filter`；复杂过滤请直接写入完整 request
+- 一旦提供完整 request，CLI 不再强制要求那些只用于“快捷构造 payload”的本地必填参数
+- payload-only 命令不会自动构造空请求体；必须显式提供 request
+- 本命令组只负责 Query API 查询与排障，不包含 smoke、Kafka 写入或 AMP LogRecord 构造；写入链路验证仍使用 `monitor-server/scripts/smoke_*.py`
+
+### acps-cli monitor status
+
+用途：检查 monitor-server 健康状态。
+
+参数：无专属参数。
+
+### acps-cli monitor heartbeat
+
+用途：查询 Heartbeat 读模型。
+
+子命令：
+
+- `summary`：查询全局 Heartbeat 汇总
+- `liveness <AIC>`：点查单个 AIC 的 liveness
+- `query`：批量查询 liveness 快照
+
+`heartbeat query` 参数：
+
+- `--aic`：追加 `aic eq` 过滤
+- `--limit`：写入 `page.limit`
+- `--cursor`：写入 `page.cursor`
+- `--request-json` / `--request-file`：提交完整请求体
+
+说明：
+
+- 未提供 request 时，`heartbeat query` 必须提供 `--aic`
+- Heartbeat liveness query 不支持快捷 `--start` / `--end` 时间范围构造
+
+### acps-cli monitor metrics
+
+用途：查询 Metrics 读模型。
+
+子命令：
+
+- `snapshots`：查询最新指标快照
+- `series`：查询指标时序
+- `rankings`：查询指标排行
+
+`metrics snapshots` 参数：
+
+- `--aic`：追加 `aic eq` 过滤
+- `--limit` / `--cursor`：写入 `page`
+- `--request-json` / `--request-file`：提交完整请求体
+
+`metrics series` 参数：
+
+- `--metric`：写入顶层 `metric`
+- `--aic`：追加 `aic eq` 过滤
+- `--start`、`--end`：写入 `timeRange.startAt` / `timeRange.endAt`
+- `--step`：写入顶层 `step`
+- `--request-json` / `--request-file`：提交完整请求体
+
+`metrics rankings` 参数：
+
+- `--metric`：写入顶层 `metric`
+- `--start`、`--end`：写入 `timeRange`
+- `--top-n`：写入顶层 `topN`
+- `--request-json` / `--request-file`：提交完整请求体
+
+说明：
+
+- 未提供 request 时，`metrics series` 和 `metrics rankings` 都必须提供 `--metric`、`--start`、`--end`
+- 如果服务端未启用 Analytics Profile，`rankings` 会直接透出服务端返回的 `404/422/503`
+
+### acps-cli monitor access
+
+用途：查询 Access 事件、Trace 和分析读模型。
+
+子命令：
+
+- `events`
+- `operations`
+- `traces`
+- `trace <TRACE_ID>`
+- `slow`
+- `errors`
+- `topology`
+
+`access events` 参数：
+
+- `--aic`：追加 `aic eq` 过滤
+- `--trace-id`：追加 `traceId eq` 过滤
+- `--start`、`--end`：写入 `timeRange`
+- `--limit` / `--cursor`：写入 `page`
+- `--request-json` / `--request-file`：提交完整请求体
+
+`access trace <TRACE_ID>` 参数：
+
+- `--include-events`：映射为 GET 查询参数 `include_events=true`
+
+payload-only 子命令：
+
+- `operations`
+- `traces`
+- `slow`
+- `errors`
+- `topology`
+
+说明：
+
+- 未提供 request 时，`access events` 必须提供 `--start` 和 `--end`
+- 上述 payload-only 子命令必须显式提供 `--request-json` 或 `--request-file`
+
+### acps-cli monitor message
+
+用途：查询 Message 事件、生命周期、死信和目的地读模型。
+
+子命令：
+
+- `events`
+- `lifecycles`
+- `lifecycle <MESSAGE_ID>`
+- `deadletters`
+- `destinations`
+- `throughput`
+
+`message events` 参数：
+
+- `--message-id`：追加 `messageId eq` 过滤
+- `--trace-id`：追加 `traceId eq` 过滤
+- `--start`、`--end`：写入 `timeRange`
+- `--limit` / `--cursor`：写入 `page`
+- `--request-json` / `--request-file`：提交完整请求体
+
+`message lifecycle <MESSAGE_ID>` 参数：
+
+- `--system`：映射为查询参数 `system`
+- `--destination-name`：映射为查询参数 `destinationName`
+- `--destination-kind`：映射为查询参数 `destinationKind`
+- `--virtual-host`：映射为查询参数 `virtualHost`
+
+payload-only 子命令：
+
+- `lifecycles`
+- `deadletters`
+- `destinations`
+- `throughput`
+
+说明：
+
+- 未提供 request 时，`message events` 必须提供 `--start` 和 `--end`
+- 上述 payload-only 子命令必须显式提供 `--request-json` 或 `--request-file`
+- Reliability / Destination Profile 是否启用由服务端决定，CLI 只负责请求与错误透传
+
+### acps-cli monitor system
+
+用途：查询 System 日志事件。
+
+子命令：
+
+- `events`
+
+`system events` 参数：
+
+- `--aic`：追加 `aic eq` 过滤
+- `--correlation-id`：追加 `correlationId eq` 过滤
+- `--severity-min`：追加 `severityNumber gte` 过滤
+- `--start`、`--end`：写入 `timeRange`
+- `--limit` / `--cursor`：写入 `page`
+- `--request-json` / `--request-file`：提交完整请求体
+
+说明：
+
+- 未提供 request 时，`system events` 必须提供 `--start` 和 `--end`
+
+### acps-cli monitor audit
+
+用途：查询 Audit 记录、链锚点和完整性校验任务。
+
+子命令：
+
+- `records`
+- `record <AUDIT_ID>`
+- `anchors`
+- `verify`
+- `verify-task <TASK_ID>`
+
+`audit records` 参数：
+
+- `--aic`：追加 `aic eq` 过滤
+- `--keyword`：写入顶层 `keyword`
+- `--start`、`--end`：写入 `timeRange`
+- `--limit` / `--cursor`：写入 `page`
+- `--request-json` / `--request-file`：提交完整请求体
+
+`audit anchors` 参数：
+
+- `--chain-id`：映射为 GET 查询参数 `chain_id`
+
+`audit verify` 参数：
+
+- `--request-json` / `--request-file`：提交完整校验请求体
+
+说明：
+
+- 未提供 request 时，`audit records` 必须提供 `--start` 和 `--end`
+- `audit verify` 是 payload-only 命令，必须显式提供 request
+- `audit verify` 只提交服务端校验任务，不在本地做签名、公钥解析或哈希链计算
+
+## 8. Registry 管理侧命令
+
+### 8.1 共享组选项
 
 以下管理命令组继承根级 `--config`、`--verbose`，并额外提供：
 
@@ -498,6 +828,14 @@ Registry 共享组选项如下：
 
 - `--json`：以 JSON 输出结果
 
+### acps-cli admin auth logout
+
+用途：注销当前 Registry 管理员，并清理本地保存的管理员 token。
+
+参数：
+
+- `--json`：以 JSON 输出结果
+
 ### acps-cli admin auth change-password
 
 用途：交互式修改当前登录管理员密码。
@@ -506,7 +844,7 @@ Registry 共享组选项如下：
 
 - `--json`：以 JSON 输出结果
 
-说明：命令会依次提示输入当前密码、新密码，并要求再次确认新密码。
+说明：命令会依次提示输入当前密码、新密码，并要求再次确认新密码。成功后会额外提示“密码已修改，建议重新登录”。
 
 ### acps-cli admin registry review list
 
@@ -558,9 +896,19 @@ Registry 共享组选项如下：
 - `--agent-id`：必填，Agent UUID
 - `--json`：以 JSON 输出结果
 
-## 8. CA 管理侧命令
+### acps-cli admin registry user reset-password
 
-### 8.1 共享组选项
+用途：管理员为指定用户重置密码。
+
+参数：
+
+- `--user-id`：必填，目标用户 UUID
+- `--new-password`：可选，目标用户新密码；未提供时进入交互式输入并二次确认
+- `--json`：以 JSON 输出结果
+
+## 9. CA 管理侧命令
+
+### 9.1 共享组选项
 
 `acps-cli admin ca` 继承根级 `--config`、`--verbose`，并额外提供：
 
@@ -594,9 +942,9 @@ Registry 共享组选项如下：
 
 参数：无专属参数。
 
-## 9. Discovery 管理侧命令
+## 10. Discovery 管理侧命令
 
-### 9.1 共享组选项
+### 10.1 共享组选项
 
 `acps-cli admin discovery` 继承根级 `--config`、`--verbose`，并额外提供：
 
@@ -670,9 +1018,9 @@ Registry 共享组选项如下：
 
 说明：未提供 `--type` 时默认订阅 `acs`；未提供 `--event` 时默认订阅 `data_change`。该命令需要 Registry 管理员 token，通常先执行 `acps-cli admin auth login`。
 
-## 10. MQ 管理侧命令
+## 11. MQ 管理侧命令
 
-### 10.1 使用前提
+### 11.1 使用前提
 
 `acps-cli admin mq` 继承根级 `--config`、`--verbose`，并额外提供：
 
@@ -808,7 +1156,7 @@ Registry 共享组选项如下：
 - `--key-file`：覆盖 probe 客户端私钥 PEM 路径
 - `--json`：以 JSON 输出结果
 
-## 11. 常用命令示例
+## 12. 常用命令示例
 
 ```bash
 uv run acps-cli --config ./acps-cli.toml auth login --username alice --password 'S3cret!'
@@ -816,12 +1164,14 @@ uv run acps-cli agent save --acs-file ./acs.json --json
 uv run acps-cli cert eab fetch --aic <AIC> --output ./private/eab.json
 uv run acps-cli cert issue --aic <AIC> --eab-file ./private/eab.json --usage clientAuth
 uv run acps-cli discover query "北京旅游推荐" --limit 5
+uv run acps-cli monitor status
+uv run acps-cli monitor metrics series --metric cpu.usage --aic <AIC> --start 2026-06-25T00:00:00Z --end 2026-06-25T01:00:00Z --step 1m
 uv run acps-cli admin registry review list --status submitted --json
 uv run acps-cli admin discovery run-sync --no-hard-reset --expect-acs-min 1
 uv run acps-cli admin mq health --json
 ```
 
-## 12. 建议的查阅顺序
+## 13. 建议的查阅顺序
 
 如果你是第一次接触本项目，建议按以下顺序阅读和使用：
 
@@ -835,5 +1185,6 @@ uv run acps-cli admin mq health --json
 uv run acps-cli --help
 uv run acps-cli cert --help
 uv run acps-cli discover query --help
+uv run acps-cli monitor --help
 uv run acps-cli admin mq group delete --help
 ```

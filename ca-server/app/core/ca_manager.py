@@ -8,10 +8,17 @@ import structlog
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 from cryptography.x509.oid import AuthorityInformationAccessOID, NameOID
 
 from .config import get_settings
+from .crypto_utils import (
+    PrivateKeyTypes,
+    assert_private_key_matches_certificate,
+    require_supported_public_key,
+    verify_certificate_signature,
+    x509_signature_algorithm_for,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -22,7 +29,7 @@ class CAManager:
     def __init__(self) -> None:
         self.settings = get_settings()
         self.ca_cert: x509.Certificate | None = None
-        self.ca_private_key: rsa.RSAPrivateKey | None = None
+        self.ca_private_key: PrivateKeyTypes | None = None
         self.ca_chain_pems: list[x509.Certificate] = []
         self.trust_bundle_pem: str = ""
         self._load_ca_from_files(Path(self.settings.ca_cert_path), Path(self.settings.ca_key_path))
@@ -53,14 +60,23 @@ class CAManager:
                     password=None,
                     backend=default_backend(),
                 )
-                if not isinstance(loaded_private_key, rsa.RSAPrivateKey):
-                    raise TypeError("CA private key must be an RSA private key")
+                if not isinstance(
+                    loaded_private_key,
+                    (rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey, ed25519.Ed25519PrivateKey),
+                ):
+                    raise TypeError("Unsupported CA private key type")
                 self.ca_private_key = loaded_private_key
+                assert_private_key_matches_certificate(self.ca_private_key, self.ca_cert)
 
             logger.info("已加载 CA 证书", cert_path=str(cert_path))
             valid_from = self.ca_cert.not_valid_before_utc
             valid_to = self.ca_cert.not_valid_after_utc
-            logger.info("CA 证书有效期", valid_from=str(valid_from), valid_to=str(valid_to))
+            logger.info(
+                "CA 证书有效期",
+                valid_from=str(valid_from),
+                valid_to=str(valid_to),
+                ca_key_type=type(self.ca_private_key).__name__,
+            )
 
         except FileNotFoundError, TypeError:
             raise
@@ -216,7 +232,7 @@ class CAManager:
         # 签名证书
         certificate = cert_builder.sign(
             private_key=self.ca_private_key,
-            algorithm=hashes.SHA256(),
+            algorithm=x509_signature_algorithm_for(self.ca_private_key),
             backend=default_backend(),
         )
 
@@ -224,22 +240,22 @@ class CAManager:
         return certificate.public_bytes(serialization.Encoding.PEM).decode("utf-8")
 
     def _validate_csr_public_key(self, csr: x509.CertificateSigningRequest) -> None:
-        """验证CSR中的公钥算法是否安全
+        """验证 CSR 中的公钥算法是否安全。
 
-        只允许以下算法：
-        - RSA 2048位或更高
-        - ECDSA P-256, P-384, P-521
+        允许算法：
+        - RSA ≥ 2048 位
+        - ECDSA P-256、P-384、P-521
+        - Ed25519（RFC 8410）
 
         Args:
             csr: 证书签名请求
 
         Raises:
-            ValueError: 如果公钥算法不安全
+            ValueError: 公钥算法不在白名单内
         """
         public_key = csr.public_key()
 
         if isinstance(public_key, rsa.RSAPublicKey):
-            # RSA 密钥大小检查
             key_size = public_key.key_size
             if key_size < 2048:
                 raise ValueError(f"RSA key size {key_size} is too small. Minimum required: 2048 bits")
@@ -247,24 +263,20 @@ class CAManager:
                 logger.warning("RSA 密钥长度过大，建议使用更小的密钥以提升性能", key_size=key_size)
 
         elif isinstance(public_key, ec.EllipticCurvePublicKey):
-            # ECDSA 曲线检查
             curve = public_key.curve
             allowed_curves = [ec.SECP256R1(), ec.SECP384R1(), ec.SECP521R1()]
-
-            # 检查曲线类型
-            curve_allowed = False
-            for allowed_curve in allowed_curves:
-                if isinstance(curve, type(allowed_curve)):
-                    curve_allowed = True
-                    break
-
+            curve_allowed = any(isinstance(curve, type(c)) for c in allowed_curves)
             if not curve_allowed:
                 raise ValueError(f"ECDSA curve {curve.name} is not allowed. Allowed curves: P-256, P-384, P-521")
+
+        elif isinstance(public_key, ed25519.Ed25519PublicKey):
+            # Ed25519 无需额外参数校验（固定 255 位，RFC 8410）
+            pass
+
         else:
-            # 不支持的公钥类型
             raise ValueError(
                 f"Public key algorithm {type(public_key).__name__} is not supported. "
-                f"Only RSA (≥2048 bits) and ECDSA (P-256/P-384/P-521) are allowed"
+                f"Only RSA (≥2048 bits), ECDSA (P-256/P-384/P-521) and Ed25519 are allowed"
             )
 
     def _build_certificate_subject(self, agent_id: str, subject_components: dict[str, str] | None = None) -> x509.Name:
@@ -308,8 +320,10 @@ class CAManager:
         )
 
         # Authority Key Identifier
+        if self.ca_cert is None:
+            raise RuntimeError("CA certificate is not loaded")
         cert_builder = cert_builder.add_extension(
-            x509.AuthorityKeyIdentifier.from_issuer_public_key(self._get_required_ca_private_key().public_key()),
+            x509.AuthorityKeyIdentifier.from_issuer_public_key(require_supported_public_key(self.ca_cert.public_key())),
             critical=False,
         )
 
@@ -319,13 +333,16 @@ class CAManager:
             critical=True,
         )
 
-        # Key Usage（仅 digitalSignature + keyEncipherment，符合 ATR-CA-Server 证书模板规范）
+        # Key Usage：Ed25519 是纯签名算法，依 RFC 8410 §3 只能设 digitalSignature，
+        # 不得设 keyEncipherment；RSA/ECDSA 同时保留 keyEncipherment 以兼容 TLS 握手。
+        csr_public_key = csr.public_key()
+        is_ed25519 = isinstance(csr_public_key, ed25519.Ed25519PublicKey)
         cert_builder = cert_builder.add_extension(
             x509.KeyUsage(
                 key_cert_sign=False,
                 crl_sign=False,
                 digital_signature=True,
-                key_encipherment=True,
+                key_encipherment=not is_ed25519,
                 data_encipherment=False,
                 key_agreement=False,
                 content_commitment=False,
@@ -450,8 +467,7 @@ class CAManager:
         """验证证书链"""
         try:
             ca_cert = self.ca_cert
-            ca_private_key = self.ca_private_key
-            if ca_cert is None or ca_private_key is None:
+            if ca_cert is None or self.ca_private_key is None:
                 return False
 
             # 加载证书
@@ -463,16 +479,7 @@ class CAManager:
 
             # 验证签名（这里简化处理，实际应该进行完整的证书链验证）
             try:
-                signature_hash_algorithm = cert.signature_hash_algorithm
-                if signature_hash_algorithm is None:
-                    return False
-
-                ca_private_key.public_key().verify(
-                    cert.signature,
-                    cert.tbs_certificate_bytes,
-                    padding.PKCS1v15(),
-                    signature_hash_algorithm,
-                )
+                verify_certificate_signature(cert, ca_cert)
                 return True
             except Exception:
                 return False
@@ -480,8 +487,8 @@ class CAManager:
         except Exception:
             return False
 
-    def _get_required_ca_private_key(self) -> rsa.RSAPrivateKey:
-        """获取已初始化的 CA RSA 私钥"""
+    def _get_required_ca_private_key(self) -> PrivateKeyTypes:
+        """获取已初始化的 CA 私钥"""
         if self.ca_private_key is None:
             raise RuntimeError("CA 私钥未加载")
         return self.ca_private_key

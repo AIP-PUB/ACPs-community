@@ -44,6 +44,8 @@ def create_test_app() -> FastAPI:
         sys.path.insert(0, project_root)
 
     # 重新导入以获取新实例
+    import assistant.auth as auth_mod
+    import assistant.config as config_mod
     from assistant.api import init_routes, router
     from assistant.core import (
         Planner,
@@ -54,6 +56,11 @@ def create_test_app() -> FastAPI:
     from assistant.core.history_compressor import HistoryCompressor
     from assistant.llm import get_llm_client
     from assistant.services import ScenarioLoader
+
+    # API 测试默认以“未启用 OIDC”的基线运行；需要认证的用例会在各自测试中显式打开。
+    config_mod.settings["oidc"]["enabled"] = False
+    auth_mod._validator = None
+    auth_mod._stream_tokens.clear()
 
     # 创建新的组件实例
     session_manager = SessionManager()

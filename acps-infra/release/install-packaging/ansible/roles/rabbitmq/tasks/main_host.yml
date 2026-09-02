@@ -1,0 +1,287 @@
+---
+# rabbitmq/tasks/main_host.yml — host 模式：OS 包 RabbitMQ + 插件 + TLS 落地
+# （本设计 §5.5 / §6.4；与 mq-auth-server 合同对齐，
+# RabbitMQ-Native-Deployment.md 为配置合同参考）。
+# 证书复用 cert_provision 已落盘的 {{ acps_runtime_root }}/certs/rabbitmq/
+# {rabbitmq-server.pem,.key, rabbitmq-client.pem,.key, acps-root-ca.pem}
+# （Step 3 已交付属主规范化；本 role 只需确保 rabbitmq 系统账号已存在）。
+
+- name: 加载 OS 系族默认
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
+- name: 确保运行时目录（{{ acps_runtime_root }}/certs 等；image 专属子任务在其内部自跳过）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: 安装 RabbitMQ OS 包（ensure_repos + erlang + install_packages；幂等）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: rabbitmq
+    acps_artifact_kind: os_package
+
+- name: 确保 systemd drop-in 目录存在
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ rabbitmq_os_service_name }}.service.d"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: 提高文件句柄上限（官方建议 ≥65536）
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ rabbitmq_os_service_name }}.service.d/limits.conf"
+    mode: "0644"
+    content: |
+      [Service]
+      LimitNOFILE=65536
+  become: true
+  register: _rmq_limits_conf
+
+- name: 确保 certs 目录存在（供 cert_provision 分发）
+  ansible.builtin.file:
+    path: "{{ acps_runtime_root }}/certs/rabbitmq"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: 解析 cert owner（host：rabbitmq 系统账号，本设计 §4.4/§6.3）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+  vars:
+    acps_cert_owner_user: rabbitmq
+
+- name: 规范化 rabbitmq certs 属主（host：只用 chown，禁止 docker）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_certs.yml
+  vars:
+    acps_certs_dir: "{{ acps_runtime_root }}/certs/rabbitmq"
+
+- name: SELinux（Rocky）—— 放行自定义 certs 路径
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: selinux_restore_path.yml
+  vars:
+    acps_selinux_path: "{{ acps_runtime_root }}/certs/rabbitmq"
+    acps_selinux_type: cert_t
+
+- name: 检查证书是否就位（先证后启，含 server + client 对，本设计 C/E §5.3）
+  ansible.builtin.stat:
+    path: "{{ acps_runtime_root }}/certs/rabbitmq/{{ item }}"
+  loop:
+    - rabbitmq-server.pem
+    - rabbitmq-server.key
+    - rabbitmq-client.pem
+    - rabbitmq-client.key
+    - acps-root-ca.pem
+  register: _rmq_cert_files
+
+- name: 断言证书材料齐全后再启动
+  ansible.builtin.assert:
+    that: "_rmq_cert_files.results | selectattr('stat.exists', 'equalto', false) | list | length == 0"
+    fail_msg: >-
+      RabbitMQ TLS 证书未就位于 {{ acps_runtime_root }}/certs/rabbitmq/
+      （需 rabbitmq-server.pem/.key + rabbitmq-client.pem/.key +
+      acps-root-ca.pem）。请确认 site.yml phase_8a（cert_provision
+      profile=rabbitmq）已在本 role 之前执行。
+
+# 清场删空 /var/lib/rabbitmq 后 unit WorkingDirectory 会 CHDIR 失败；须在启动前重建。
+- name: 确保 RabbitMQ data 目录属主（发行版默认路径，SELinux 已随包正确打标）
+  ansible.builtin.file:
+    path: "{{ rabbitmq_os_data_dir }}"
+    state: directory
+    owner: "{{ rabbitmq_os_run_user }}"
+    group: "{{ rabbitmq_os_run_user }}"
+    mode: "0755"
+  become: true
+
+- name: 解析 mq-auth-server 广告地址（auth_http.* 目标；不用 Compose 服务名）
+  ansible.builtin.set_fact:
+    _mq_auth_advertise_host: "{{ hostvars | acps_group_addr(groups, 'mq_auth_server') }}"
+
+- name: 渲染 host 模式 rabbitmq.conf（与 image 合同一致的 TLS/auth_http 设置）
+  ansible.builtin.template:
+    src: rabbitmq.conf.host.j2
+    dest: "{{ rabbitmq_os_config_dir }}/rabbitmq.conf"
+    owner: "{{ rabbitmq_os_run_user }}"
+    group: "{{ rabbitmq_os_run_user }}"
+    mode: "0640"
+  become: true
+  register: _rmq_conf_render
+
+- name: 渲染 enabled_plugins
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/templates/enabled_plugins"
+    dest: "{{ rabbitmq_os_config_dir }}/enabled_plugins"
+    owner: "{{ rabbitmq_os_run_user }}"
+    group: "{{ rabbitmq_os_run_user }}"
+    mode: "0640"
+  become: true
+  register: _rmq_plugins_render
+
+- name: 开放 rabbitmq 广告端口（amqps + management，firewalld/ufw 幂等）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ rabbitmq_amqps_port }}"
+      - "{{ rabbitmq_mgmt_port }}"
+
+- name: daemon-reload（服务 drop-in 变更后）
+  ansible.builtin.systemd:
+    daemon_reload: true
+  become: true
+  when: _rmq_limits_conf is changed
+
+- name: 计算 rabbitmq TLS 材料 digest（相对侧车）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/rabbitmq"
+    acps_tls_digest_files:
+      - rabbitmq-server.pem
+      - rabbitmq-server.key
+      - rabbitmq-client.pem
+      - rabbitmq-client.key
+      - acps-root-ca.pem
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/rabbitmq-tls-material.sha256"
+    acps_tls_digest_persist: false
+
+- name: 判定 rabbitmq 是否应 restart
+  ansible.builtin.set_fact:
+    _rmq_should_restart: >-
+      {{
+        (_rmq_conf_render is changed)
+        or (_rmq_plugins_render is changed)
+        or (_rmq_limits_conf is changed)
+        or (_tls_material_digest_changed | default(true) | bool)
+        or (acps_force_rabbitmq_restart | default(false) | bool)
+      }}
+
+- name: enable + 条件重启 rabbitmq-server（conf/plugins/limits/证书 digest/force）
+  ansible.builtin.systemd:
+    name: "{{ rabbitmq_os_service_name }}"
+    enabled: true
+    state: "{{ 'restarted' if (_rmq_should_restart | bool) else 'started' }}"
+  become: true
+  register: _rmq_systemd
+
+- name: 标记本轮 rabbitmq 已真重启（供下游依赖 role 跟随）
+  when: _rmq_should_restart | bool
+  ansible.builtin.set_fact:
+    acps_tls_upstream_bounced_rabbitmq: true
+
+- name: 持久化 rabbitmq TLS digest（本轮已按需重启后）
+  when: _rmq_should_restart | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/rabbitmq"
+    acps_tls_digest_files:
+      - rabbitmq-server.pem
+      - rabbitmq-server.key
+      - rabbitmq-client.pem
+      - rabbitmq-client.key
+      - acps-root-ca.pem
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/rabbitmq-tls-material.sha256"
+    acps_tls_digest_persist: true
+
+- name: rabbitmq 真重启后触发依赖闭包（demos）
+  when: _rmq_should_restart | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: reload_tls_dependents.yml
+  vars:
+    acps_tls_upstream: rabbitmq
+
+- name: 等待 RabbitMQ 应用启动
+  ansible.builtin.command:
+    argv: [rabbitmqctl, await_startup]
+  become: true
+  register: _rmq_ready
+  retries: 30
+  delay: 2
+  until: _rmq_ready.rc == 0
+  changed_when: false
+
+# Broker defaults only create user+vhost `/`. AIP group mode requires shared
+# vhost `acps`、inbox.topic，以及供 mq-auth-server 使用的管理用户（见
+# RabbitMQ-Native-Deployment). EXTERNAL agents
+# 经 auth_http 授权；broker 上仍须存在该 vhost。host：本地 rabbitmqctl，无 docker。
+- name: 确保 RabbitMQ acps vhost, users, and inbox exchange（host：本地 rabbitmqctl）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    admin_user='{{ rabbitmq_user }}'
+    admin_pass='{{ rabbitmq_password }}'
+    mgmt_user='{{ mq_auth_mgmt_user | default("mq-auth-svc") }}'
+    mgmt_pass='{{ mq_auth_mgmt_pass }}'
+    vhost='{{ rabbitmq_vhost | default("acps") }}'
+    inbox_ex='{{ rabbitmq_inbox_exchange | default("inbox.topic") }}'
+
+    ctl() { rabbitmqctl "$@"; }
+    # host 发行包通常不带 rabbitmqadmin；用 management HTTP API 声明 exchange。
+    declare_exchange() {
+      local vhost="$1" name="$2" type="$3"
+      local enc_vhost enc_name
+      enc_vhost=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$vhost")
+      enc_name=$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=""))' "$name")
+      curl -fsS -u "${admin_user}:${admin_pass}" \
+        -H 'content-type: application/json' \
+        -X PUT \
+        -d "{\"type\":\"${type}\",\"durable\":true,\"auto_delete\":false,\"internal\":false,\"arguments\":{}}" \
+        "http://127.0.0.1:{{ rabbitmq_mgmt_port | default(15672) }}/api/exchanges/${enc_vhost}/${enc_name}" \
+        >/dev/null
+    }
+
+    ensure_user() {
+      local user="$1" pass="$2"
+      if ctl list_users --silent | awk '{print $1}' | grep -Fxq "$user"; then
+        ctl change_password "$user" "$pass" >/dev/null
+      else
+        ctl add_user "$user" "$pass" >/dev/null
+      fi
+    }
+
+    if [[ "$admin_user" == "$mgmt_user" ]]; then
+      echo "rabbitmq_user and mq_auth_mgmt_user must differ" >&2
+      exit 1
+    fi
+
+    ensure_user "$admin_user" "$admin_pass"
+    ctl set_user_tags "$admin_user" administrator >/dev/null
+
+    if ! ctl list_vhosts --silent | grep -Fxq "$vhost"; then
+      ctl add_vhost "$vhost" >/dev/null
+      echo "created_vhost=$vhost"
+    else
+      echo "vhost_exists=$vhost"
+    fi
+
+    ctl set_permissions -p "$vhost" "$admin_user" ".*" ".*" ".*" >/dev/null
+
+    ensure_user "$mgmt_user" "$mgmt_pass"
+    ctl set_user_tags "$mgmt_user" administrator >/dev/null
+    # 仅管理账号：对业务 vhost 无 AMQP 权限。
+    if ctl list_permissions -p "$vhost" --silent | awk '{print $1}' | grep -Fxq "$mgmt_user"; then
+      ctl clear_permissions -p "$vhost" "$mgmt_user" >/dev/null
+    fi
+
+    declare_exchange "$vhost" "$inbox_ex" topic
+    echo "inbox_exchange_ok=$inbox_ex"
+  args:
+    executable: /bin/bash
+  become: true
+  no_log: true
+
+- name: 等待 amqps 端口
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ rabbitmq_amqps_port }}"
+    timeout: 90

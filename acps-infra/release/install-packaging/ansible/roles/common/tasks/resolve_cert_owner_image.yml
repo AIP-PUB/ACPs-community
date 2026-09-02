@@ -1,0 +1,29 @@
+---
+# resolve_cert_owner_image.yml — 在*目标*主机从镜像解析 uid:gid
+# 须在镜像已 load 处运行（业务节点）。脚本从
+# 控制节点安装包复制，因目标不必自带 scripts/。
+# image 分支：内容与承载分派引入前字节级一致。
+
+- name: stage resolve_image_uid.py on target
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/scripts/resolve_image_uid.py"
+    dest: "{{ acps_runtime_root }}/staging/resolve_image_uid.py"
+    mode: "0755"
+
+- name: 解析 numeric uid/gid via helper on target
+  # 仅目标主机解释器 — acps_tools_python 为控制节点路径。
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_python_interpreter | default('python3') }}"
+      - "{{ acps_runtime_root }}/staging/resolve_image_uid.py"
+      - "--image"
+      - "{{ acps_effective_image_tag }}"
+      - "--user"
+      - "{{ acps_cert_owner_user | default('') }}"
+  register: _uid_lookup
+  changed_when: false
+
+- name: 设置 cert owner facts
+  ansible.builtin.set_fact:
+    acps_cert_owner_uid: "{{ (_uid_lookup.stdout | from_json).uid }}"
+    acps_cert_owner_gid: "{{ (_uid_lookup.stdout | from_json).gid }}"

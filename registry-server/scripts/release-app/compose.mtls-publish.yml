@@ -1,8 +1,0 @@
-services:
-  registry-server-blue:
-    ports:
-      - "${REGISTRY_SERVER_MTLS_PORT:-9002}:${REGISTRY_SERVER_MTLS_PORT:-9002}"
-
-  registry-server-green:
-    ports:
-      - "${REGISTRY_SERVER_MTLS_PORT:-9002}:${REGISTRY_SERVER_MTLS_PORT:-9002}"

@@ -1,0 +1,13 @@
+---
+# Rocky/RHEL — Redis ≥7（本设计 §5.2/§6.4，硬性）。
+# rocky9：AppStream `redis:7` dnf module（默认非模块包仍是 6.2.x）。
+# rocky8：AppStream 仅 redis:5/6，须 Remi `redis:remi-7.2`。
+redis_os_repo_setup: false
+redis_os_module_stream: "redis:7"
+redis_os_remi_module_stream: "redis:remi-7.2"
+redis_os_packages:
+  - redis
+redis_os_service_name: redis
+redis_os_config_path: /etc/redis/redis.conf
+redis_os_data_dir: /var/lib/redis
+redis_os_run_user: redis

@@ -10,8 +10,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from app.account.service_account import ensure_user_aic_provider_code, ensure_user_aic_provider_code_async
 from app.agent.exception import AgentError, AgentErrorCode
 from app.agent.model import ApprovalStatus
+from app.core.config import settings
 from app.sync.service import update_agent_with_changelog_async
 from app.utils import aic
 from app.utils.utils import get_beijing_time
@@ -24,6 +26,23 @@ type JsonObjectList = list[JsonObject]
 type AgentAcsUpdatePayload = dict[str, JsonObject]
 
 AIC_URL_PLACEHOLDER = "{AIC}"
+
+
+def _issue_agent_aic(agent: Agent, provider_code: str) -> str:
+    """按当前配置签发 AIC。第5、6级与第8/9级长度来自 Settings，第7级来自账户字段。"""
+    protocol_version = settings.aic_protocol_version
+    manager_code = settings.aic_arsp_code
+    if agent.is_ontology:
+        return aic.generate_ontology_aic(
+            protocol_version=protocol_version,
+            manager_code=manager_code,
+            provider_code=provider_code,
+        )
+    return aic.generate_aic(
+        protocol_version=protocol_version,
+        manager_code=manager_code,
+        provider_code=provider_code,
+    )
 
 
 def _build_invalid_agent_acs_error(agent_id: uuid.UUID) -> AgentError:
@@ -131,6 +150,8 @@ async def generate_aic_for_agent_async(session: AsyncSession, agent: Agent) -> A
     if agent.aic:
         return agent
 
+    provider_code = await ensure_user_aic_provider_code_async(session, agent.created_by_id)
+
     max_retries = 3
     retry_count = 0
     retry_delay = 0.002
@@ -138,7 +159,7 @@ async def generate_aic_for_agent_async(session: AsyncSession, agent: Agent) -> A
     while retry_count < max_retries:
         try:
             async with session.begin_nested():
-                agent.aic = aic.generate_ontology_aic() if agent.is_ontology else aic.generate_aic()
+                agent.aic = _issue_agent_aic(agent, provider_code)
                 agent.updated_at = get_beijing_time()
 
                 await update_agent_acs_data_async(agent, session)
@@ -162,6 +183,8 @@ def generate_aic_for_agent(db: Session, agent: Agent) -> Agent:
     if agent.aic:
         return agent
 
+    provider_code = ensure_user_aic_provider_code(db, agent.created_by_id)
+
     max_retries = 3
     retry_count = 0
     retry_delay = 0.002
@@ -169,7 +192,7 @@ def generate_aic_for_agent(db: Session, agent: Agent) -> Agent:
     while retry_count < max_retries:
         try:
             with db.begin_nested():
-                agent.aic = aic.generate_ontology_aic() if agent.is_ontology else aic.generate_aic()
+                agent.aic = _issue_agent_aic(agent, provider_code)
                 agent.updated_at = get_beijing_time()
 
                 update_agent_acs_data(agent, db)

@@ -1,0 +1,17 @@
+# config/production.toml — 生产环境覆盖配置
+# 生产部署时根据实际需求覆盖以下配置。
+
+[server]
+reload = false
+uvicorn_log_level = "warning"
+
+[database]
+pool_size = 10
+max_overflow = 20
+
+[logging]
+level = "INFO"
+format = "json"
+
+[otel]
+enabled = true

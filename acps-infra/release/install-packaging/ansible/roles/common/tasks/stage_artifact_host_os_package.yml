@@ -1,0 +1,32 @@
+---
+# stage_artifact_host_os_package.yml
+# host 模式 os_package 制品（PostgreSQL / Redis / RabbitMQ）：ensure_repos +
+# install_packages（本设计 §5.5 / Step 9）。
+#
+# 逐组件、逐 OS 差异（包名/服务名/数据目录/仓库配置/initdb）收敛在各自 role 的
+# vars/{{ansible_os_family}}.yml + tasks/os_package_install.yml（本设计 §6.4(1)：
+# 任务体保持一份，差异进 vars），本文件只按 acps_component_key 二次分派，避免在
+# common 里为每个组件的包名/仓库写重复 when 分支。
+#
+# 可能被调用两次（幂等，无副作用）：
+#   1) site.yml 中 redis/rabbitmq 的证书签发阶段之前的预装 play（先建立
+#      redis/rabbitmq 系统账号，供 cert_provision 属主规范化使用，见本设计
+#      §4.4：「须由对应安装步骤先创建该账号」）；
+#   2) 本组件 role 自身 host 主流程（main_host.yml）的常规 stage_artifact 调用。
+
+- name: 要求 acps_component_key 已定义（os_package 二次分派）
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - acps_component_key in ['postgresql', 'redis', 'rabbitmq']
+    fail_msg: >-
+      stage_artifact_host_os_package.yml 仅支持 acps_component_key
+      in postgresql|redis|rabbitmq（收到
+      {{ acps_component_key | default('undefined') }}）。新增 os_package
+      组件须先在此处登记，并提供 roles/<component>/tasks/os_package_install.yml
+      + vars/RedHat.yml + vars/Debian.yml（本设计 §6.4）。
+
+- name: 按组件分派到对应 role 的 os_package_install.yml
+  ansible.builtin.include_role:
+    name: "{{ acps_component_key }}"
+    tasks_from: os_package_install.yml

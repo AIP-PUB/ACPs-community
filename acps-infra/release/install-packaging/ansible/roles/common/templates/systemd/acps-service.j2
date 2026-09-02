@@ -1,0 +1,26 @@
+# 由 ACPs install-packaging 生成（common/tasks/render_host_systemd.yml）——
+# 长期变更请勿手改，下次安装/升级会覆盖。
+# ExecStart 契约（本设计 §5.2）：来自 app-release app/runtime-package.toml
+# [[components]].entrypoint（或角色显式覆盖 / host_component_entrypoints 兜底表），
+# 禁止按组件 id 猜测模块名。
+# WorkingDirectory 须经 {component}/current（升级后）；禁止写死 releases/<具体版本>。
+
+[Unit]
+Description=ACPS {{ acps_host_unit_description | default(acps_compose_service_name) }}
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ acps_systemd_user }}
+Group={{ acps_systemd_group }}
+WorkingDirectory={{ acps_host_install_dest }}
+EnvironmentFile={{ acps_host_env_file }}
+ExecStart=/bin/sh -c '{{ acps_host_resolved_entrypoint }}'
+Restart=on-failure
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

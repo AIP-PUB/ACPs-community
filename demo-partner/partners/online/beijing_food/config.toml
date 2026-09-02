@@ -1,3 +1,6 @@
+[app]
+identity_binding_enabled = true
+
 # LLM 参数统一通过环境变量提供，避免将真实凭据打包进仓库或发布物。
 [llm.fast]
 api_key_env = "PARTNER_LLM_FAST_API_KEY"

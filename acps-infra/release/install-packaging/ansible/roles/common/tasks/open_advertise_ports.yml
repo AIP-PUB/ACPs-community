@@ -1,0 +1,6 @@
+---
+# open_advertise_ports.yml — 广告端口放行入口（本设计 §6.4(4)）。
+# 实现收敛在 firewall_open_ports.yml；本文件保留为调用方稳定别名。
+
+- name: 放行广告端口（firewalld/ufw）
+  ansible.builtin.include_tasks: firewall_open_ports.yml

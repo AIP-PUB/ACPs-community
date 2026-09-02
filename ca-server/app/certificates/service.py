@@ -388,3 +388,37 @@ class CertificateManagementService(CertificateService):
         except SQLAlchemyError as e:
             logger.exception("通过证书 PEM 检索证书失败")
             raise CertificateRetrievalFailedError() from e
+
+    async def get_current_valid_certificate_by_aic(self, aic: str) -> Certificate:
+        """按 AIC 获取版本号最高的当前有效证书，用于公钥发现。
+
+        Args:
+            aic: Agent Identity Code
+
+        Returns:
+            Certificate: 最新有效证书对象
+
+        Raises:
+            CertificateNotFoundError: 该 AIC 无有效证书
+            CertificateRetrievalFailedError: 数据库查询异常
+        """
+        try:
+            statement = (
+                select(Certificate)
+                .where(
+                    Certificate.aic == aic,
+                    Certificate.status == CertificateStatus.VALID,
+                )
+                .order_by(desc(literal_column("version")))
+                .limit(1)
+            )
+            result = await self.session.execute(statement)
+            certificate = result.scalar_one_or_none()
+            if certificate is None:
+                raise CertificateNotFoundError(f"No valid certificate found for AIC {aic!r}.")
+            return certificate
+        except AppError:
+            raise
+        except SQLAlchemyError as e:
+            logger.exception("按 AIC 查询当前有效证书失败", aic=aic)
+            raise CertificateRetrievalFailedError("Failed to retrieve current valid certificate by AIC.") from e

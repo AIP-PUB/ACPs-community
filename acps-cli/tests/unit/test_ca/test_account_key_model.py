@@ -403,3 +403,94 @@ class TestAccountKeyModel:
         assert result.exit_code != 0
         assert "Legacy shared account.key can only be materialized during cert issue" in result.output
         assert not (tmp_path / "keyfiles" / "accounts" / "AIC-001.account.key").exists()
+
+    def test_renew_cert_infers_existing_agent_key_type(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        config_path = _write_ca_config(tmp_path)
+        eab_file = _write_eab_file(tmp_path, "AIC-001")
+        existing_agent_key = tmp_path / "keyfiles" / "private" / "AIC-001.key"
+        save_private_key(generate_private_key("rsa"), str(existing_agent_key))
+        captured: dict[str, object] = {}
+
+        monkeypatch.setattr(
+            "acps_cli.ca.commands._run_new_cert",
+            lambda ctx, aic, eab_file, usage, key_type, reuse_key, key_path, cert_path, trust_bundle_path, **kwargs: (
+                captured.update(
+                    {
+                        "aic": aic,
+                        "key_type": key_type,
+                        "reuse_key": reuse_key,
+                        "key_path": key_path,
+                    }
+                )
+            ),
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            ca_main,
+            [
+                "--config",
+                str(config_path),
+                "cert",
+                "renew",
+                "--aic",
+                "AIC-001",
+                "--eab-file",
+                str(eab_file),
+                "--usage",
+                "clientAuth",
+                "--force",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert captured["key_type"] == "rsa"
+        assert captured["reuse_key"] is True
+
+    def test_renew_cert_defaults_to_ed25519_when_agent_key_missing(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        config_path = _write_ca_config(tmp_path)
+        eab_file = _write_eab_file(tmp_path, "AIC-001")
+        captured: dict[str, object] = {}
+
+        monkeypatch.setattr(
+            "acps_cli.ca.commands._run_new_cert",
+            lambda ctx, aic, eab_file, usage, key_type, reuse_key, key_path, cert_path, trust_bundle_path, **kwargs: (
+                captured.update(
+                    {
+                        "aic": aic,
+                        "key_type": key_type,
+                        "reuse_key": reuse_key,
+                    }
+                )
+            ),
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            ca_main,
+            [
+                "--config",
+                str(config_path),
+                "cert",
+                "renew",
+                "--aic",
+                "AIC-001",
+                "--eab-file",
+                str(eab_file),
+                "--usage",
+                "clientAuth",
+                "--force",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert captured["key_type"] == "ed25519"
+        assert captured["reuse_key"] is True

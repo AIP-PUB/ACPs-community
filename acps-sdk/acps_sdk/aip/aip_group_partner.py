@@ -19,9 +19,11 @@ import logging
 import os
 import ssl
 import uuid
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Union
+from time import monotonic
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Union, TYPE_CHECKING
 
 import aio_pika
 from aio_pika import ExchangeType
@@ -53,12 +55,18 @@ from .aip_group_model import (
     GroupMgmtCommandType,
     GroupMgmtResult,
     InboxGroupInvitation,
+    InboxGroupInvitationError,
     RabbitMQRequest,
     RabbitMQResponse,
     RabbitMQResponseError,
     RabbitMQResponseErrorData,
     RabbitMQResponseResult,
     RabbitMQServerConfig,
+)
+from .aip_group_identity import (
+    assert_incoming_group_message_identity,
+    build_outgoing_amqp_user_id,
+    extract_amqp_user_id,
 )
 from .aip_group_runtime import (
     DEFAULT_INVITATION_TIMEOUT_SECONDS,
@@ -73,7 +81,25 @@ from .aip_group_runtime import (
     invitation_is_expired,
 )
 
+if TYPE_CHECKING:
+    from acps_sdk.amp.message_emitter import MessageEmitter
+
+from acps_sdk.amp import _message_tap as message_tap
+from acps_sdk.amp.trace_context import (
+    TRACEPARENT_HEADER,
+    TraceContext,
+    format_traceparent,
+    new_span_id,
+    new_trace_id,
+    parse_traceparent,
+)
+
 logger = logging.getLogger("acps_sdk.aip.group_partner")
+
+DATA_PLANE_TYPES = frozenset({"task-command", "task-result"})
+_active_cmd_trace: ContextVar[TraceContext | None] = ContextVar(
+    "amp_group_partner_cmd_trace", default=None
+)
 
 
 class PartnerGroupState(str, Enum):
@@ -119,6 +145,11 @@ class GroupPartnerMqClient:
         connection: Optional[AbstractConnection] = None,
         connection_owner: bool = True,
         robust_connection: bool = True,
+        *,
+        message_emitter: MessageEmitter | None = None,
+        message_system: str = "rabbitmq",
+        trace_context_provider: Callable[[], TraceContext | None] | None = None,
+        identity_binding_enabled: bool = True,
     ):
         """
         初始化 Partner 客户端
@@ -135,6 +166,15 @@ class GroupPartnerMqClient:
         self.ssl_context = ssl_context
         self._connection_owner = connection_owner
         self._use_robust_connection = robust_connection
+        self._message_emitter = message_emitter
+        self._message_system = message_system
+        self._trace_context_provider = trace_context_provider
+        self._identity_binding_enabled = identity_binding_enabled
+        if not self._identity_binding_enabled:
+            logger.warning(
+                "AIP identity binding disabled for GroupPartnerMqClient partner_aic=%s",
+                self.partner_aic,
+            )
 
         # 连接和通道
         self._connection: Optional[AbstractConnection] = connection
@@ -323,6 +363,12 @@ class GroupPartnerMqClient:
 
                 try:
                     invitation = InboxGroupInvitation.model_validate(body)
+                    if self._identity_binding_enabled:
+                        assert_incoming_group_message_identity(
+                            invitation,
+                            amqp_user_id=extract_amqp_user_id(message),
+                            expected_group_id=invitation.groupId,
+                        )
                 except Exception as exc:
                     logger.warning(
                         "event=partner_inbox_invalid_message partner_aic=%s error=%s",
@@ -554,18 +600,27 @@ class GroupPartnerMqClient:
             auto_delete=False,
         )
         leader_inbox = build_inbox_queue_name(invitation.group.leader.aic)
-        payload = {
-            "type": "group-invitation-error",
-            "groupId": invitation.group.groupId,
-            "partnerAic": self.partner_aic,
-            "invitationToken": invitation.invitationToken,
-            "error": error.model_dump(exclude_none=True),
-        }
+        payload = InboxGroupInvitationError(
+            id=f"invite-err-{uuid.uuid4()}",
+            sentAt=datetime.now(timezone.utc).isoformat(),
+            senderRole="partner",
+            senderId=self.partner_aic,
+            groupId=invitation.group.groupId,
+            invitationToken=invitation.invitationToken,
+            error=error,
+        )
         await exchange.publish(
             AMQPMessage(
-                body=json.dumps(payload, ensure_ascii=False).encode(),
+                body=json.dumps(
+                    payload.model_dump(exclude_none=True), ensure_ascii=False
+                ).encode(),
                 content_type="application/json",
                 delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                user_id=build_outgoing_amqp_user_id(
+                    payload,
+                    local_aic=self.partner_aic,
+                    identity_binding_enabled=self._identity_binding_enabled,
+                ),
             ),
             routing_key=leader_inbox,
         )
@@ -574,6 +629,11 @@ class GroupPartnerMqClient:
         self, request: RabbitMQRequest
     ) -> InboxGroupInvitation:
         return InboxGroupInvitation(
+            id=f"invite-{uuid.uuid4()}",
+            sentAt=datetime.now(timezone.utc).isoformat(),
+            senderRole="leader",
+            senderId=request.params.group.leader.aic,
+            groupId=request.params.group.groupId,
             protocol=request.params.protocol,
             expiresAt=calculate_invitation_expiry(DEFAULT_INVITATION_TIMEOUT_SECONDS),
             invitationToken=f"rpc-{uuid.uuid4()}",
@@ -681,22 +741,105 @@ class GroupPartnerMqClient:
             raise RuntimeError("Queue not created yet")
 
         async def on_message(message: AbstractIncomingMessage) -> None:
+            t0 = monotonic()
+            recv_span: str | None = None
+            trace_id: str | None = None
+            body: Dict[str, Any] = {}
+            emit_ok = False
+
             async with message.process():
                 try:
                     body = json.loads(message.body.decode())
+                    if self._identity_binding_enabled:
+                        assert_incoming_group_message_identity(
+                            body,
+                            amqp_user_id=extract_amqp_user_id(message),
+                            expected_group_id=self._group_id,
+                        )
                     logger.info(
                         "event=queue_message_received partner_aic=%s msg_type=%s sender=%s",
                         self.partner_aic,
                         body.get("type"),
                         body.get("senderId"),
                     )
+                    emit_ok = bool(
+                        self._message_emitter
+                        and body.get("type") == "task-command"
+                        and body.get("senderId") != self.partner_aic
+                    )
+                    if emit_ok:
+                        ctx = parse_traceparent(
+                            message.headers.get(TRACEPARENT_HEADER) if message.headers else None
+                        )
+                        trace_id = ctx.trace_id if ctx else new_trace_id()
+                        recv_span = new_span_id()
+                        await self._safe_emit(
+                            message_tap.build_receive_body(
+                                system=self._message_system,
+                                exchange=self._exchange_name or "",
+                                virtual_host=self.rabbitmq_vhost,
+                                routing_key=message.routing_key or "",
+                                queue_name=self._queue_name or "",
+                                message_id=body.get("id", ""),
+                                payload_size_bytes=len(message.body),
+                                delivery_attempt=2 if message.redelivered else 1,
+                                attributes={
+                                    "groupId": self._group_id,
+                                    "msgType": "task-command",
+                                    "senderId": body.get("senderId"),
+                                },
+                            ),
+                            trace_id=trace_id,
+                            span_id=recv_span,
+                            parent_span_id=ctx.span_id if ctx else "",
+                            correlation_id=body.get("sessionId"),
+                        )
+                        _active_cmd_trace.set(TraceContext(trace_id=trace_id, span_id=recv_span))
                     await self._handle_incoming_message(body)
                 except Exception as e:
+                    if emit_ok and trace_id and recv_span:
+                        await self._safe_emit(
+                            message_tap.build_settlement_body(
+                                "nack",
+                                system=self._message_system,
+                                exchange=self._exchange_name or "",
+                                virtual_host=self.rabbitmq_vhost,
+                                queue_name=self._queue_name or "",
+                                message_id=body.get("id", ""),
+                                delivery_attempt=2 if message.redelivered else 1,
+                                latency_ms=(monotonic() - t0) * 1000,
+                                reason=str(e)[:200],
+                            ),
+                            trace_id=trace_id,
+                            span_id=new_span_id(),
+                            parent_span_id=recv_span,
+                            correlation_id=body.get("sessionId"),
+                        )
+                        _active_cmd_trace.set(None)
                     logger.error(
                         "event=message_processing_error partner_aic=%s error=%s",
                         self.partner_aic,
                         str(e),
                     )
+                    raise
+                if emit_ok and trace_id and recv_span:
+                    await self._safe_emit(
+                        message_tap.build_settlement_body(
+                            "ack",
+                            system=self._message_system,
+                            exchange=self._exchange_name or "",
+                            virtual_host=self.rabbitmq_vhost,
+                            queue_name=self._queue_name or "",
+                            message_id=body.get("id", ""),
+                            delivery_attempt=2 if message.redelivered else 1,
+                            latency_ms=(monotonic() - t0) * 1000,
+                        ),
+                        trace_id=trace_id,
+                        span_id=new_span_id(),
+                        parent_span_id=recv_span,
+                        correlation_id=body.get("sessionId"),
+                    )
+                    _active_cmd_trace.set(None)
             if self._pending_leave:
                 self._pending_leave = False
                 await self._handle_leave_request()
@@ -707,6 +850,14 @@ class GroupPartnerMqClient:
             self.partner_aic,
             self._group_id,
         )
+
+    async def _safe_emit(self, body: Any, **trace_kwargs: str | None) -> None:
+        if not self._message_emitter:
+            return
+        try:
+            await self._message_emitter.emit(body, **trace_kwargs)
+        except Exception:
+            logger.warning("message emit failed", exc_info=True)
 
     async def _handle_incoming_message(self, body: Dict[str, Any]) -> None:
         """处理接收到的消息"""
@@ -757,6 +908,7 @@ class GroupPartnerMqClient:
                 str(e),
                 str(body)[:200],
             )
+            raise
 
     async def _handle_mgmt_command(self, command: GroupMgmtCommand) -> None:
         """处理群组管理命令"""
@@ -907,13 +1059,60 @@ class GroupPartnerMqClient:
             raise RuntimeError("Not connected to group")
 
         body = message.model_dump(exclude_none=True)
+        json_bytes = json.dumps(body, ensure_ascii=False).encode()
+        headers: Dict[str, str] = {}
+        trace_id: str | None = None
+        span_id: str | None = None
+        parent_span: str = ""
+
+        emit_ok = bool(
+            self._message_emitter and body.get("type") in DATA_PLANE_TYPES
+        )
+        if emit_ok:
+            parent = (
+                _active_cmd_trace.get()
+                or (self._trace_context_provider() if self._trace_context_provider else None)
+            )
+            trace_id = parent.trace_id if parent else new_trace_id()
+            span_id = new_span_id()
+            parent_span = parent.span_id if parent else ""
+            headers[TRACEPARENT_HEADER] = format_traceparent(
+                TraceContext(trace_id=trace_id, span_id=span_id)
+            )
+
         amqp_message = AMQPMessage(
-            body=json.dumps(body, ensure_ascii=False).encode(),
+            body=json_bytes,
             content_type="application/json",
             delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            headers=headers or None,
+            user_id=build_outgoing_amqp_user_id(
+                message,
+                local_aic=self.partner_aic,
+                identity_binding_enabled=self._identity_binding_enabled,
+            ),
         )
 
         await self._exchange.publish(amqp_message, routing_key="")
+        if emit_ok and trace_id and span_id:
+            await self._safe_emit(
+                message_tap.build_send_body(
+                    system=self._message_system,
+                    exchange=self._exchange_name or "",
+                    virtual_host=self.rabbitmq_vhost,
+                    routing_key="",
+                    message_id=body.get("id", ""),
+                    payload_size_bytes=len(json_bytes),
+                    attributes={
+                        "groupId": self._group_id,
+                        "msgType": body.get("type"),
+                        "taskId": body.get("taskId"),
+                    },
+                ),
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=parent_span,
+                correlation_id=body.get("sessionId"),
+            )
         logger.debug(
             "event=message_published partner_aic=%s type=%s id=%s",
             self.partner_aic,

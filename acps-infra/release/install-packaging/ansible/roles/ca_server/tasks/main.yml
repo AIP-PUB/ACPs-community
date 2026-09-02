@@ -1,0 +1,208 @@
+---
+- name: ca 禁用时结束
+  when: not (ca_server_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: stage ca 镜像/app-release
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: ca_server
+    acps_artifact_kind: app_release
+    # pip 包名与仓库/目录名不同：pyproject.toml [project].name = agent-ca-server。
+    acps_host_app_pip_packages: ["agent-ca-server"]
+
+- name: 派生主机
+  ansible.builtin.set_fact:
+    _pg_host: "{{ hostvars | acps_group_addr(groups, 'postgresql') }}"
+    _registry_host: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+    _ca_host: "{{ hostvars | acps_group_addr(groups, 'ca_server') }}"
+
+- name: 准备 ca 目录
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ acps_runtime_root }}/config/ca_server"
+    - "{{ acps_runtime_root }}/certs/ca_server"
+
+- name: 同步基础配置（排除由 j2 渲染的 production/development.toml）
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/templates/config/ca_server/{{ item }}"
+    dest: "{{ acps_runtime_root }}/config/ca_server/{{ item }}"
+    mode: "0644"
+  loop:
+    - default.toml
+    - testing.toml
+  register: _ca_config_copy
+
+- name: 渲染 production.toml
+  ansible.builtin.template:
+    src: production.toml.j2
+    dest: "{{ acps_runtime_root }}/config/ca_server/production.toml"
+    mode: "0644"
+  register: _ca_toml_render
+
+- name: 渲染 development.toml（仅 loopback / APP_ENV=development）
+  ansible.builtin.template:
+    src: production.toml.j2
+    dest: "{{ acps_runtime_root }}/config/ca_server/development.toml"
+    mode: "0644"
+  register: _ca_dev_toml_render
+
+- name: 渲染 .env
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ acps_runtime_root }}/config/ca_server/.env"
+    mode: "0600"
+  register: _ca_env_render
+
+- name: 渲染 ca host 应用单元（app.env + systemd）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_app_unit.yml
+  vars:
+    acps_compose_service_name: ca_server
+    acps_host_install_dest: "{{ acps_host_app_install_dest }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/ca_server/app.env"
+    acps_host_env_template_abs: "{{ playbook_dir }}/../roles/ca_server/templates/env.j2"
+    acps_host_component_id: ca-server-api
+
+# T0 — single source: control-node inventories/ca-materials/
+- name: 解析控制节点 CA 材料目录
+  ansible.builtin.set_fact:
+    _ca_materials_dir: "{{ acps_ca_materials_dir }}"
+
+- name: 校验控制节点 CA 材料（失败即停）
+  ansible.builtin.command:
+    argv:
+      - bash
+      - "{{ acps_release_root }}/scripts/validate_ca_materials.sh"
+      - --dir
+      - "{{ _ca_materials_dir }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: false
+
+- name: 从控制节点复制 CA 材料到目标
+  ansible.builtin.copy:
+    src: "{{ _ca_materials_dir }}/{{ item.src }}"
+    dest: "{{ acps_runtime_root }}/certs/ca_server/{{ item.dest }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: ca.crt, dest: ca.crt, mode: "0644" }
+    - { src: ca.key, dest: ca.key, mode: "0600" }
+    - { src: root-ca.crt, dest: root-ca.crt, mode: "0644" }
+  loop_control:
+    label: "{{ item.dest }}"
+  register: _ca_materials_copy
+
+- name: 标记 CA 材料是否变更（host 无热重载，须强制重启）
+  ansible.builtin.set_fact:
+    _ca_materials_changed: "{{ _ca_materials_copy is changed }}"
+
+- name: 在目标组装 ca-chain.pem 与 trust-bundle.pem
+  ansible.builtin.shell: |
+    set -euo pipefail
+    CERT_DIR="{{ acps_runtime_root }}/certs/ca_server"
+    # chain = intermediate（及 ca.crt 中已有的可选附加项）+ root
+    cat "$CERT_DIR/ca.crt" "$CERT_DIR/root-ca.crt" > "$CERT_DIR/ca-chain.pem"
+    cp "$CERT_DIR/root-ca.crt" "$CERT_DIR/trust-bundle.pem"
+    chmod 644 "$CERT_DIR/ca-chain.pem" "$CERT_DIR/trust-bundle.pem"
+    # 根私钥绝不可落在 CA 主机上
+    rm -f "$CERT_DIR/root-ca.key"
+  args:
+    executable: /bin/bash
+
+- name: 从 ca 镜像解析证书所有者
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+  vars:
+    acps_cert_owner_user: acps
+
+- name: 规范化 ca 证书所有权
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_certs.yml
+  vars:
+    acps_certs_dir: "{{ acps_runtime_root }}/certs/ca_server"
+
+- name: 渲染 compose（image-only）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ acps_compose_services_dir }}/ca_server.yml"
+    mode: "0644"
+  register: _ca_compose_render
+
+- name: 判定 ca 是否应 force recreate/restart（材料/配置/显式 force；禁止无条件 true）
+  ansible.builtin.set_fact:
+    _ca_force_recreate: >-
+      {{
+        (_ca_materials_changed | default(false) | bool)
+        or (_ca_config_copy is changed)
+        or (_ca_toml_render is changed)
+        or (_ca_dev_toml_render is changed)
+        or (_ca_env_render is changed)
+        or (
+          (_ca_compose_render is defined)
+          and (_ca_compose_render is changed)
+        )
+        or (acps_force_app_reinstall | default(false) | bool)
+        or (acps_force_ca_restart | default(false) | bool)
+      }}
+
+- name: Alembic 迁移 ca
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: db_migrate.yml
+  vars:
+    acps_compose_service_name: ca_server
+    acps_host_migrate_env:
+      APP_ENV: production
+      DATABASE_URL: "postgresql+asyncpg://{{ ca_db_user | acps_urlquote }}:{{ ca_db_password | acps_urlquote }}@{{ _pg_host }}:{{ postgresql_port }}/{{ ca_db_name }}"
+
+- name: 部署 ca_server（image：compose）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: ca_server
+    # CAManager 启动时装载 PEMs；材料/配置变更才 recreate。
+    acps_compose_force_recreate: "{{ _ca_force_recreate | bool }}"
+
+- name: 部署 ca_server（host：systemd）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: ca_server
+    # CAManager 启动时装载 PEMs；材料/配置变更必须重启（与 image 同条件）。
+    acps_compose_force_recreate: "{{ _ca_force_recreate | bool }}"
+
+- name: 开放 ca 广告端口（firewalld/ufw；image/host 同构）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ ca_server_port }}"
+
+- name: Health 9003
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: health_http.yml
+  vars:
+    acps_health_url: "http://127.0.0.1:{{ ca_server_port }}/health"

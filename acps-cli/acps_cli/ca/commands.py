@@ -13,6 +13,7 @@ from cryptography import x509 as crypto_x509
 from cryptography.x509 import ocsp
 
 from acps_cli.shared.config import load_toml_config
+from acps_cli.shared.flexible_group import FlexibleGroup
 
 from .acme import (
     AcmeClient,
@@ -21,7 +22,7 @@ from .acme import (
     normalize_runtime_url,
 )
 from .config import CliOverrides, Config
-from .keys import generate_csr, generate_private_key, load_private_key, save_private_key
+from .keys import generate_csr, generate_private_key, load_private_key, private_key_type_name, save_private_key
 from .utils import ensure_directory, setup_logging
 
 logger = logging.getLogger(__name__)
@@ -356,7 +357,7 @@ def _print_ocsp_summary(payload: dict[str, Any]) -> None:
         click.echo(f"Revocation reason: {payload['revocationReason']}")
 
 
-@click.group()
+@click.group(cls=FlexibleGroup)
 @click.option(
     "--config",
     "-c",
@@ -512,7 +513,13 @@ def _run_new_cert(
     type=click.Choice(["clientAuth", "serverAuth"]),
     help="Certificate EKU usage: clientAuth or serverAuth",
 )
-@click.option("--key-type", "-k", default="ec", type=click.Choice(["ec", "rsa"]), help="Key type")
+@click.option(
+    "--key-type",
+    "-k",
+    default="ed25519",
+    type=click.Choice(["ec", "rsa", "ed25519"]),
+    help="Key type",
+)
 @click.option(
     "--reuse-key",
     is_flag=True,
@@ -620,12 +627,20 @@ def renew_cert(ctx, aic, eab_file, usage, force, key_path, cert_path, trust_bund
         except Exception as e:
             logger.warning(f"Could not check existing certificate: {e}")
 
+    agent_key_path = key_path or os.path.join(cfg.private_keys_dir, f"{aic}.key")
+    renew_key_type = "ed25519"
+    if os.path.exists(agent_key_path):
+        try:
+            renew_key_type = private_key_type_name(load_private_key(agent_key_path))
+        except Exception as e:
+            logger.warning(f"Could not infer existing key type from {agent_key_path}: {e}")
+
     _run_new_cert(
         ctx,
         aic,
         eab_file,
         usage,
-        "ec",
+        renew_key_type,
         True,
         key_path,
         cert_path,
@@ -645,8 +660,8 @@ def renew_cert(ctx, aic, eab_file, usage, force, key_path, cert_path, trust_bund
 @click.option(
     "--key-type",
     "-k",
-    default="ec",
-    type=click.Choice(["ec", "rsa"]),
+    default="ed25519",
+    type=click.Choice(["ec", "rsa", "ed25519"]),
     help="Key type when auto-generating a new key",
 )
 @click.option(

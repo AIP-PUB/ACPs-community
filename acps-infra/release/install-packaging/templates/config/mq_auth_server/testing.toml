@@ -1,0 +1,8 @@
+# config/testing.toml — 测试环境覆盖配置
+
+[cache]
+local_ttl_seconds = 1
+group_acl_key_ttl_seconds = 60
+
+[logging]
+level = "WARNING"

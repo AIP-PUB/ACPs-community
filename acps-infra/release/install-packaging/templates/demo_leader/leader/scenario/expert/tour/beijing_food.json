@@ -1,0 +1,160 @@
+{
+  "aic": "",
+  "active": false,
+  "lastModifiedTime": "2025-10-11T14:21:05.906801+08:00",
+  "protocolVersion": "02.02",
+  "name": "北京美食推荐智能体",
+  "description": "北京美食推荐智能体（Partner）。职责：根据用户口味偏好、行程和（可选）交通锚点推荐北京全境（城区+郊区）餐饮与特色美食，可补充文化背景。范围：仅限北京餐饮。能力延伸：当用户提供交通/站点/地标信息，可基于该位置信息做就近餐饮匹配，但不提供交通路线/时刻表/出行建议。明确拒绝：① 景点/行程/交通规划请求；② 城际或外地餐饮请求；③ 纯交通咨询；④ 与餐饮无关的通用问答。若请求混合含景点或交通规划需求，仅提取可分离的餐饮部分并声明拒绝其余。",
+  "version": "1.0.0",
+  "provider": {
+    "organization": "ACPs工作组",
+    "department": "",
+    "url": "https://ioa.pub",
+    "license": "京ICP备2025124884号-4"
+  },
+  "securitySchemes": {
+    "mtls": {
+      "type": "mutualTLS",
+      "description": "智能体间mTLS双向认证"
+    }
+  },
+  "endPoints": [
+    {
+      "url": "https://localhost:9021/rpc",
+      "transport": "JSONRPC",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    },
+    {
+      "url": "amqps://rabbitmq:5671/acps?inbox=inbox_{AIC}",
+      "transport": "AMQP",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    }
+  ],
+  "certificate": {
+    "altNames": {
+      "dns": [
+        "localhost"
+      ]
+    }
+  },
+  "capabilities": {
+    "streaming": false,
+    "notification": false,
+    "messageQueue": [
+      "rabbitmq:>=4.2"
+    ]
+  },
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "beijing_catering.traditional-food-recommendation",
+      "name": "传统美食推荐",
+      "description": "推荐北京传统美食和老字号餐厅，包括烤鸭、炸酱面、豆汁、爆肚等经典北京菜品。拒绝与北京无关的餐饮请求。",
+      "version": "1.0.0",
+      "tags": [
+        "传统美食",
+        "老字号",
+        "北京烤鸭",
+        "经典菜品"
+      ],
+      "examples": [
+        "我想在北京品尝最正宗的烤鸭，请推荐几家历史悠久的老字号餐厅，最好能介绍一下它们的特色和价格区间",
+        "除了烤鸭，北京还有哪些必吃的传统小吃？请推荐一些能品尝到炸酱面、豆汁焦圈、爆肚的正宗店铺",
+        "我对北京的老字号餐厅很感兴趣，请推荐几家有百年历史的餐厅，并介绍它们的招牌菜和用餐环境"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "beijing_catering.location-based-restaurant-recommendation",
+      "name": "位置匹配餐厅推荐",
+      "description": "根据用户当前位置或旅游路线推荐附近的餐厅，优化用餐时间和路线安排。拒绝非北京范围位置请求。",
+      "version": "1.0.0",
+      "tags": [
+        "位置匹配",
+        "路线优化",
+        "就近用餐",
+        "时间安排"
+      ],
+      "examples": [
+        "我明天上午要去故宫游览，中午想在附近找一家不错的餐厅吃午饭，步行距离不超过500米，有什么推荐吗？",
+        "今晚想去簋街体验北京的夜市文化，请推荐几家簋街上口碑好的特色餐厅，最好有小龙虾或烧烤",
+        "我住在王府井附近，想找一家适合商务宴请的高档餐厅，环境要安静，有包间最好，请推荐几个选择"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "beijing_catering.dietary-preference-matching",
+      "name": "口味偏好匹配",
+      "description": "根据用户的饮食偏好、忌口要求和口味特点推荐合适的美食和餐厅。支持素食、低辣、儿童友好需求。",
+      "version": "1.0.0",
+      "tags": [
+        "口味偏好",
+        "饮食禁忌",
+        "个性化推荐",
+        "特殊需求"
+      ],
+      "examples": [
+        "我不能吃辣也不能吃海鲜，有轻微的乳糖不耐受，请推荐一些适合我的北京特色美食和餐厅",
+        "我是素食主义者，想在北京找几家做得不错的素食餐厅，最好有传统的素食版本北京菜",
+        "我带着5岁的孩子来北京旅游，请推荐一些儿童友好的餐厅，菜品要清淡少盐，环境要适合亲子用餐"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "beijing_catering.food-culture-experience",
+      "name": "美食文化体验",
+      "description": "介绍北京美食的历史文化背景，提供深度的文化体验和知识分享。拒绝与北京饮食文化无关的泛化问题。",
+      "version": "1.0.0",
+      "tags": [
+        "文化体验",
+        "美食历史",
+        "文化背景",
+        "知识分享"
+      ],
+      "examples": [
+        "请详细介绍北京烤鸭的历史起源、制作工艺和文化意义，以及全聚德和便宜坊两家老店的区别",
+        "我想了解老北京胡同里的传统小吃文化，比如豆汁焦圈、卤煮火烧背后的历史故事和制作传统",
+        "京菜是如何形成的？它与宫廷菜、民间菜的关系是什么？请介绍几道代表性的京菜及其文化背景"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+---
+# install_python role 本地调优；集群级共享变量见
+# ansible/inventories/group_vars/all.yml：
+#   acps_install_python / acps_install_python_strict / acps_uv_python_root /
+#   acps_python_version / acps_uv_version / acps_python_bin
+#
+# 安装包内 tools/ 离线布局约定（--bundle-python-dir 打包进来的内容原样落这里；
+# S7 P1.1）：
+#   tools/
+#     uv                  # 或 uv-<version>-<os>-<arch>；见上方 uv 解析优先级
+#     python/             # CPython standalone 离线材料，二者之一：
+#                         #   a) 已解压好的解释器树（内含可执行 bin/python3*）——
+#                         #      本 role 直接复制进 acps_uv_python_root，不出网、
+#                         #      不调用 `uv python install`；
+#                         #   b) python-build-standalone 官方镜像目录布局
+#                         #      （<date>/cpython-<ver>+<date>-<triple>-
+#                         #      install_only*.tar.*）—— 本 role 复制到目标机后
+#                         #      设 UV_PYTHON_INSTALL_MIRROR=file://... 供
+#                         #      `uv python install` 离线解析（uv 0.2.35+ 支持该
+#                         #      env，本项目钉版本 0.10.11 满足）。
+# 未命中以上任一形态时按 (a) 缓存/系统 uv → (b) 出网安装 CPython 的既有路径；
+# 出网失败且 tools/ 无可用离线材料 → fail-fast，提示改用 --bundle-python-dir。
+
+# 在线拉取官方 uv 安装器时的网络超时（秒）；tools/ 离线路径不受影响。
+acps_uv_install_connect_timeout: 5
+acps_uv_install_max_time: 60
+
+# 物理隔离网络：手动指定 CPython standalone 离线镜像/索引目录（对应 uv 的
+# UV_PYTHON_INSTALL_MIRROR）；默认空 = 走上方 tools/python/ 自动探测，
+# 均未命中则走 uv 官方源。显式设置本变量优先于自动探测。
+acps_uv_python_install_mirror: ""

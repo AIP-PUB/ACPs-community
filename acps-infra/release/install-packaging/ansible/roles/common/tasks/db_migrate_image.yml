@@ -1,0 +1,21 @@
+---
+# db_migrate_image.yml
+# image 模式 Alembic 迁移实现（= 原 run_alembic.yml 内容，经 compose_ctl
+# run-alembic 在容器内执行；字节级不变，见本设计 §5.3 / 实施计划 Step 2）。
+# 期望：acps_compose_service_name。
+- name: 将 compose_ctl.sh stage 到目标
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/scripts/compose_ctl.sh"
+    dest: "{{ acps_runtime_root }}/staging/compose_ctl.sh"
+    mode: "0755"
+
+- name: 经 compose_ctl 执行 Alembic upgrade head
+  ansible.builtin.command:
+    argv:
+      - bash
+      - "{{ acps_runtime_root }}/staging/compose_ctl.sh"
+      - "{{ acps_compose_dir }}"
+      - "{{ acps_compose_project_prefix }}"
+      - "{{ acps_compose_dir }}/docker-compose.yml"
+      - run-alembic
+      - "{{ acps_compose_service_name }}"

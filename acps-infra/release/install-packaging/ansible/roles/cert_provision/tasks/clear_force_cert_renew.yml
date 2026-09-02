@@ -1,0 +1,226 @@
+---
+# 提交 issuer pending 指纹并清除 .force-cert-renew（B5/B8）。
+#
+# 契约：
+# - 无 force 且无 pending → 无操作
+# - pending/force 存在但启用 profile checklist 未齐 → **保留**状态 + 可观测警告（不得静默清除）
+# - checklist 齐 → openssl verify 抽样；失败则 fail 且保留 force/pending
+# - verify 通过 → 原子 pending→正式、删 force、清 checklist
+#
+# renew-certs：due=[] 时调用方不得进入本文件（见 renew-certs.yml）。
+
+- name: 检查 force / pending 状态
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ acps_control_root }}/work/certs/.force-cert-renew"
+    - "{{ acps_control_root }}/work/certs/.issuer-material-sha256.pending"
+  register: _clear_issuer_marks
+  delegate_to: localhost
+  become: false
+
+- name: 解析 force/pending 是否存在
+  ansible.builtin.set_fact:
+    _issuer_force_present: "{{ _clear_issuer_marks.results[0].stat.exists | default(false) }}"
+    _issuer_pending_present: "{{ _clear_issuer_marks.results[1].stat.exists | default(false) }}"
+
+- name: 无进行中的 issuer 旋转 → 跳过提交
+  when:
+    - not (_issuer_force_present | bool)
+    - not (_issuer_pending_present | bool)
+  ansible.builtin.debug:
+    msg: "无 .force-cert-renew / .issuer-material-sha256.pending — 无需提交 issuer 绑定。"
+
+- name: 尝试提交 issuer pending / 清除 force
+  when: (_issuer_force_present | bool) or (_issuer_pending_present | bool)
+  block:
+    - name: 计算启用中的证书 profile 清单
+      ansible.builtin.set_fact:
+        _issuer_expected_profiles: >-
+          {{
+            (
+              (['registry-9002'] if (registry_server_enabled | default(true) | bool) else [])
+              + (['redis'] if (redis_enabled | default(true) | bool) else [])
+              + (['rabbitmq'] if (rabbitmq_enabled | default(true) | bool) else [])
+              + (['mq-auth-server'] if (mq_auth_server_enabled | default(true) | bool) else [])
+              + (['demo-partner'] if (demo_partner_enabled | default(false) | bool) else [])
+              + (['demo-leader'] if (demo_leader_enabled | default(false) | bool) else [])
+            )
+          }}
+
+    - name: 列出 checklist 已完成 profile
+      ansible.builtin.shell: |
+        set -euo pipefail
+        D="{{ acps_control_root }}/work/certs/.issuer-renew-checklist"
+        if [[ ! -d "$D" ]]; then
+          exit 0
+        fi
+        find "$D" -type f -printf '%f\n' 2>/dev/null | sort
+      args:
+        executable: /bin/bash
+      register: _issuer_checklist_cmd
+      changed_when: false
+      delegate_to: localhost
+      become: false
+
+    - name: 解析 checklist 覆盖情况
+      ansible.builtin.set_fact:
+        _issuer_checklist_done: "{{ (_issuer_checklist_cmd.stdout_lines | default([])) | list }}"
+        _issuer_checklist_missing: >-
+          {{
+            _issuer_expected_profiles
+            | difference(_issuer_checklist_cmd.stdout_lines | default([]))
+            | list
+          }}
+
+    - name: checklist 未齐 → 保留 force/pending 并告警
+      when: (_issuer_checklist_missing | length) > 0
+      block:
+        - name: 写入 anomaly 可观测记录
+          ansible.builtin.copy:
+            dest: "{{ acps_control_root }}/work/certs/.issuer-renew-anomaly.txt"
+            content: |
+              issuer renew incomplete at {{ ansible_date_time.iso8601 | default('now') }}
+              expected={{ _issuer_expected_profiles | join(',') }}
+              done={{ _issuer_checklist_done | join(',') }}
+              missing={{ _issuer_checklist_missing | join(',') }}
+              force={{ _issuer_force_present }}
+              pending={{ _issuer_pending_present }}
+            mode: "0644"
+          delegate_to: localhost
+          become: false
+
+        - name: 警告 — issuer 旋转未完成，不得清除 force/pending
+          ansible.builtin.debug:
+            msg: >-
+              WARNING: issuer force/pending 保留（checklist 未齐）。
+              missing={{ _issuer_checklist_missing }}
+              done={{ _issuer_checklist_done }}
+              expected={{ _issuer_expected_profiles }}
+              见 {{ acps_control_root }}/work/certs/.issuer-renew-anomaly.txt
+
+    - name: checklist 已齐 → verify 后提交
+      when: (_issuer_checklist_missing | length) == 0
+      block:
+        - name: 探测可用的 ca-materials 根证书路径
+          ansible.builtin.stat:
+            path: "{{ item }}/root-ca.crt"
+          loop:
+            - "{{ acps_ca_materials_dir | default('') }}"
+            - "{{ (inventory_dir | default('')) }}/ca-materials"
+            - "{{ playbook_dir | dirname }}/inventories/ca-materials"
+          loop_control:
+            label: "{{ item }}"
+          register: _clear_ca_root_probe
+          delegate_to: localhost
+          become: false
+
+        - name: 选定 ca-materials 目录
+          ansible.builtin.set_fact:
+            _clear_ca_materials_dir: >-
+              {{
+                (
+                  _clear_ca_root_probe.results
+                  | selectattr('stat.exists')
+                  | map(attribute='item')
+                  | list
+                  | first
+                )
+              }}
+
+        - name: 断言 ca-materials 可解析
+          ansible.builtin.assert:
+            that:
+              - (_clear_ca_materials_dir | default('') | length) > 0
+            fail_msg: >-
+              无法解析 ca-materials（acps_ca_materials_dir / inventory_dir / playbook_dir 均无 root-ca.crt）。
+
+        - name: 清 force 前抽样 openssl verify 叶证（含 demo staging §9.5.5/BP4）
+          ansible.builtin.shell: |
+            set -euo pipefail
+            CERTS="{{ acps_control_root }}/work/certs"
+            STAGING="{{ acps_control_root }}/work/staging"
+            ROOT="{{ _clear_ca_materials_dir }}/root-ca.crt"
+            INT="{{ _clear_ca_materials_dir }}/ca.crt"
+            failed=0
+            checked=0
+            verify_one() {
+              local leaf="$1"
+              [[ -f "$leaf" ]] || return 0
+              checked=$((checked + 1))
+              if [[ -f "$INT" ]]; then
+                if ! openssl verify -CAfile "$ROOT" -untrusted "$INT" "$leaf" >/dev/null 2>&1; then
+                  echo "VERIFY_FAIL $leaf"
+                  failed=1
+                else
+                  echo "VERIFY_OK $leaf"
+                fi
+              else
+                if ! openssl verify -CAfile "$ROOT" "$leaf" >/dev/null 2>&1; then
+                  echo "VERIFY_FAIL $leaf"
+                  failed=1
+                else
+                  echo "VERIFY_OK $leaf"
+                fi
+              fi
+            }
+            for leaf in \
+              "$CERTS/redis/redis-server.pem" \
+              "$CERTS/rabbitmq/rabbitmq-server.pem" \
+              "$CERTS/mq-auth-server/server.pem" \
+              "$CERTS/registry-server-9002/server.pem"
+            do
+              verify_one "$leaf"
+            done
+            # demo PEM：staging 下各抽最多 2 个 server/client 叶（启用时材料应存在）
+            while IFS= read -r leaf; do
+              verify_one "$leaf"
+            done < <(
+              {
+                find "$STAGING/demo-partner" -type f \( -name 'server.pem' -o -name 'client.pem' \) 2>/dev/null | head -n 2
+                find "$STAGING/demo-leader" -type f \( -name 'server.pem' -o -name 'client.pem' \) 2>/dev/null | head -n 2
+              } || true
+            )
+            if [[ "$checked" -eq 0 ]]; then
+              echo "VERIFY_FAIL no_leaf_pem_found"
+              exit 2
+            fi
+            if [[ "$failed" -ne 0 ]]; then
+              exit 3
+            fi
+            echo "VERIFY_ALL_OK checked=$checked root=$ROOT"
+          args:
+            executable: /bin/bash
+          register: _issuer_verify_cmd
+          changed_when: false
+          failed_when: _issuer_verify_cmd.rc != 0
+          delegate_to: localhost
+          become: false
+
+        - name: 原子提交 pending → 正式指纹并清除 force/checklist
+          ansible.builtin.shell: |
+            set -euo pipefail
+            CERTS="{{ acps_control_root }}/work/certs"
+            PENDING="$CERTS/.issuer-material-sha256.pending"
+            FORMAL="$CERTS/.issuer-material-sha256"
+            if [[ -f "$PENDING" ]]; then
+              cp -f "$PENDING" "$FORMAL"
+              rm -f "$PENDING"
+            elif [[ ! -f "$FORMAL" ]]; then
+              echo "missing pending and formal" >&2
+              exit 1
+            fi
+            rm -f "$CERTS/.force-cert-renew"
+            rm -rf "$CERTS/.issuer-renew-checklist"
+            rm -f "$CERTS/.issuer-renew-anomaly.txt"
+            echo "committed $(tr -d '[:space:]' < "$FORMAL")"
+          args:
+            executable: /bin/bash
+          delegate_to: localhost
+          become: false
+
+        - name: 提示 issuer 旋转已提交
+          ansible.builtin.debug:
+            msg: >-
+              issuer pending 已提交为正式指纹；.force-cert-renew 与 checklist 已清除。
+              profiles={{ _issuer_expected_profiles }}

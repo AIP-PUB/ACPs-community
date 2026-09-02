@@ -1,0 +1,63 @@
+# inventories/hosts.ubuntu20.yml
+# 单机 host 模式示例：Ubuntu 20.04 业务节点。
+# 全部组件落在 ubuntu20.acps.local；控制节点为本机 Ansible 控制机。
+# 准备 inventories/secrets.yml。SSH 用户与本机无密登录账号对齐。
+
+all:
+  vars:
+    acps_deploy_mode: host
+    ansible_user: huxiaofeng
+    # 多拓扑并行时必须独立控制面路径（勿与其它解包目录 / 其它 OS 拓扑共用）：
+    acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control-host-ubuntu20"
+    # become 由 playbook / role 任务显式开启；勿在 inventory 全局设 ansible_become，
+    # 否则会污染控制节点 delegate_to: localhost（macOS 无密 sudo 常失败）。
+  children:
+    postgresql:
+      hosts:
+        ubuntu20.acps.local:
+          ansible_host: ubuntu20.acps.local
+    redis:
+      hosts:
+        ubuntu20.acps.local:
+    rabbitmq:
+      hosts:
+        ubuntu20.acps.local:
+    keycloak:
+      hosts:
+        ubuntu20.acps.local:
+    redpanda:
+      hosts:
+        ubuntu20.acps.local:
+    victoria_metrics:
+      hosts:
+        ubuntu20.acps.local:
+    clickhouse:
+      hosts:
+        ubuntu20.acps.local:
+    minio:
+      hosts:
+        ubuntu20.acps.local:
+    opensearch:
+      hosts:
+        ubuntu20.acps.local:
+    registry_server:
+      hosts:
+        ubuntu20.acps.local:
+    ca_server:
+      hosts:
+        ubuntu20.acps.local:
+    discovery_server:
+      hosts:
+        ubuntu20.acps.local:
+    mq_auth_server:
+      hosts:
+        ubuntu20.acps.local:
+    monitor_server:
+      hosts:
+        ubuntu20.acps.local:
+    demo_partner:
+      hosts:
+        ubuntu20.acps.local:
+    demo_leader:
+      hosts:
+        ubuntu20.acps.local:

@@ -1,11 +1,11 @@
 {
   "aic": "",
   "active": true,
-  "protocolVersion": "02.01",
+  "protocolVersion": "02.02",
   "lastModifiedTime": "2026-05-26T00:00:00+08:00",
   "name": "registry-server-9002-probe",
   "description": "registry-server 9002 健康检查与部署烟测专用 mTLS 客户端身份。仅用于 /health 和黑盒探测。",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "webAppUrl": "",
   "provider": {
     "organization": "ACPs工作组",

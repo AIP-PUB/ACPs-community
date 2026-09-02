@@ -1,0 +1,39 @@
+services:
+  postgresql:
+    image: {{ acps_effective_image_tag }}
+    environment:
+      POSTGRES_USER: {{ postgresql_superuser }}
+      POSTGRES_PASSWORD: {{ postgresql_superuser_password }}
+      POSTGRES_DB: {{ postgresql_superuser_db }}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      REGISTRY_DB_USER: {{ registry_db_user }}
+      REGISTRY_DB_PASSWORD: {{ registry_db_password }}
+      REGISTRY_DB_NAME: {{ registry_db_name }}
+      CA_DB_USER: {{ ca_db_user }}
+      CA_DB_PASSWORD: {{ ca_db_password }}
+      CA_DB_NAME: {{ ca_db_name }}
+      DISCOVERY_DB_USER: {{ discovery_db_user }}
+      DISCOVERY_DB_PASSWORD: {{ discovery_db_password }}
+      DISCOVERY_DB_NAME: {{ discovery_db_name }}
+      MONITOR_DB_USER: {{ monitor_db_user }}
+      MONITOR_DB_PASSWORD: {{ monitor_db_password }}
+      MONITOR_DB_NAME: {{ monitor_db_name }}
+      KEYCLOAK_DB_USER: {{ keycloak_db_user }}
+      KEYCLOAK_DB_PASSWORD: {{ keycloak_db_password | default('unused') }}
+      KEYCLOAK_DB_NAME: {{ keycloak_db_name }}
+    ports:
+      - "{{ postgresql_port }}:5432"
+    volumes:
+      - {{ acps_data_root }}/postgresql:/var/lib/postgresql/data:z
+      - {{ acps_runtime_root }}/config/postgresql/init:/docker-entrypoint-initdb.d:ro,z
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgresql_superuser }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      # 首启含 initdb.d；略拉长 start_period，降低慢盘上过早判 unhealthy。
+      start_period: 40s
+
+    restart: unless-stopped
+    networks:
+      - {{ acps_docker_network }}

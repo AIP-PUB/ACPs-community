@@ -53,6 +53,8 @@ def create_test_app(managed_partner_runtime) -> FastAPI:
     reset_task_execution_manager()
     reset_background_executor()
 
+    import assistant.auth as auth_mod
+    import assistant.config as config_mod
     from assistant.api import init_routes, router
     from assistant.core import (
         Planner,
@@ -63,6 +65,10 @@ def create_test_app(managed_partner_runtime) -> FastAPI:
     from assistant.core.history_compressor import HistoryCompressor
     from assistant.llm import get_llm_client
     from assistant.services import ScenarioLoader
+
+    config_mod.settings["oidc"]["enabled"] = False
+    auth_mod._validator = None
+    auth_mod._stream_tokens.clear()
 
     # 创建新的组件实例
     session_manager = SessionManager()

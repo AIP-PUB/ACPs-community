@@ -119,7 +119,7 @@ system = """
       }
     ]
   };
-  
+
   // 维度备注（可选）：当维度数组为空时填写
   dimensionNotes?: {
     "<dimensionId>": {

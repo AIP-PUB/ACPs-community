@@ -13,12 +13,14 @@ class AuthErrorCode(StrEnum):
     INVALID_VERIFICATION_CODE = "INVALID_VERIFICATION_CODE"
     USER_NOT_FOUND = "USER_NOT_FOUND"
     INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
-    INVALID_REFRESH_TOKEN = "INVALID_REFRESH_TOKEN"
-    EXPIRED_TOKEN = "EXPIRED_TOKEN"
+    INVALID_REFRESH_TOKEN = "INVALID_REFRESH_TOKEN"  # nosec B105 - public error code, not a credential
+    EXPIRED_TOKEN = "EXPIRED_TOKEN"  # nosec B105 - public error code, not a credential
     INACTIVE_USER = "INACTIVE_USER"
     INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS"
-    INVALID_TOKEN = "INVALID_TOKEN"
-    TOKEN_VALIDATION_ERROR = "TOKEN_VALIDATION_ERROR"
+    INVALID_TOKEN = "INVALID_TOKEN"  # nosec B105 - public error code, not a credential
+    TOKEN_VALIDATION_ERROR = "TOKEN_VALIDATION_ERROR"  # nosec B105 - public error code, not a credential
+    LOCAL_AUTH_DISABLED = "LOCAL_AUTH_DISABLED"
+    OIDC_PROVIDER_UNAVAILABLE = "OIDC_PROVIDER_UNAVAILABLE"
 
 
 class AuthError(AppError):
@@ -58,7 +60,7 @@ class TokenValidationError(AuthError):
             status_code=401,
             code=AuthErrorCode.TOKEN_VALIDATION_ERROR,
             detail="Could not validate credentials",
-            input_params={"token": "***"},
+            input_params={"token": "***"},  # nosec B105 - redacted diagnostic placeholder
         )
 
 
@@ -94,7 +96,7 @@ class ExpiredTokenError(AuthError):
             status_code=401,
             code=AuthErrorCode.EXPIRED_TOKEN,
             detail="Token has expired",
-            input_params={"token": "***"},
+            input_params={"token": "***"},  # nosec B105 - redacted diagnostic placeholder
         )
 
 
@@ -117,4 +119,26 @@ class InsufficientPermissionsError(AuthError):
                 "user_roles": [str(role) for role in user_roles],
                 "required_roles": [str(role) for role in required_roles],
             },
+        )
+
+
+class LocalAuthDisabledError(AuthError):
+    """OIDC 模式下访问本地认证能力时抛出的异常。"""
+
+    def __init__(self, *, detail: str = "Local authentication is disabled when OIDC is enabled") -> None:
+        super().__init__(
+            status_code=410,
+            code=AuthErrorCode.LOCAL_AUTH_DISABLED,
+            detail=detail,
+        )
+
+
+class OidcProviderUnavailableAuthError(AuthError):
+    """OIDC provider discovery / JWKS 暂不可用时抛出的异常。"""
+
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=503,
+            code=AuthErrorCode.OIDC_PROVIDER_UNAVAILABLE,
+            detail="OIDC provider is unavailable",
         )

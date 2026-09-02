@@ -9,7 +9,7 @@ import json
 import os
 import shutil
 import ssl
-import subprocess
+import subprocess  # nosec B404 - commands are assembled from fixed local deployment inputs
 import sys
 import time
 import uuid
@@ -23,6 +23,8 @@ from urllib.parse import urlsplit
 from urllib.request import urlopen
 
 from acps_cli.shared.config import load_toml_config
+from acps_cli.shared.runtime import RootCliRuntime
+from acps_cli.shared.unified_config import build_registry_auth_config
 
 TEXT_PLAIN = "text/plain"
 VALID_MEMBER_AIC = "1.2.156.3088.1.1.89AB.123456.7LMNOP.1ABC"
@@ -65,8 +67,22 @@ class SmokeError(RuntimeError):
     """烟测失败。"""
 
 
+def build_runtime(original_data: dict[str, Any], original_path: Path) -> RootCliRuntime:
+    return RootCliRuntime(
+        config_path=str(original_path),
+        verbose=False,
+        toml_data=original_data,
+        resolved_config_path=original_path,
+        config_dir=original_path.parent,
+    )
+
+
+def registry_auth_mode(original_data: dict[str, Any], original_path: Path) -> str:
+    return build_registry_auth_config(build_runtime(original_data, original_path), admin=False).mode
+
+
 def log(message: str) -> None:
-    print(f"[smoketest] {message} - smoke_test_runtime.py:69")
+    print(f"[smoketest] {message} - smoke_test_runtime.py:85")
 
 
 def pass_step(name: str, detail: str = "") -> None:
@@ -124,7 +140,7 @@ def current_timestamp() -> str:
 
 
 def run_command(cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> str:
-    result = subprocess.run(  # noqa: S603
+    result = subprocess.run(  # noqa: S603  # nosec B603 - command is passed as an argv list without a shell
         cmd,
         cwd=str(cwd) if cwd is not None else None,
         env=env,
@@ -246,6 +262,9 @@ def write_runtime_config(
     mq_ca_file: Path,
     registry_mtls_server_ca_file: Path,
 ) -> Path:
+    runtime = build_runtime(original_data, original_path)
+    registry_user_auth = build_registry_auth_config(runtime, admin=False)
+    registry_admin_auth = build_registry_auth_config(runtime, admin=True)
     registry_base_url = get_string_setting(
         original_data,
         "registry",
@@ -291,6 +310,13 @@ def write_runtime_config(
     for subdir in ("accounts", "private", "certs", "csr"):
         (keyfiles_dir / subdir).mkdir(parents=True, exist_ok=True)
 
+    user_token_file = (
+        registry_user_auth.token_file if registry_user_auth.mode == "oidc" else str(token_dir / "registry-user.json")
+    )
+    admin_token_file = (
+        registry_admin_auth.token_file if registry_admin_auth.mode == "oidc" else str(token_dir / "registry-admin.json")
+    )
+
     lines = [
         "[registry]",
         f"base_url = {quote_string(registry_base_url)}",
@@ -299,26 +325,42 @@ def write_runtime_config(
         f"timeout_seconds = {quote_int(registry_timeout)}",
         "",
         "[auth]",
-        f"user_token_file = {quote_string(str(token_dir / 'registry-user.json'))}",
-        f"admin_token_file = {quote_string(str(token_dir / 'registry-admin.json'))}",
+        f"user_token_file = {quote_string(user_token_file)}",
+        f"admin_token_file = {quote_string(admin_token_file)}",
         "",
-        "[ca]",
-        f"base_url = {quote_string(ca_base_url)}",
-        f"account_keys_dir = {quote_string(str(keyfiles_dir / 'accounts'))}",
-        f"private_keys_dir = {quote_string(str(keyfiles_dir / 'private'))}",
-        f"certs_dir = {quote_string(str(keyfiles_dir / 'certs'))}",
-        f"csr_dir = {quote_string(str(keyfiles_dir / 'csr'))}",
-        f"trust_bundle_path = {quote_string(str(keyfiles_dir / TRUST_BUNDLE_FILE_NAME))}",
-        "",
-        "[discovery]",
-        f"base_url = {quote_string(discovery_base_url)}",
-        "",
-        "[mq]",
-        f"group_api_url = {quote_string(mq_group_url)}",
-        f"auth_api_url = {quote_string(mq_auth_url)}",
-        f"ca_cert_file = {quote_string(str(mq_ca_file))}",
-        f"timeout_seconds = {quote_int(mq_timeout)}",
     ]
+    if registry_user_auth.mode == "oidc" and registry_user_auth.oidc is not None:
+        lines.extend(
+            [
+                "[registry.auth]",
+                'mode = "oidc"',
+                f"issuer = {quote_string(registry_user_auth.oidc.issuer)}",
+                f"client_id = {quote_string(registry_user_auth.oidc.client_id)}",
+                "scopes = [" + ", ".join(quote_string(scope) for scope in registry_user_auth.oidc.scopes) + "]",
+                f"require_https = {'true' if registry_user_auth.oidc.require_https else 'false'}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "[ca]",
+            f"base_url = {quote_string(ca_base_url)}",
+            f"account_keys_dir = {quote_string(str(keyfiles_dir / 'accounts'))}",
+            f"private_keys_dir = {quote_string(str(keyfiles_dir / 'private'))}",
+            f"certs_dir = {quote_string(str(keyfiles_dir / 'certs'))}",
+            f"csr_dir = {quote_string(str(keyfiles_dir / 'csr'))}",
+            f"trust_bundle_path = {quote_string(str(keyfiles_dir / TRUST_BUNDLE_FILE_NAME))}",
+            "",
+            "[discovery]",
+            f"base_url = {quote_string(discovery_base_url)}",
+            "",
+            "[mq]",
+            f"group_api_url = {quote_string(mq_group_url)}",
+            f"auth_api_url = {quote_string(mq_auth_url)}",
+            f"ca_cert_file = {quote_string(str(mq_ca_file))}",
+            f"timeout_seconds = {quote_int(mq_timeout)}",
+        ]
+    )
     config_path = work_root / original_path.name
     config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return config_path
@@ -331,7 +373,7 @@ def make_acs_file(work_dir: Path) -> Path:
         "aic": "",
         "active": False,
         "lastModifiedTime": timestamp,
-        "protocolVersion": "02.01",
+        "protocolVersion": "02.02",
         "name": agent_name,
         "version": "1.0.0",
         "description": "Deployment smoke test agent",
@@ -383,7 +425,7 @@ def make_discovery_acs_file(work_dir: Path) -> tuple[Path, str]:
         "aic": "",
         "active": False,
         "lastModifiedTime": timestamp,
-        "protocolVersion": "02.01",
+        "protocolVersion": "02.02",
         "name": agent_name,
         "version": "1.0.0",
         "description": f"Discovery smoke test agent {query_marker}",
@@ -445,7 +487,7 @@ def request_json(
         method=method,
     )
     try:
-        with url_request.urlopen(request, timeout=timeout) as response:  # noqa: S310
+        with url_request.urlopen(request, timeout=timeout) as response:  # noqa: S310  # nosec B310 - URL scheme is validated above
             raw = response.read().decode("utf-8")
             payload = parse_response_json(raw)
             return response.status, payload, raw
@@ -667,12 +709,14 @@ def https_health_check(url: str, *, cert_file: Path, key_file: Path, ca_file: Pa
     context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=str(ca_file))
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(certfile=str(cert_file), keyfile=str(key_file))
-    with urlopen(url, context=context, timeout=10) as response:  # noqa: S310
+    with urlopen(url, context=context, timeout=10) as response:  # noqa: S310  # nosec B310 - caller provides the mTLS health endpoint
         if response.status != 200:
             raise SmokeError(f"{url} 返回 HTTP {response.status}")
 
 
-def resolve_admin_credentials(args: argparse.Namespace) -> tuple[str, str]:
+def resolve_admin_credentials(args: argparse.Namespace, *, auth_mode: str) -> tuple[str | None, str | None]:
+    if auth_mode == "oidc":
+        return None, None
     username = resolve_text_option(
         args.admin_username,
         ("SMOKE_ADMIN_USERNAME", "REGISTRY_ADMIN_USERNAME"),
@@ -760,12 +804,10 @@ def run_registry_ca_discovery_smoke(
     cli_bin: str,
     config_path: Path,
     work_root: Path,
-    admin_username: str,
-    admin_password: str,
+    admin_username: str | None,
+    admin_password: str | None,
+    registry_auth_mode_value: str,
 ) -> SmokeSession:
-    user_username = f"smoke_{uuid.uuid4().hex[:8]}"
-    user_password = generate_smoke_password()
-
     discovery_base_url = get_string_setting(
         load_toml_config(str(config_path))[0],
         "discovery",
@@ -777,26 +819,41 @@ def run_registry_ca_discovery_smoke(
     run_command([cli_bin, "--config", str(config_path), "--help"])
     pass_step("CLI entrypoint")
 
-    login_output = load_json_output(
-        run_command(
-            [
-                cli_bin,
-                "--config",
-                str(config_path),
-                "auth",
-                "login",
-                "--username",
-                user_username,
-                "--password",
-                user_password,
-                "--json",
-            ]
+    if registry_auth_mode_value == "oidc":
+        user_status = load_json_output(run_command([cli_bin, "--config", str(config_path), "auth", "status", "--json"]))
+        admin_status = load_json_output(
+            run_command([cli_bin, "--config", str(config_path), "admin", "auth", "status", "--json"])
         )
-    )
-    login_status = str(login_output.get("status") or "")
-    if login_status not in {"registered", "logged-in"}:
-        raise SmokeError(f"普通用户登录/注册返回异常: {login_output}")
-    pass_step("Registry 用户登录", login_status)
+        if not user_status.get("authenticated"):
+            raise SmokeError("registry.auth.mode=oidc 时请先执行 acps-cli auth login")
+        if not admin_status.get("authenticated"):
+            raise SmokeError("registry.auth.mode=oidc 时请先执行 acps-cli admin auth login")
+        user_whoami = load_json_output(run_command([cli_bin, "--config", str(config_path), "auth", "whoami", "--json"]))
+        user_username = str(user_whoami.get("username") or user_whoami.get("preferred_username") or "oidc-user")
+        pass_step("Registry 用户登录", user_username)
+    else:
+        user_username = f"smoke_{uuid.uuid4().hex[:8]}"
+        user_password = generate_smoke_password()
+        login_output = load_json_output(
+            run_command(
+                [
+                    cli_bin,
+                    "--config",
+                    str(config_path),
+                    "auth",
+                    "login",
+                    "--username",
+                    user_username,
+                    "--password",
+                    user_password,
+                    "--json",
+                ]
+            )
+        )
+        login_status = str(login_output.get("status") or "")
+        if login_status not in {"registered", "logged-in"}:
+            raise SmokeError(f"普通用户登录/注册返回异常: {login_output}")
+        pass_step("Registry 用户登录", login_status)
 
     acs_path = make_acs_file(work_root)
     agent_id = save_agent_from_acs(
@@ -806,22 +863,27 @@ def run_registry_ca_discovery_smoke(
         step_name="Registry 保存 ACS",
     )
 
-    run_command(
-        [
-            cli_bin,
-            "--config",
-            str(config_path),
-            "admin",
-            "auth",
-            "login",
-            "--username",
-            admin_username,
-            "--password",
-            admin_password,
-            "--json",
-        ]
-    )
-    pass_step("Registry 管理员登录", admin_username)
+    if registry_auth_mode_value == "oidc":
+        pass_step("Registry 管理员登录", str(admin_status.get("preferred_username") or "oidc-admin"))
+    else:
+        if not admin_username or not admin_password:
+            raise SmokeError("local 模式缺少管理员用户名或密码")
+        run_command(
+            [
+                cli_bin,
+                "--config",
+                str(config_path),
+                "admin",
+                "auth",
+                "login",
+                "--username",
+                admin_username,
+                "--password",
+                admin_password,
+                "--json",
+            ]
+        )
+        pass_step("Registry 管理员登录", admin_username)
 
     aic = submit_and_approve_agent(
         cli_bin=cli_bin,
@@ -1092,7 +1154,8 @@ def main() -> int:
         Path(args.bootstrap_dir).expanduser().resolve() if args.bootstrap_dir else runtime_dir / "bootstrap-artifacts"
     )
     cli_bin = resolve_cli_bin(args.cli_bin, runtime_dir)
-    admin_username, admin_password = resolve_admin_credentials(args)
+    registry_auth_mode_value = registry_auth_mode(original_data, original_config_path)
+    admin_username, admin_password = resolve_admin_credentials(args, auth_mode=registry_auth_mode_value)
     artifacts = resolve_bootstrap_artifacts(bootstrap_dir, original_config_path)
     work_root, config_path = prepare_smoke_runtime(original_data, original_config_path, bootstrap_dir, artifacts)
     group_id = args.group_id or f"smoke-group-{uuid.uuid4().hex[:8]}"
@@ -1104,6 +1167,7 @@ def main() -> int:
             work_root=work_root,
             admin_username=admin_username,
             admin_password=admin_password,
+            registry_auth_mode_value=registry_auth_mode_value,
         )
         run_registry_probe_smoke(original_data, artifacts)
         run_mq_smoke(
@@ -1142,5 +1206,5 @@ if __name__ == "__main__":
     try:
         raise SystemExit(main())
     except SmokeError as exc:
-        print(f"[smoketest] ERROR: {exc} - smoke_test_runtime.py:1145", file=sys.stderr)
+        print(f"[smoketest] ERROR: {exc} - smoke_test_runtime.py:1209", file=sys.stderr)
         raise SystemExit(1) from exc

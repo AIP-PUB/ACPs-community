@@ -139,7 +139,7 @@ class TestValidateAcs:
         import json
         from unittest.mock import patch
 
-        from app.utils.aic import generate_ontology_aic
+        from tests.support.aic import generate_ontology_aic
 
         acs = {
             "aic": generate_ontology_aic(),
@@ -231,33 +231,34 @@ class TestCalculateAicChecksum:
 
 class TestGenerateAic:
     def test_generates_valid_aic(self) -> None:
-        aic = aic_mod.generate_aic()
+        aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         assert aic_mod.validate_aic(aic)
 
     def test_generated_aic_is_entity(self) -> None:
-        aic = aic_mod.generate_aic()
+        aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         assert aic_mod.is_entity_aic(aic)
 
     def test_generated_aic_not_ontology(self) -> None:
-        aic = aic_mod.generate_aic()
+        aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         assert not aic_mod.is_ontology_aic(aic)
 
 
 class TestGenerateOntologyAic:
     def test_generates_valid_ontology_aic(self) -> None:
-        aic = aic_mod.generate_ontology_aic()
+        aic = aic_mod.generate_ontology_aic(manager_code="1", provider_code="00001")
         assert aic_mod.validate_aic(aic)
         assert aic_mod.is_ontology_aic(aic)
 
     def test_ontology_aic_instance_serial_all_zeros(self) -> None:
-        aic = aic_mod.generate_ontology_aic()
+        aic = aic_mod.generate_ontology_aic(manager_code="1", provider_code="00001")
         parts = aic_mod._split_aic(aic)
         assert set(parts[8]) == {"0"}
+        assert parts[8] == "0"
 
 
 class TestValidateAic:
     def _make_valid_entity_aic(self) -> str:
-        return aic_mod.generate_aic()
+        return aic_mod.generate_aic(manager_code="1", provider_code="00001")
 
     def test_valid_entity_aic(self) -> None:
         assert aic_mod.validate_aic(self._make_valid_entity_aic())
@@ -269,19 +270,19 @@ class TestValidateAic:
         assert aic_mod.validate_aic("") is False
 
     def test_invalid_prefix(self) -> None:
-        aic = aic_mod.generate_aic()
+        aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         parts = aic_mod._split_aic(aic)
         parts[0] = "9"
         assert aic_mod.validate_aic(".".join(parts)) is False
 
     def test_wrong_crc(self) -> None:
-        aic = aic_mod.generate_aic()
+        aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         # 破坏 CRC（最后一段）
         corrupted = aic[:-1] + ("X" if aic[-1] != "X" else "Y")
         assert aic_mod.validate_aic(corrupted) is False
 
     def test_non_base36_segment(self) -> None:
-        aic = aic_mod.generate_aic()
+        aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         parts = aic.split(".")
         parts[4] = "!"  # 非法字符
         assert aic_mod.validate_aic(".".join(parts)) is False
@@ -289,7 +290,7 @@ class TestValidateAic:
 
 class TestGetInstanceSerial:
     def test_extracts_instance_serial(self) -> None:
-        aic = aic_mod.generate_aic()
+        aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         serial = aic_mod.get_instance_serial(aic)
         assert serial is not None
         assert len(serial) > 0
@@ -300,12 +301,12 @@ class TestGetInstanceSerial:
 
 class TestIsOntologyAndIsEntity:
     def test_entity_aic_is_entity(self) -> None:
-        aic = aic_mod.generate_aic()
+        aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         assert aic_mod.is_entity_aic(aic) is True
         assert aic_mod.is_ontology_aic(aic) is False
 
     def test_ontology_aic_is_ontology(self) -> None:
-        aic = aic_mod.generate_ontology_aic()
+        aic = aic_mod.generate_ontology_aic(manager_code="1", provider_code="00001")
         assert aic_mod.is_ontology_aic(aic) is True
         assert aic_mod.is_entity_aic(aic) is False
 
@@ -315,7 +316,7 @@ class TestIsOntologyAndIsEntity:
 
 class TestGetOntologyAicFromEntity:
     def test_derived_ontology_is_valid(self) -> None:
-        entity_aic = aic_mod.generate_aic()
+        entity_aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         ontology = aic_mod.get_ontology_aic_from_entity(entity_aic)
         assert ontology is not None
         assert aic_mod.is_ontology_aic(ontology)
@@ -324,25 +325,26 @@ class TestGetOntologyAicFromEntity:
         assert aic_mod.get_ontology_aic_from_entity("invalid") is None
 
     def test_prefix_matches_entity(self) -> None:
-        entity_aic = aic_mod.generate_aic()
+        entity_aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         ontology = aic_mod.get_ontology_aic_from_entity(entity_aic)
         assert ontology is not None
         # 前 8 段应与 entity AIC 相同
         e_parts = entity_aic.split(".")
         o_parts = ontology.split(".")
         assert e_parts[:8] == o_parts[:8]
+        assert o_parts[8] == "0"
 
 
 class TestGenerateEntityAicFromOntology:
     def test_generates_valid_entity(self) -> None:
-        ontology = aic_mod.generate_ontology_aic()
+        ontology = aic_mod.generate_ontology_aic(manager_code="1", provider_code="00001")
         entity = aic_mod.generate_entity_aic_from_ontology(ontology)
         assert entity is not None
         assert aic_mod.is_entity_aic(entity)
         assert aic_mod.validate_aic(entity)
 
     def test_non_ontology_returns_none(self) -> None:
-        entity_aic = aic_mod.generate_aic()
+        entity_aic = aic_mod.generate_aic(manager_code="1", provider_code="00001")
         assert aic_mod.generate_entity_aic_from_ontology(entity_aic) is None
 
     def test_invalid_aic_returns_none(self) -> None:
@@ -351,7 +353,7 @@ class TestGenerateEntityAicFromOntology:
 
 class TestGetDerivedEntityLikePrefix:
     def test_valid_ontology_returns_prefix(self) -> None:
-        ontology = aic_mod.generate_ontology_aic()
+        ontology = aic_mod.generate_ontology_aic(manager_code="1", provider_code="00001")
         prefix = aic_mod.get_derived_entity_like_prefix(ontology)
         assert prefix is not None
         assert prefix.endswith(".")

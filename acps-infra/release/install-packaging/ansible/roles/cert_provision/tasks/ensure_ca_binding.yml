@@ -1,0 +1,306 @@
+---
+# 绑定 control 工作区与 inventories/ca-materials 的签发身份。
+#
+# 绑定指纹 = sha256(root-ca.crt) + ":" + sha256(ca.crt|missing)
+# （根或中间任一旋转均须作废叶证；仅绑 root 会漏掉 intermediate 轮换。）
+#
+# issuer 变更（B5 pending 机制）：
+# 1) 清空 control/work/certs 叶证缓存（保留正式指纹 / pending / force / checklist /
+#    .advertise-sans-stash —— 各 profile 的 advertise 绑定，避免 wipe 后漏检 SAN 漂移）
+# 2) 清空 control/work/staging/demo-*（T4 幂等材料）
+# 3) 写入 .force-cert-renew + .issuer-material-sha256.pending
+# 4) **不**覆盖正式 .issuer-material-sha256（全量 profile 成功后由 clear/commit 提交）
+# 5) set_fact acps_force_cert_renew=true（本 playbook 后续 play 可见）
+#
+# 无热重载：所有 TLS 消费进程须在材料落地后重启（见 reload_dependents.yml）。
+
+- name: 确保控制节点 work 目录
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0700"
+  loop:
+    - "{{ acps_control_root }}/work/certs"
+    - "{{ acps_control_root }}/work/staging"
+  delegate_to: localhost
+  become: false
+
+- name: 计算 ca-materials root / intermediate sha256
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    checksum_algorithm: sha256
+  loop:
+    - "{{ acps_ca_materials_dir }}/root-ca.crt"
+    - "{{ acps_ca_materials_dir }}/ca.crt"
+  loop_control:
+    label: "{{ item | basename }}"
+  register: _ca_material_stats
+  delegate_to: localhost
+  become: false
+
+- name: 断言 ca-materials/root-ca.crt 存在
+  ansible.builtin.assert:
+    that:
+      - (_ca_material_stats.results[0].stat.exists | default(false))
+      - (_ca_material_stats.results[0].stat.checksum | default('')) | length > 0
+    fail_msg: >-
+      缺少 {{ acps_ca_materials_dir }}/root-ca.crt。请先运行
+      scripts/generate_ca_materials.sh --out inventories/ca-materials/
+      或放入自备 root-ca.crt / ca.crt / ca.key。
+
+# ATR trust-bundle 合同仍为「仅 Root」；smoke / openssl verify 叶证须 intermediate+root。
+- name: 组装 control 侧 ca-chain.pem（intermediate+root；供 TLS smoke）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ acps_ca_materials_dir }}/root-ca.crt"
+    INT="{{ acps_ca_materials_dir }}/ca.crt"
+    OUT="{{ acps_control_root }}/work/certs/ca-chain.pem"
+    if [[ -f "$INT" ]]; then
+      cat "$INT" "$ROOT" > "$OUT"
+    else
+      cp "$ROOT" "$OUT"
+    fi
+    chmod 644 "$OUT"
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  become: false
+  changed_when: false
+
+- name: 组装当前 issuer 材料指纹
+  ansible.builtin.set_fact:
+    _issuer_current_sha256: >-
+      {{
+        (_ca_material_stats.results[0].stat.checksum)
+        ~ ':' ~
+        (
+          (_ca_material_stats.results[1].stat.checksum)
+          if (_ca_material_stats.results[1].stat.exists | default(false))
+          else 'missing-intermediate'
+        )
+      }}
+    _ca_issuer_changed: false
+
+- name: 读取已绑定 issuer 材料指纹（正式优先；兼容旧 .issuer-root-sha256）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    CERTS="{{ acps_control_root }}/work/certs"
+    if [[ -f "$CERTS/.issuer-material-sha256" ]]; then
+      tr -d '[:space:]' < "$CERTS/.issuer-material-sha256"
+      exit 0
+    fi
+    if [[ -f "$CERTS/.issuer-root-sha256" ]]; then
+      root="$(tr -d '[:space:]' < "$CERTS/.issuer-root-sha256")"
+      echo "${root}:legacy-root-only"
+      exit 0
+    fi
+    echo ""
+  args:
+    executable: /bin/bash
+  register: _issuer_bound_cmd
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 解析已绑定指纹
+  ansible.builtin.set_fact:
+    _issuer_bound_sha256: "{{ _issuer_bound_cmd.stdout | trim }}"
+
+- name: 读取持久强制重签标志
+  ansible.builtin.stat:
+    path: "{{ acps_control_root }}/work/certs/.force-cert-renew"
+  register: _force_renew_flag
+  delegate_to: localhost
+  become: false
+
+- name: 读取 pending issuer 指纹是否存在
+  ansible.builtin.stat:
+    path: "{{ acps_control_root }}/work/certs/.issuer-material-sha256.pending"
+  register: _issuer_pending_flag
+  delegate_to: localhost
+  become: false
+
+- name: 读取 pending issuer 指纹内容（若有）
+  when: _issuer_pending_flag.stat.exists | default(false)
+  ansible.builtin.slurp:
+    src: "{{ acps_control_root }}/work/certs/.issuer-material-sha256.pending"
+  register: _issuer_pending_slurp
+  delegate_to: localhost
+  become: false
+
+- name: 解析 pending 指纹
+  ansible.builtin.set_fact:
+    _issuer_pending_sha256: >-
+      {{
+        (
+          (_issuer_pending_slurp.content | default('') | b64decode)
+          if (_issuer_pending_flag.stat.exists | default(false))
+          else ''
+        )
+        | trim
+      }}
+
+- name: 持久强制重签标志存在 → 本轮强制重签
+  when: _force_renew_flag.stat.exists | default(false)
+  ansible.builtin.set_fact:
+    acps_force_cert_renew: true
+
+- name: pending 已对齐当前 issuer → 标记旋转进行中（勿再次清空叶证）
+  when:
+    - (_issuer_pending_sha256 | length) > 0
+    - _issuer_pending_sha256 == _issuer_current_sha256
+  ansible.builtin.set_fact:
+    acps_force_cert_renew: true
+    _ca_issuer_rotation_in_progress: true
+
+- name: 无绑定指纹时抽样校验已有叶证是否仍由当前 CA 签发
+  when: (_issuer_bound_sha256 | length) == 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    CERTS="{{ acps_control_root }}/work/certs"
+    ROOT="{{ acps_ca_materials_dir }}/root-ca.crt"
+    INT="{{ acps_ca_materials_dir }}/ca.crt"
+    leaf=""
+    for cand in \
+      "$CERTS/redis/redis-server.pem" \
+      "$CERTS/rabbitmq/rabbitmq-server.pem" \
+      "$CERTS/mq-auth-server/server.pem" \
+      "$CERTS/registry-server-9002/server.pem"
+    do
+      if [[ -f "$cand" ]]; then
+        leaf="$cand"
+        break
+      fi
+    done
+    if [[ -z "$leaf" ]]; then
+      echo "leaf_check=none"
+      exit 0
+    fi
+    if [[ -f "$INT" ]] && openssl verify -CAfile "$ROOT" -untrusted "$INT" "$leaf" >/dev/null 2>&1; then
+      echo "leaf_check=ok"
+    elif openssl verify -CAfile "$ROOT" "$leaf" >/dev/null 2>&1; then
+      echo "leaf_check=ok"
+    else
+      echo "leaf_check=mismatch"
+    fi
+  args:
+    executable: /bin/bash
+  register: _leaf_ca_probe
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 无绑定但叶证与当前 CA 不匹配 → 视同 issuer 变更
+  when:
+    - (_issuer_bound_sha256 | length) == 0
+    - (_leaf_ca_probe.stdout | default('')) is search('leaf_check=mismatch')
+  ansible.builtin.set_fact:
+    _issuer_bound_sha256: "unbound-mismatched-leaf"
+
+- name: issuer 材料变更 → 清空叶证并写入 force + pending（不改正式指纹）
+  when:
+    - (_issuer_bound_sha256 | length) > 0
+    - _issuer_bound_sha256 != _issuer_current_sha256
+    - not (_ca_issuer_rotation_in_progress | default(false) | bool)
+  block:
+    - name: 标记 issuer 已变更
+      ansible.builtin.set_fact:
+        acps_force_cert_renew: true
+        _ca_issuer_changed: true
+
+    - name: 提示 issuer 变更（pending 机制）
+      ansible.builtin.debug:
+        msg: >-
+          ca-materials issuer 指纹已变更
+          (was={{ _issuer_bound_sha256[:20] }}… now={{ _issuer_current_sha256[:20] }}…)
+          — 清空叶证与 demo staging；写入 .force-cert-renew 与
+          .issuer-material-sha256.pending；正式指纹待全量 profile 成功后提交。
+
+    - name: 清空过期叶证缓存（保留正式/pending/force/checklist/advertise 指纹 stash）
+      ansible.builtin.shell: |
+        set -euo pipefail
+        CERTS="{{ acps_control_root }}/work/certs"
+        # Issuer wipe 会删掉各 profile 目录；若同时丢掉 .advertise-sans-sha256，
+        # 后续 ensure_advertise_binding 会把 bound 当成空 → 漏检 SAN 漂移，
+        # 把「CA force + advertise 变更」误走成同 AIC reissue 并 persist 新指纹。
+        # 先 stash 各 outdir 的 advertise 绑定，wipe 后仍可比较。
+        STASH="$CERTS/.advertise-sans-stash"
+        mkdir -p "$STASH"
+        find "$CERTS" -mindepth 2 -maxdepth 2 -name '.advertise-sans-sha256' -type f \
+          | while read -r f; do
+              outdir="$(basename "$(dirname "$f")")"
+              cp -a "$f" "$STASH/$outdir"
+            done
+        find "$CERTS" -mindepth 1 -maxdepth 1 \
+          ! -name '.issuer-material-sha256' \
+          ! -name '.issuer-material-sha256.pending' \
+          ! -name '.issuer-root-sha256' \
+          ! -name '.force-cert-renew' \
+          ! -name '.issuer-renew-checklist' \
+          ! -name '.advertise-sans-stash' \
+          -exec rm -rf {} +
+        rm -rf "$CERTS/.issuer-renew-checklist"
+        mkdir -p "$CERTS/.issuer-renew-checklist"
+      args:
+        executable: /bin/bash
+      delegate_to: localhost
+      become: false
+
+    - name: 清空 demo T4 staging（避免旧 CA 叶证被材料齐全误跳过）
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ acps_control_root }}/work/staging/demo-partner"
+        - "{{ acps_control_root }}/work/staging/demo-leader"
+      delegate_to: localhost
+      become: false
+
+    - name: 写入持久强制重签标志（跨 play / 标签运行）
+      ansible.builtin.copy:
+        dest: "{{ acps_control_root }}/work/certs/.force-cert-renew"
+        content: "{{ _issuer_current_sha256 }}\n"
+        mode: "0644"
+      delegate_to: localhost
+      become: false
+
+    - name: 写入 pending issuer 指纹（不覆盖正式）
+      ansible.builtin.copy:
+        dest: "{{ acps_control_root }}/work/certs/.issuer-material-sha256.pending"
+        content: "{{ _issuer_current_sha256 }}\n"
+        mode: "0644"
+      delegate_to: localhost
+      become: false
+
+- name: 进行中的 force 但缺 pending → 回填 pending（中断恢复）
+  when:
+    - _force_renew_flag.stat.exists | default(false)
+    - not (_issuer_pending_flag.stat.exists | default(false))
+    - not (_ca_issuer_changed | default(false) | bool)
+  ansible.builtin.copy:
+    dest: "{{ acps_control_root }}/work/certs/.issuer-material-sha256.pending"
+    content: "{{ _issuer_current_sha256 }}\n"
+    mode: "0644"
+  delegate_to: localhost
+  become: false
+
+- name: 无进行中的 issuer 旋转时写入 / 保持正式指纹（首装绑定）
+  when:
+    - not (_force_renew_flag.stat.exists | default(false))
+    - not (_issuer_pending_flag.stat.exists | default(false))
+    - not (_ca_issuer_changed | default(false) | bool)
+    - not (_ca_issuer_rotation_in_progress | default(false) | bool)
+  ansible.builtin.copy:
+    dest: "{{ acps_control_root }}/work/certs/.issuer-material-sha256"
+    content: "{{ _issuer_current_sha256 }}\n"
+    mode: "0644"
+  delegate_to: localhost
+  become: false
+
+- name: 清理旧版仅-root 绑定文件
+  ansible.builtin.file:
+    path: "{{ acps_control_root }}/work/certs/.issuer-root-sha256"
+    state: absent
+  delegate_to: localhost
+  become: false

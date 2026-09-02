@@ -1,0 +1,3 @@
+---
+# 与 common/defaults 对齐：inventory all.vars / host_vars / -e 可覆盖。
+acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control"

@@ -1,0 +1,106 @@
+[app]
+acs_json = "atr/acs.json"
+identity_binding_enabled = true
+# Leader 对外暴露的 HTTP 基础 URL，供 Partner 回调 Notification 时使用。
+# 若不配置此项，则不启用 Notification 执行器（降级为 RPC 模式）。
+# 生产部署时取消注释并填写实际地址：
+# callback_base_url = "https://leader.example.com"
+
+[logging]
+level = "INFO"
+
+[logging.packages]
+"assistant.core" = "DEBUG"
+"assistant.services.discovery_client" = "DEBUG"
+# "httpx" = "WARNING"
+
+[uvicorn]
+host = "0.0.0.0"
+port = 9031
+reload = false
+
+[web]
+host = "127.0.0.1"
+port = 9030
+allowed_origins = [
+  "http://localhost:9030",
+  "http://127.0.0.1:9030",
+]
+
+[oidc]
+enabled = true
+issuer = "http://localhost:9080/realms/acps-leader"
+audience = "leader-api"
+client_id = "leader-api"
+allowed_azp = ["leader-web", "leader-install"]
+algorithms = ["EdDSA"]
+jwks_cache_ttl_seconds = 300
+discovery_cache_ttl_seconds = 300
+leeway_seconds = 60
+require_https = false
+role_source_client_id = "leader-api"
+
+[authorization]
+user_roles = ["user", "operator", "admin"]
+operator_roles = ["operator", "admin"]
+admin_roles = ["admin"]
+
+# LLM 配置统一通过环境变量提供。
+# 开发态下根目录.env 会自动加载；部署态下通过 compose 的 env_file 注入。
+
+[llm.fast]
+api_type = "openai"
+api_key_env = "LEADER_LLM_FAST_API_KEY"
+base_url_env = "LEADER_LLM_FAST_BASE_URL"
+model_env = "LEADER_LLM_FAST_MODEL"
+
+[llm.default]
+api_type = "openai"
+api_key_env = "LEADER_LLM_DEFAULT_API_KEY"
+base_url_env = "LEADER_LLM_DEFAULT_BASE_URL"
+model_env = "LEADER_LLM_DEFAULT_MODEL"
+
+[llm.pro]
+api_type = "openai"
+api_key_env = "LEADER_LLM_PRO_API_KEY"
+base_url_env = "LEADER_LLM_PRO_BASE_URL"
+model_env = "LEADER_LLM_PRO_MODEL"
+
+# 智能体发现服务配置（ADP）
+[discovery]
+# 发现服务器基础地址。实际请求会追加 /discover。为空则不启用动态查询。
+server_base_url = "http://localhost:9005/acps-adp-v2"
+server_base_url_env = "DISCOVERY_SERVER_BASE_URL"
+timeout = 60                                          # 发现请求的超时时间（秒）
+limit = 5                                             # 单次请求返回的最大候选数量
+
+# 群组模式配置
+[group]
+enabled = true             # 是否启用群组模式支持
+status_probe_interval = 30 # Partner状态检查间隔（秒）
+max_wait_seconds = 300     # 群组消息的默认超时时间（秒）
+partner_join_timeout = 300 # Partner加入群组的超时时间（秒）
+max_retry_count = 3        # 邀请Partner的最大重试次数
+
+# mTLS 客户端证书配置（用于连接 Partner 的 HTTPS 端点）
+# 使用 Leader 的智能体身份证书；证书文件由安装层 / 本地 bootstrap 写入 atr/，本文件只声明路径。
+[mtls]
+cert_file = "atr/client.pem"
+key_file = "atr/client.key"
+ca_file = "atr/trust-bundle.pem"
+# 若启用 notification callback 且 identity_binding_enabled=true，Leader API 进程
+# 需要直接终止 mTLS，并验证 Partner 客户端证书。
+# server_cert_file = "atr/server.pem"
+# server_key_file = "atr/server.key"
+# server_ca_file = "atr/trust-bundle.pem"
+
+[rabbitmq]
+host = "rabbitmq"
+port = 5671
+vhost = "acps"
+auth_service_url = "https://localhost:9007"
+
+# RabbitMQ Management API 配置（预留，用于强制退出等高级功能）
+[rabbitmq.management]
+host = "localhost"
+port = 15672

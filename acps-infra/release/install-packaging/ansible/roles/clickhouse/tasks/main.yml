@@ -1,0 +1,66 @@
+---
+- name: monitor 禁用时结束
+  when: not (monitor_server_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 ClickHouse（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: stage clickhouse image
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: clickhouse
+        acps_artifact_kind: vendor_bundle
+
+    - name: 解析 clickhouse image user for data dir
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: resolve_cert_owner.yml
+      vars:
+        acps_cert_owner_user: clickhouse
+
+    - name: 规范化 clickhouse data dir ownership
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: normalize_data_dir.yml
+      vars:
+        acps_data_dir: "{{ acps_data_root }}/clickhouse"
+
+    - name: 渲染 compose
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/clickhouse.yml"
+        mode: "0644"
+
+    - name: 部署 clickhouse
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: clickhouse
+        acps_compose_force_recreate: false
+
+    - name: 等待端口
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ clickhouse_http_port }}"
+        timeout: 120
+
+    - name: 开放 clickhouse 广告端口（firewalld/ufw；与 host 同构）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: open_advertise_ports.yml
+      vars:
+        acps_open_ports:
+          - "{{ clickhouse_http_port }}"
+
+- name: host 分支：官方 tgz vendor_bundle + systemd（本设计 §5.5 / §8.2.1 / Step 15）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

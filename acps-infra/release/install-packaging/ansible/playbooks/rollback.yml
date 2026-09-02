@@ -1,0 +1,462 @@
+---
+# rollback.yml — 制品回滚（image / host 共用入口；按 acps_deploy_mode 分派承载）
+#
+# 与 site.yml / upgrade.yml 入口分离。将所选组件恢复至
+# 保留的 previous（或与之匹配的 acps_rollback_to）。
+# image：复用组件 role + compose up / up-recreate — 禁止 down -v。
+# host：current → previous releases/（app_release）；os_package 默认拒绝（不降包）。
+# 不执行 DB migrate-downgrade，不回滚证书（证书流程保持独立）。
+# 回滚 CSV 含 ca_server：不改证书/trust；强制至少 TLS smoke + 醒目 WARN（§9.5.9 / BP14）。
+#
+# 必需：-e acps_rollback_components=registry_server[,ca_server,...]
+# 可选：-e acps_rollback_to=<previous.version|previous.image_tag|artifact_id|release_path>
+# 可选：-e acps_rollback_skip_smoke=true（默认 false；含 ca_server 时仍强制 TLS 平面）
+
+- name: "回滚 — 规范化 + preflight"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tasks:
+    - name: 回滚选择 preflight
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: preflight_rollback.yml
+
+- name: "回滚 — 集群基线 preflight"
+  hosts: all
+  gather_facts: true
+  become: true
+  roles:
+    - role: baseline
+  tasks:
+    - name: 共享集群 preflight
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: preflight_cluster.yml
+
+    - name: 将回滚选择镜像到目标主机
+      ansible.builtin.set_fact:
+        _acps_rollback_components: "{{ hostvars['localhost']['_acps_rollback_components'] }}"
+
+    # host 回滚 render/entrypoint 需要 pinned acps_python_bin；site/upgrade 会装，
+    # 但 rollback 独立入口无 fact 时须重跑 install_python（幂等；与 upgrade.yml 对齐）。
+    - name: host 模式确保业务机 pinned CPython（acps_python_bin）
+      when: (acps_deploy_mode | default('image')) == 'host'
+      ansible.builtin.include_role:
+        name: install_python
+      vars:
+        acps_install_python: true
+
+# --- 按 C 顺序的组件 play（仅运行所选 key）---
+# acps_skip_state_commit：role 部署不得在切换中途 commit；rollback_one 在 health 后 commit。
+
+- name: "回滚 — postgresql"
+  hosts: postgresql
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: postgresql
+    acps_rollback_role: postgresql
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — keycloak"
+  hosts: keycloak
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: keycloak
+    acps_rollback_role: keycloak
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+# 与 upgrade.yml 对齐：CLI 先于业务 app_release。
+# host → rollback_one（切 previous releases）；image → 既有扁平重装 previous artifact（不得回归）。
+- name: "回滚 — control acps-cli"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: acps_cli
+    acps_rollback_role: control_acps_cli
+    acps_state_scope: control
+    acps_runtime_root: "{{ acps_control_root | dirname }}"
+    acps_state_root: "{{ acps_control_root | dirname }}/state"
+  tasks:
+    - name: host 模式确保控制节点 pinned CPython（acps_cli rollback）
+      when: (acps_deploy_mode | default('image')) == 'host'
+      ansible.builtin.include_role:
+        name: install_python
+      vars:
+        acps_install_python: true
+
+    - name: host — 经 rollback_one 切 previous releases
+      when: (acps_deploy_mode | default('image')) == 'host'
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+    - name: image — 既有 control CLI 回滚（从 previous.artifact_id 重装；不得走 docker image 路径）
+      when: (acps_deploy_mode | default('image')) == 'image'
+      block:
+        - name: 未选择时跳过 CLI
+          when: "'acps_cli' not in (hostvars['localhost']['_acps_rollback_components'] | default([]))"
+          ansible.builtin.meta: end_play
+
+        - name: 解析 control CLI state 路径
+          ansible.builtin.set_fact:
+            _acps_rb_cli_state_file: "{{ (acps_control_root | dirname) }}/state/control/acps_cli.json"
+
+        - name: 检查 control CLI state
+          ansible.builtin.stat:
+            path: "{{ _acps_rb_cli_state_file }}"
+          register: _acps_rb_cli_stat
+
+        - name: control CLI state 缺失时失败
+          when: not (_acps_rb_cli_stat.stat.exists | bool)
+          ansible.builtin.fail:
+            msg: >-
+              Cannot rollback acps_cli: no state at {{ _acps_rb_cli_state_file }}.
+              Scene preserved.
+
+        - name: 加载 control CLI state
+          ansible.builtin.slurp:
+            src: "{{ _acps_rb_cli_state_file }}"
+          register: _acps_rb_cli_slurp
+
+        - name: 解析 control CLI state
+          ansible.builtin.set_fact:
+            _acps_rb_cli_doc: "{{ _acps_rb_cli_slurp.content | b64decode | from_json }}"
+
+        - name: 要求 control CLI previous
+          when: >-
+            (_acps_rb_cli_doc.previous is not defined)
+            or (_acps_rb_cli_doc.previous is none)
+            or (_acps_rb_cli_doc.previous is not mapping)
+          ansible.builtin.fail:
+            msg: >-
+              Cannot rollback acps_cli: previous is null/absent. Scene preserved.
+
+        - name: 绑定 control 回滚目标
+          ansible.builtin.set_fact:
+            _acps_rollback_target: "{{ _acps_rb_cli_doc.previous }}"
+
+        - name: 校验 control CLI 的可选 acps_rollback_to
+          when: (acps_rollback_to | default('') | string | length) > 0
+          ansible.builtin.assert:
+            that:
+              - >-
+                (acps_rollback_to | string) == (_acps_rollback_target.version | default('') | string)
+                or (acps_rollback_to | string) == (_acps_rollback_target.artifact_id | default('') | string)
+            fail_msg: >-
+              acps_rollback_to={{ acps_rollback_to }} does not match retained acps_cli previous.
+              Scene preserved.
+
+        - name: 应用 control_acps_cli role（从安装包制品重装）
+          ansible.builtin.include_role:
+            name: control_acps_cli
+
+        - name: "commit_state（control acps_cli 已恢复；清除 previous）"
+          ansible.builtin.include_role:
+            name: common
+            tasks_from: commit_state.yml
+          vars:
+            acps_state_scope: control
+            acps_runtime_root: "{{ acps_control_root | dirname }}"
+            acps_state_root: "{{ acps_control_root | dirname }}/state"
+            acps_state_version: "{{ _acps_rollback_target.version | default(acps_version) }}"
+            acps_state_artifact_id: "{{ _acps_rollback_target.artifact_id }}"
+            acps_state_image_tag: ""
+            acps_state_clear_previous: true
+
+- name: "回滚 — registry_server"
+  hosts: registry_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: registry_server
+    acps_rollback_role: registry_server
+  tasks:
+    - name: 检测现有 registry mTLS 监听器（image：docker inspect）
+      when: (acps_deploy_mode | default('image')) == 'image'
+      ansible.builtin.command:
+        argv:
+          - docker
+          - inspect
+          - "{{ acps_compose_project_prefix }}-registry_server_mtls-1"
+      register: _rollback_reg_mtls_image
+      failed_when: false
+      changed_when: false
+
+    - name: 检测现有 registry mTLS 监听器（host：systemctl）
+      when: (acps_deploy_mode | default('image')) == 'host'
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - acps-registry_server_mtls.service
+      register: _rollback_reg_mtls_host
+      failed_when: false
+      changed_when: false
+
+    - name: 已部署时保持 mTLS 监听器启用
+      ansible.builtin.set_fact:
+        registry_server_enable_mtls_listener: >-
+          {{
+            (
+              (_rollback_reg_mtls_image.rc | default(1) | int) == 0
+            )
+            if (acps_deploy_mode | default('image')) == 'image'
+            else (
+              (_rollback_reg_mtls_host.rc | default(1) | int) == 0
+            )
+          }}
+
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — ca_server"
+  hosts: ca_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: ca_server
+    acps_rollback_role: ca_server
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — discovery_server"
+  hosts: discovery_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: "discovery_server_{{ discovery_server_variant | default('cpu') }}"
+    acps_rollback_role: discovery_server
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — redis"
+  hosts: redis
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: redis
+    acps_rollback_role: redis
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — rabbitmq"
+  hosts: rabbitmq
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: rabbitmq
+    acps_rollback_role: rabbitmq
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — mq_auth_server"
+  hosts: mq_auth_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: mq_auth_server
+    acps_rollback_role: mq_auth_server
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — redpanda"
+  hosts: redpanda
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: redpanda
+    acps_rollback_role: redpanda
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — victoria_metrics"
+  hosts: victoria_metrics
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: victoria_metrics
+    acps_rollback_role: victoria_metrics
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — clickhouse"
+  hosts: clickhouse
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: clickhouse
+    acps_rollback_role: clickhouse
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — minio"
+  hosts: minio
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: minio
+    acps_rollback_role: minio
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — opensearch"
+  hosts: opensearch
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: opensearch
+    acps_rollback_role: opensearch
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — monitor_server"
+  hosts: monitor_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: monitor_server
+    acps_rollback_role: monitor_server
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — demo_partner"
+  hosts: demo_partner
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: demo_partner
+    acps_rollback_role: demo_partner
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — demo_leader"
+  hosts: demo_leader
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: demo_leader
+    acps_rollback_role: demo_leader
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — amp_forwarder（§9.5.6 / BP10 进 CSV）"
+  hosts: demo_leader:demo_partner
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_rollback_component_key: amp_forwarder
+    acps_rollback_role: amp_forwarder
+  tasks:
+    - name: 回滚单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: rollback_one_component.yml
+
+- name: "回滚 — 基础 smoke"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    acps_smoke_include_demo: "{{ (demo_partner_enabled | bool) or (demo_leader_enabled | bool) }}"
+  tasks:
+    - name: WARNING — 证书/trust 未随 ca_server 二进制回滚（§9.5.9 / BP14）
+      when: "'ca_server' in (hostvars['localhost']._acps_rollback_components | default([]))"
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: rollback included ca_server — certificates/trust were NOT
+          rolled back with the binary（产品边界：无证书 rollback）。若需对齐 trust，
+          请手动 ansible-playbook … playbooks/refresh-trust-bundle.yml。
+          回滚后勿用 site.yml 盖回（BP16）。
+
+    - name: WARNING — 按请求跳过 smoke（§9.5.7 / BP11；收敛矩阵禁止）
+      when:
+        - acps_rollback_skip_smoke | default(false) | bool
+        - "'ca_server' not in (hostvars['localhost']._acps_rollback_components | default([]))"
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: acps_rollback_skip_smoke=true — skipping basic smoke
+          （break-glass only；旁路收敛矩阵 / 宣称收敛证据必须 skip_smoke=false）
+
+    - name: 回滚后 smoke（含 ca_server 时强制至少 TLS 平面；§9.5.9 / BP14）
+      when: >-
+        (not (acps_rollback_skip_smoke | default(false) | bool))
+        or ('ca_server' in (hostvars['localhost']._acps_rollback_components | default([])))
+      ansible.builtin.include_role:
+        name: smoke_basic
+      vars:
+        acps_smoke_tls_plane_only: >-
+          {{
+            (acps_rollback_skip_smoke | default(false) | bool)
+            and ('ca_server' in (hostvars['localhost']._acps_rollback_components | default([])))
+          }}

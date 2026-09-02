@@ -1,0 +1,64 @@
+["china_transport.intercity-transportation-planning"]
+name = "城际交通规划"
+required_slots_anyof = [
+    [
+        "from_city",
+        "to_city",
+        "dates_or_days",
+    ],
+    [
+        "city_sequence",
+        "dates_or_days",
+    ],
+]
+optional_slots = [
+    "people",
+    "budget",
+    "preference",
+    "luggage_special",
+    "transfer_constraints",
+]
+
+# 字段名中文映射
+[slot_labels]
+from_city = "出发城市"
+to_city = "目的城市"
+city_sequence = "途经城市"
+dates_or_days = "出行日期或天数"
+people = "出行人数"
+budget = "预算"
+preference = "偏好"
+luggage_special = "大件行李/特殊物品"
+transfer_constraints = "中转限制"
+daily_time_window = "每日时间窗口"
+
+["china_transport.route-optimization"]
+name = "路线优化服务"
+required_slots = ["city_sequence", "dates_or_days"]
+optional_slots = [
+    "budget",
+    "preference",
+    "daily_time_window",
+    "transfer_constraints",
+    "people",
+    "luggage_special",
+]
+
+["china_transport.special-needs-transportation"]
+name = "特殊需求交通"
+required_slots_anyof = [
+    [
+        "from_city",
+        "to_city",
+        "dates_or_days",
+        "people",
+        "luggage_special",
+    ],
+    [
+        "city_sequence",
+        "dates_or_days",
+        "people",
+        "luggage_special",
+    ],
+]
+optional_slots = ["budget", "preference", "transfer_constraints"]

@@ -1,0 +1,75 @@
+---
+# host：systemctl restart（OS 包服务用发行版单元名；app 用 acps-<svc>）
+# 期望：_renew_target_host, _rr
+# LoadState!=loaded → skip（首装顺序常见，勿 fail）
+# 清场半残：WorkingDirectory 缺失时给出明确错误，避免无限 restart 掩盖根因。
+
+- name: host 模式 — restart systemd units for renewed certs
+  ansible.builtin.shell: |
+    set -euo pipefail
+    OS_FAMILY="{{ hostvars[_renew_target_host].ansible_os_family | default('RedHat') }}"
+    restarted=0
+    for svc in {{ _rr.compose_services }}; do
+      case "${svc}" in
+        redis)
+          if [[ "${OS_FAMILY}" == "Debian" ]]; then
+            unit="redis-server"
+            data_dir="/var/lib/redis"
+            data_user="redis"
+          else
+            unit="redis"
+            data_dir="/var/lib/redis"
+            data_user="redis"
+          fi
+          ;;
+        rabbitmq)
+          unit="rabbitmq-server"
+          data_dir="/var/lib/rabbitmq"
+          data_user="rabbitmq"
+          ;;
+        *)
+          unit="acps-${svc}"
+          data_dir=""
+          data_user=""
+          ;;
+      esac
+      load_state="$(systemctl show -p LoadState --value "${unit}" 2>/dev/null || echo not-found)"
+      if [[ "${load_state}" != "loaded" ]]; then
+        echo "skip restart: ${unit} LoadState=${load_state} (profile={{ _rr.profile }})"
+        continue
+      fi
+      # OS 包服务：restart 前确保数据目录存在（清场删空后 CHDIR/config dir 失败）
+      if [[ -n "${data_dir}" ]]; then
+        mkdir -p "${data_dir}"
+        if id "${data_user}" >/dev/null 2>&1; then
+          chown "${data_user}:${data_user}" "${data_dir}" || chown "${data_user}:root" "${data_dir}" || true
+        fi
+        if command -v restorecon >/dev/null 2>&1; then
+          restorecon -R "${data_dir}" 2>/dev/null || true
+        fi
+      fi
+      # acps-*：WorkingDirectory 缺失说明安装树被清但 unit 残留
+      wd="$(systemctl show -p WorkingDirectory --value "${unit}" 2>/dev/null || true)"
+      if [[ -n "${wd}" && "${wd}" != "/" && ! -d "${wd}" ]]; then
+        echo "FATAL: ${unit} WorkingDirectory=${wd} missing (stale unit after cleanup?). Remove /etc/systemd/system/${unit} and daemon-reload, then re-run site.yml." >&2
+        exit 1
+      fi
+      echo "restarting ${unit} (profile={{ _rr.profile }})"
+      systemctl restart "${unit}"
+      systemctl is-active --quiet "${unit}"
+      restarted=1
+    done
+    if [[ "${restarted}" -eq 0 ]]; then
+      echo "no units restarted (profile={{ _rr.profile }})"
+    fi
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ _renew_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_renew_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_renew_target_host].ansible_become | default(true)) | bool }}"
+  register: _renew_host_restart
+  changed_when: >-
+    ('restarting ' in (_renew_host_restart.stdout | default('')))
+  failed_when: >-
+    (_renew_host_restart.rc | default(1) | int) != 0

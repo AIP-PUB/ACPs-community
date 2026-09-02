@@ -1,0 +1,99 @@
+---
+# image：compose_ctl.sh up-recreate（服务未定义则 skip）
+# 期望：_renew_target_host, _rr
+# shell 脚本用环境变量注入 Ansible 值，避免嵌套引号 / Jinja 在 bash 中误解析。
+# 禁止在 shell 正文写 bash 数组长度展开（会被 Jinja 当成注释起始）。
+#
+# 多机首装：reload_dependents 可能打到尚未跑过 ensure_runtime_dirs 的节点
+# （例如 monitor 在 biz-3，redis 叶证变更时先 recreate monitor）。copy 前必须
+# 确保 staging 根存在；后续 shell 仍会在无 compose / 无服务时 skip。
+
+- name: 解析 target runtime paths for recreate
+  ansible.builtin.set_fact:
+    _rt_runtime: "{{ hostvars[_renew_target_host].acps_runtime_root | default(acps_runtime_root) }}"
+    _rt_compose: "{{ (hostvars[_renew_target_host].acps_runtime_root | default(acps_runtime_root)) }}/compose"
+
+- name: image 模式 — 确保 staging 根目录（供 compose_ctl 落地；多机首装常见尚未建树）
+  ansible.builtin.file:
+    path: "{{ _rt_runtime }}/staging"
+    state: directory
+    mode: "0755"
+  delegate_to: "{{ _renew_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_renew_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_renew_target_host].ansible_become | default(true)) | bool }}"
+
+- name: image 模式 — stage compose_ctl.sh on target
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/scripts/compose_ctl.sh"
+    dest: "{{ _rt_runtime }}/staging/compose_ctl.sh"
+    mode: "0755"
+  delegate_to: "{{ _renew_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_renew_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_renew_target_host].ansible_become | default(true)) | bool }}"
+
+- name: image 模式 — force-recreate compose service(s) for renewed certs
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      COMPOSE_DIR="${ACPS_RT_COMPOSE}"
+      COMPOSE_YML="${COMPOSE_DIR}/docker-compose.yml"
+      if [[ ! -f "${COMPOSE_YML}" ]]; then
+        echo "skip recreate: compose file missing (service not installed yet)"
+        exit 0
+      fi
+      ARGS=(-p "${ACPS_COMPOSE_PROJECT_PREFIX}" -f "${COMPOSE_YML}")
+      if [[ -d "${COMPOSE_DIR}/services" ]]; then
+        while IFS= read -r f; do
+          [[ -n "${f}" ]] || continue
+          ARGS+=(-f "${f}")
+        done < <(find "${COMPOSE_DIR}/services" -maxdepth 1 -name "*.yml" 2>/dev/null | sort)
+      fi
+      # bash 3.2（macOS /bin/bash）无 mapfile；用可移植 while-read（Linux bash 4+ 等价）。
+      AVAILABLE=()
+      while IFS= read -r _svc; do
+        [[ -n "${_svc}" ]] || continue
+        AVAILABLE+=("${_svc}")
+      done < <(docker compose "${ARGS[@]}" config --services 2>/dev/null || true)
+      TO_RECREATE=()
+      # shellcheck disable=SC2086
+      for svc in ${ACPS_COMPOSE_SERVICES}; do
+        found=0
+        for a in "${AVAILABLE[@]+"${AVAILABLE[@]}"}"; do
+          if [[ "${a}" == "${svc}" ]]; then
+            found=1
+            break
+          fi
+        done
+        if [[ "${found}" -ne 1 ]]; then
+          echo "skip recreate: compose service '${svc}' not defined yet (profile=${ACPS_CERT_PROFILE})"
+          continue
+        fi
+        TO_RECREATE+=("${svc}")
+      done
+      if [[ ! ${TO_RECREATE[@]+x} ]]; then
+        echo "skip recreate: no installed compose services to recreate"
+        exit 0
+      fi
+      bash "${ACPS_RT_RUNTIME}/staging/compose_ctl.sh" \
+        "${COMPOSE_DIR}" \
+        "${ACPS_COMPOSE_PROJECT_PREFIX}" \
+        "${COMPOSE_YML}" \
+        up-recreate \
+        "${TO_RECREATE[@]}"
+    executable: /bin/bash
+  environment:
+    ACPS_RT_COMPOSE: "{{ _rt_compose }}"
+    ACPS_RT_RUNTIME: "{{ _rt_runtime }}"
+    ACPS_COMPOSE_PROJECT_PREFIX: "{{ acps_compose_project_prefix }}"
+    ACPS_COMPOSE_SERVICES: "{{ _rr.compose_services }}"
+    ACPS_CERT_PROFILE: "{{ _rr.profile }}"
+  delegate_to: "{{ _renew_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_renew_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_renew_target_host].ansible_become | default(true)) | bool }}"
+  register: _renew_image_recreate
+  changed_when: >-
+    (_renew_image_recreate.rc | default(1) | int) == 0
+    and ('skip recreate' not in (_renew_image_recreate.stdout | default('')))

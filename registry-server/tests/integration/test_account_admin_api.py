@@ -65,12 +65,12 @@ async def test_admin_can_manage_users_and_roles(client, db_session) -> None:
     update_response = await client.put(
         f"/api/v1/account/user/{user_id}",
         headers=headers,
-        json={"name": "Updated Managed User", "org_name": "ACPS Org"},
+        json={"name": "Updated Managed User", "org_name": "ACPs Org"},
     )
     assert update_response.status_code == 200
     updated = update_response.json()
     assert updated["name"] == "Updated Managed User"
-    assert updated["org_name"] == "ACPS Org"
+    assert updated["org_name"] == "ACPs Org"
 
     role_update_response = await client.put(
         f"/api/v1/account/user/{user_id}/roles",
@@ -126,6 +126,49 @@ async def test_admin_can_manage_users_and_roles(client, db_session) -> None:
     )
     assert failed_login_response.status_code == 401
     assert failed_login_response.json()["error_name"] == "INVALID_CREDENTIALS"
+
+
+async def test_admin_reset_password_revokes_target_users_active_session(client, db_session) -> None:
+    await ensure_role(db_session, RoleType.ADMIN)
+    await ensure_role(db_session, RoleType.CLIENT)
+    admin = await create_user(
+        db_session,
+        username=f"admin-{uuid.uuid4().hex[:8]}",
+        password=DEFAULT_LOGIN_VALUE,
+        roles=(RoleType.ADMIN,),
+        name="Reset Admin",
+    )
+    target = await create_user(
+        db_session,
+        username=f"target-{uuid.uuid4().hex[:8]}",
+        password=DEFAULT_LOGIN_VALUE,
+        roles=(RoleType.CLIENT,),
+        name="Reset Target",
+    )
+    await db_session.commit()
+
+    admin_tokens = await _login(client, username=admin.username or "", password=DEFAULT_LOGIN_VALUE)
+    target_tokens = await _login(client, username=target.username or "", password=DEFAULT_LOGIN_VALUE)
+    admin_headers = _auth_headers(admin_tokens["access_token"])
+    target_headers = _auth_headers(target_tokens["access_token"])
+
+    reset_password_response = await client.put(
+        f"/api/v1/account/user/{target.id}/password",
+        headers=admin_headers,
+        json={"new_password": ROTATED_LOGIN_VALUE},
+    )
+    assert reset_password_response.status_code == 200
+    assert reset_password_response.json()["message"] == "Password reset successfully"
+
+    stale_session_response = await client.get("/api/v1/account/me", headers=target_headers)
+    assert stale_session_response.status_code == 401
+    assert stale_session_response.json()["error_name"] == "TOKEN_VALIDATION_ERROR"
+
+    new_login_response = await client.post(
+        "/api/v1/auth/login",
+        data={"username": target.username, "password": ROTATED_LOGIN_VALUE},
+    )
+    assert new_login_response.status_code == 200
 
 
 async def test_staff_can_read_single_user_and_list_users_but_not_admin_manage_users(client, db_session) -> None:
@@ -269,3 +312,110 @@ async def test_admin_can_batch_delete_users_and_reports_missing_ids(client, db_s
     assert refreshed_two is not None
     assert refreshed_one.is_active is False
     assert refreshed_two.is_active is False
+
+
+async def test_staff_can_set_aic_provider_code_and_client_cannot(client, db_session) -> None:
+    await ensure_role(db_session, RoleType.ADMIN)
+    await ensure_role(db_session, RoleType.STAFF)
+    await ensure_role(db_session, RoleType.CLIENT)
+    staff = await create_user(
+        db_session,
+        username=f"staff-{uuid.uuid4().hex[:8]}",
+        password=DEFAULT_LOGIN_VALUE,
+        roles=(RoleType.STAFF,),
+    )
+    client_user = await create_user(
+        db_session,
+        username=f"client-{uuid.uuid4().hex[:8]}",
+        password=DEFAULT_LOGIN_VALUE,
+        roles=(RoleType.CLIENT,),
+    )
+    target = await create_user(
+        db_session,
+        username=f"vendor-{uuid.uuid4().hex[:8]}",
+        password=DEFAULT_LOGIN_VALUE,
+        roles=(RoleType.CLIENT,),
+    )
+    await db_session.commit()
+
+    staff_tokens = await _login(client, username=staff.username or "", password=DEFAULT_LOGIN_VALUE)
+    staff_headers = _auth_headers(staff_tokens["access_token"])
+    set_response = await client.put(
+        f"/api/v1/account/user/{target.id}/aic-provider-code",
+        headers=staff_headers,
+        json={"aic_provider_code": "34c2"},
+    )
+    assert set_response.status_code == 200
+    assert set_response.json()["aic_provider_code"] == "34C2"
+
+    idempotent_response = await client.put(
+        f"/api/v1/account/user/{target.id}/aic-provider-code",
+        headers=staff_headers,
+        json={"aic_provider_code": "34C2"},
+    )
+    assert idempotent_response.status_code == 200
+
+    zero_response = await client.put(
+        f"/api/v1/account/user/{target.id}/aic-provider-code",
+        headers=staff_headers,
+        json={"aic_provider_code": "0"},
+    )
+    assert zero_response.status_code == 422
+
+    client_tokens = await _login(client, username=client_user.username or "", password=DEFAULT_LOGIN_VALUE)
+    client_headers = _auth_headers(client_tokens["access_token"])
+    forbidden_response = await client.put(
+        f"/api/v1/account/user/{target.id}/aic-provider-code",
+        headers=client_headers,
+        json={"aic_provider_code": "AAAAAA"},
+    )
+    assert forbidden_response.status_code == 403
+
+    missing_response = await client.put(
+        f"/api/v1/account/user/{uuid.uuid4()}/aic-provider-code",
+        headers=staff_headers,
+        json={"aic_provider_code": "AAAAAA"},
+    )
+    assert missing_response.status_code == 404
+
+
+async def test_staff_cannot_assign_duplicate_aic_provider_code(client, db_session) -> None:
+    await ensure_role(db_session, RoleType.STAFF)
+    await ensure_role(db_session, RoleType.CLIENT)
+    staff = await create_user(
+        db_session,
+        username=f"staff-{uuid.uuid4().hex[:8]}",
+        password=DEFAULT_LOGIN_VALUE,
+        roles=(RoleType.STAFF,),
+    )
+    first = await create_user(
+        db_session,
+        username=f"vendor-a-{uuid.uuid4().hex[:8]}",
+        password=DEFAULT_LOGIN_VALUE,
+        roles=(RoleType.CLIENT,),
+    )
+    second = await create_user(
+        db_session,
+        username=f"vendor-b-{uuid.uuid4().hex[:8]}",
+        password=DEFAULT_LOGIN_VALUE,
+        roles=(RoleType.CLIENT,),
+    )
+    await db_session.commit()
+
+    staff_tokens = await _login(client, username=staff.username or "", password=DEFAULT_LOGIN_VALUE)
+    staff_headers = _auth_headers(staff_tokens["access_token"])
+    first_response = await client.put(
+        f"/api/v1/account/user/{first.id}/aic-provider-code",
+        headers=staff_headers,
+        json={"aic_provider_code": "DUP001"},
+    )
+    assert first_response.status_code == 200
+    assert first_response.json()["aic_provider_code"] == "DUP001"
+
+    conflict_response = await client.put(
+        f"/api/v1/account/user/{second.id}/aic-provider-code",
+        headers=staff_headers,
+        json={"aic_provider_code": "dup001"},
+    )
+    assert conflict_response.status_code == 409
+    assert conflict_response.json()["error_name"] == "AIC_PROVIDER_CODE_CONFLICT"

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import click
 
+from acps_cli.shared.flexible_group import FlexibleGroup
 from acps_cli.shared.runtime import get_root_runtime
 from acps_cli.shared.unified_config import build_discovery_runtime_context
 
@@ -16,10 +17,10 @@ def _build_discovery_context(ctx: click.Context, server_url: str | None) -> None
 
 
 def _group(name: str, help_text: str) -> click.Group:
-    return click.Group(name=name, help=help_text)
+    return FlexibleGroup(name=name, help=help_text)
 
 
-@click.group(name="discover", help="Run discovery queries and health checks.")
+@click.group(cls=FlexibleGroup, name="discover", help="Run discovery queries and health checks.")
 @click.option("--server-url", default=None, help="Override discovery server base URL.")
 @click.pass_context
 def discover_group(ctx: click.Context, server_url: str | None) -> None:
@@ -30,7 +31,7 @@ discover_group.add_command(commands.status, name="status")
 discover_group.add_command(commands.query_cmd, name="query")
 
 
-@click.group(name="discovery", help="Discovery administration and DSP control commands.")
+@click.group(cls=FlexibleGroup, name="discovery", help="Discovery administration and DSP control commands.")
 @click.option("--server-url", default=None, help="Override discovery server base URL.")
 @click.pass_context
 def admin_discovery_group(ctx: click.Context, server_url: str | None) -> None:

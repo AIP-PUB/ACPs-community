@@ -1,0 +1,125 @@
+# Monitor→Discovery 心跳同步探测。
+# 失败即停消息指明 Monitor Relay 或 Discovery alive-sync consumer。
+# 切勿将 Monitor /heartbeat/summary（或其他 heartbeat Query API）视为 D2 通过。
+
+- name: 派生 alive-sync 探测主机
+  ansible.builtin.set_fact:
+    _alive_mon: "{{ hostvars | acps_group_addr(groups, 'monitor_server') }}"
+    _alive_disc: "{{ hostvars | acps_group_addr(groups, 'discovery_server') }}"
+    _alive_sync_headers: >-
+      {{
+        {'Authorization': 'Bearer ' ~ monitor_heartbeat_sync_internal_token}
+        if (monitor_heartbeat_sync_internal_token | default('') | length) > 0
+        else {}
+      }}
+
+- name: 探测 Monitor Sync Profile（/sync/info — Provider，非 heartbeat Query API）
+  ansible.builtin.uri:
+    url: "http://{{ _alive_mon }}:{{ monitor_server_port }}/acps-amp-v1/heartbeat/sync/info"
+    method: GET
+    headers: "{{ _alive_sync_headers }}"
+    status_code: [200]
+    return_content: true
+  register: _mon_sync_info
+  retries: 15
+  delay: 2
+  until: >-
+    (_mon_sync_info.status | default(0)) == 200
+    and ((_mon_sync_info.json | default({})).type | default('')) == 'amp-alive-delta'
+    and ((_mon_sync_info.json | default({})).kafkaTopic | default('')) == 'amp.heartbeat.alive-delta'
+
+- name: 断言 Monitor Sync Profile 字段
+  ansible.builtin.assert:
+    that:
+      - (_mon_sync_info.json | default({})).type | default('') == 'amp-alive-delta'
+      - (_mon_sync_info.json | default({})).kafkaTopic | default('') == 'amp.heartbeat.alive-delta'
+      - ((_mon_sync_info.json | default({})).shardCount | default(0)) | int >= 1
+    fail_msg: >-
+      Monitor Heartbeat Sync Profile missing or wrong
+      (type/kafkaTopic/shardCount). Check Monitor HeartbeatRelay:
+      production.toml [heartbeat] sync_enabled=true, delta_topic=amp.heartbeat.alive-delta,
+      kafka bootstrap from inventory; and HEARTBEAT_SYNC_INTERNAL_TOKEN when Keycloak
+      OIDC is on. This probe is Provider /sync/info — not D2
+      (D2 asserts on Discovery alive views only).
+
+- name: 等待 Discovery alive-sync consumer 运行
+  ansible.builtin.uri:
+    url: "http://{{ _alive_disc }}:{{ discovery_server_port }}/admin/alive-sync/status"
+    method: GET
+    status_code: [200]
+    return_content: true
+  register: _disc_alive_status
+  retries: 30
+  delay: 2
+  until: >-
+    (_disc_alive_status.status | default(0)) == 200
+    and ((_disc_alive_status.json | default({})).running | default(false)) | bool
+    and (((_disc_alive_status.json | default({})).checkpointCount | default(0)) | int) >= 1
+
+- name: 断言 Discovery alive-sync 运行中
+  ansible.builtin.assert:
+    that:
+      - ((_disc_alive_status.json | default({})).running | default(false)) | bool
+      - (((_disc_alive_status.json | default({})).checkpointCount | default(0)) | int) >= 1
+    fail_msg: >-
+      Discovery alive-sync consumer is not running or bootstrap incomplete
+      (need running=true and checkpointCount>=1). Check:
+      (1) Monitor HeartbeatRelay (sync_enabled, /sync/info, amp.heartbeat.alive-delta);
+      (2) Discovery production.toml [alive_sync] enabled + provider_base_url +
+      kafka_bootstrap_servers (inventory advertise, not localhost-only);
+      (3) Shared sync Bearer: Monitor HEARTBEAT_SYNC_INTERNAL_TOKEN and Discovery
+      ALIVE_SYNC_PROVIDER_BEARER_TOKEN (required when keycloak_enabled / Monitor OIDC
+      is on; secrets.yml monitor_heartbeat_sync_internal_token). Do not pass D2 via
+      Monitor heartbeat API.
+
+- name: 等待 Discovery alive 视图中至少一个 AIC
+  when:
+    - (acps_smoke_alive_sync_min_alive | default(0) | int) >= 1
+  ansible.builtin.uri:
+    url: "http://{{ _alive_disc }}:{{ discovery_server_port }}/admin/alive-sync/status"
+    method: GET
+    status_code: [200]
+    return_content: true
+  register: _disc_alive_aic
+  retries: "{{ acps_smoke_alive_sync_aic_retries | default(36) }}"
+  delay: "{{ acps_smoke_alive_sync_aic_delay | default(5) }}"
+  until: >-
+    (_disc_alive_aic.status | default(0)) == 200
+    and (((_disc_alive_aic.json | default({})).aliveCount | default(0)) | int)
+        >= (acps_smoke_alive_sync_min_alive | default(0) | int)
+
+- name: 断言 smoke 用 Discovery aliveCount
+  when:
+    - (acps_smoke_alive_sync_min_alive | default(0) | int) >= 1
+  ansible.builtin.assert:
+    that:
+      - (((_disc_alive_aic.json | default({})).aliveCount | default(0)) | int)
+        >= (acps_smoke_alive_sync_min_alive | default(0) | int)
+    fail_msg: >-
+      Discovery alive-sync running but aliveCount < {{ acps_smoke_alive_sync_min_alive }}.
+      Heartbeats not visible on Discovery yet. Check Forwarder→amp.heartbeat→Monitor
+      Writer→Relay→amp.heartbeat.alive-delta→Discovery consumer. Full Leader+Partner
+      全覆盖见业务验收 D2；D2 不得使用 Monitor heartbeat/summary API。
+    success_msg: >-
+      Discovery aliveCount={{ (_disc_alive_aic.json | default({})).aliveCount | default(0) }}
+      (Monitor→Discovery heartbeat sync smoke OK; D2 path)
+
+- name: Alive-sync smoke 摘要
+  ansible.builtin.debug:
+    msg: >-
+      alive-sync OK: Monitor /sync/info type={{ (_mon_sync_info.json | default({})).type | default('?') }}
+      topic={{ (_mon_sync_info.json | default({})).kafkaTopic | default('?') }};
+      Discovery running={{ (_disc_alive_status.json | default({})).running | default(false) }}
+      checkpointCount={{ (_disc_alive_status.json | default({})).checkpointCount | default(0) }}
+      aliveCount={{
+        (
+          (_disc_alive_aic.json | default({})).aliveCount
+          if (
+            (acps_smoke_alive_sync_min_alive | default(0) | int) >= 1
+            and (_disc_alive_aic is defined)
+            and (_disc_alive_aic.json is defined)
+          )
+          else (_disc_alive_status.json | default({})).aliveCount
+        ) | default(0)
+      }}
+      (D2 uses Discovery only — not Monitor heartbeat Query API; aliveCount is post-wait when min_alive>=1)

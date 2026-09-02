@@ -4,11 +4,15 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.account.exception_auth import LocalAuthDisabledError
 from app.account.model import Role, RoleType, User
 from app.account.schema_account import (
     AdminPasswordReset,
     AdminResetOtherUserPassword,
+    AicProviderCodeUpdate,
     BatchDeleteUsersResponse,
+    CurrentUserResponse,
+    ExternalPrincipalSummary,
     MessageResponse,
     PasswordUpdate,
     PhoneUpdate,
@@ -35,6 +39,7 @@ from app.account.service_account import (
     get_user,
     get_users,
     reset_password,
+    set_user_aic_provider_code,
     update_role,
     update_user,
     update_user_password,
@@ -44,6 +49,7 @@ from app.account.service_account import (
 )
 from app.core.auth import check_user_role, get_current_user, verify_password
 from app.core.base_exception import PROBLEM_JSON_MEDIA_TYPE
+from app.core.config import settings
 from app.core.db_session import get_session
 from app.utils.utils import parse_boolean_string
 
@@ -59,6 +65,20 @@ PAGE_NUM_DEPRECATION_WARNING = '299 - "page_num query parameter is deprecated; u
 
 def _to_user_response(user: User) -> UserResponse:
     return UserResponse.model_validate(user)
+
+
+def _to_current_user_response(user: User) -> CurrentUserResponse:
+    payload = _to_user_response(user).model_dump()
+    external_principal = None
+    if user.auth_provider == "oidc" and user.external_issuer and user.external_principal_id:
+        external_principal = ExternalPrincipalSummary(
+            provider=user.auth_provider,
+            issuer=user.external_issuer,
+            principal_id=user.external_principal_id,
+            username=user.external_username,
+            email=user.email,
+        )
+    return CurrentUserResponse(**payload, external_principal=external_principal)
 
 
 def _to_role_response(role: Role) -> RoleResponse:
@@ -87,26 +107,36 @@ NOT_FOUND_RESPONSE = _problem_response("Resource not found")
 UNAUTHORIZED_RESPONSE = _problem_response("Authentication required")
 VALIDATION_RESPONSE = _problem_response("Request validation failed")
 CONFLICT_RESPONSE = _problem_response("Resource conflict")
+GONE_RESPONSE = _problem_response("Local authentication is disabled")
+
+
+def _ensure_local_auth_enabled(detail: str) -> None:
+    if settings.oidc_enabled:
+        raise LocalAuthDisabledError(detail=detail)
 
 
 # 当前用户相关端点
 @router.get(
     "/me",
+    response_model=CurrentUserResponse,
+    response_model_exclude_none=True,
     status_code=status.HTTP_200_OK,
     summary="获取当前用户信息",
     responses={
         status.HTTP_401_UNAUTHORIZED: UNAUTHORIZED_RESPONSE,
     },
 )
-async def get_current_user_info(current_user: CurrentUserDep) -> UserResponse:
+async def get_current_user_info(current_user: CurrentUserDep) -> CurrentUserResponse:
     """
     获取当前已认证用户的信息。
     """
-    return _to_user_response(current_user)
+    return _to_current_user_response(current_user)
 
 
 @router.put(
     "/me",
+    response_model=CurrentUserResponse,
+    response_model_exclude_none=True,
     status_code=status.HTTP_200_OK,
     summary="更新当前用户信息",
     responses={
@@ -119,24 +149,33 @@ async def update_current_user(
     user_update: UserUpdateCode,
     current_user: CurrentUserDep,
     db: SessionDep,
-) -> UserResponse:
+) -> CurrentUserResponse:
     """
     更新当前已认证用户的信息。
     """
     user = await update_user(db, current_user.id, user_update)
-    return _to_user_response(user)
+    return _to_current_user_response(user)
 
 
-@router.post("/update_password")
+@router.post(
+    "/update_password",
+    status_code=status.HTTP_200_OK,
+    summary="通过验证码修改密码",
+    responses={
+        status.HTTP_410_GONE: GONE_RESPONSE,
+        status.HTTP_422_UNPROCESSABLE_CONTENT: VALIDATION_RESPONSE,
+    },
+)
 async def update_password_by_code(
     params: UpdatePasswordRequest,
     db: SessionDep,
-) -> dict[str, str | bool]:
+) -> SuccessMessageResponse:
     """
     通过验证码修改密码
     """
+    _ensure_local_auth_enabled("Password reset by verification code is disabled when OIDC is enabled")
     success = await update_user_password_by_code(db, params.email, params.code, params.password)
-    return {"success": success, "message": "密码修改成功"}
+    return SuccessMessageResponse(success=success, message="密码修改成功")
 
 
 @router.put(
@@ -158,6 +197,7 @@ async def update_current_user_password(
     """
     更新当前已认证用户的密码。
     """
+    _ensure_local_auth_enabled("Password change is disabled when OIDC is enabled")
     success = await update_user_password(
         db, current_user.id, password_update.old_password, password_update.new_password
     )
@@ -245,6 +285,7 @@ async def create_new_user(
     创建新用户（仅管理员）。
     """
     del current_user
+    _ensure_local_auth_enabled("Local user creation is disabled when OIDC is enabled")
     user = await create_user(db, user_create)
     return _to_user_response(user)
 
@@ -298,18 +339,58 @@ async def update_user_info(
     return _to_user_response(user)
 
 
-@router.put("/user/{user_id}/reset_password", response_model=dict)
+@router.put(
+    "/user/{user_id}/aic-provider-code",
+    status_code=status.HTTP_200_OK,
+    summary="设置指定用户的 AIC 供应商序号",
+    responses={
+        status.HTTP_401_UNAUTHORIZED: UNAUTHORIZED_RESPONSE,
+        status.HTTP_403_FORBIDDEN: FORBIDDEN_RESPONSE,
+        status.HTTP_404_NOT_FOUND: NOT_FOUND_RESPONSE,
+        status.HTTP_409_CONFLICT: CONFLICT_RESPONSE,
+        status.HTTP_422_UNPROCESSABLE_CONTENT: VALIDATION_RESPONSE,
+    },
+)
+async def update_user_aic_provider_code(
+    user_id: uuid.UUID,
+    payload: AicProviderCodeUpdate,
+    db: SessionDep,
+    current_user: AdminOrStaffUserDep,
+) -> UserResponse:
+    """预置或改写账户 AIC 第7级（仅管理员或员工）。"""
+    del current_user
+    user = await set_user_aic_provider_code(db, user_id, payload.aic_provider_code)
+    return _to_user_response(user)
+
+
+@router.put(
+    "/user/{user_id}/reset_password",
+    response_model=SuccessMessageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="通过管理员当前密码触发目标用户重置密码邮件",
+    responses={
+        status.HTTP_401_UNAUTHORIZED: UNAUTHORIZED_RESPONSE,
+        status.HTTP_403_FORBIDDEN: FORBIDDEN_RESPONSE,
+        status.HTTP_404_NOT_FOUND: NOT_FOUND_RESPONSE,
+        status.HTTP_410_GONE: GONE_RESPONSE,
+        status.HTTP_422_UNPROCESSABLE_CONTENT: VALIDATION_RESPONSE,
+    },
+)
 async def reset_user_pwd(
     user_id: uuid.UUID,
     params: AdminResetOtherUserPassword,
     db: SessionDep,
     current_user: AdminOrStaffUserDep,
-) -> dict[str, str | bool]:
+) -> SuccessMessageResponse:
     """重置用户密码，密码是随机生成的，通过邮箱发送"""
-    if current_user.hashed_password and verify_password(params.current_password, current_user.hashed_password):
-        await reset_password(db, user_id)
-        return {"message": "重置成功", "success": True}
-    return {"message": "密码错误", "success": False}
+    _ensure_local_auth_enabled("Local password reset is disabled when OIDC is enabled")
+    hashed_password = current_user.hashed_password
+    if hashed_password:
+        is_valid, _ = verify_password(params.current_password, hashed_password)
+        if is_valid:
+            await reset_password(db, user_id)
+            return SuccessMessageResponse(success=True, message="重置成功")
+    return SuccessMessageResponse(success=False, message="密码错误")
 
 
 @router.put(
@@ -334,6 +415,7 @@ async def reset_user_password(
     重置用户密码（仅管理员）。
     """
     del current_user
+    _ensure_local_auth_enabled("Local password reset is disabled when OIDC is enabled")
     await admin_reset_password(db, user_id, password_reset.new_password)
     return MessageResponse(message="Password reset successfully")
 

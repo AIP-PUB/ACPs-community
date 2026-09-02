@@ -1,0 +1,17 @@
+# config/default.toml — 默认配置（所有环境共享的基础值）
+
+[server]
+host = "0.0.0.0"
+group_api_port = 9007
+auth_api_port = 9008
+
+[cache]
+local_ttl_seconds = 30             # 本地 TTLCache 过期时间
+group_acl_key_ttl_seconds = 604800 # Redis 中 ACL Key 过期时间（7 天）
+
+[rabbitmq]
+mgmt_user = "mq-auth-svc"
+
+[logging]
+level = "INFO"
+format = "json"

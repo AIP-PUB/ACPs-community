@@ -1,0 +1,6 @@
+---
+# stage_artifact_image_vendor_bundle.yml
+# image 模式下 vendor_bundle 制品与其他 kind 共用同一 docker load 路径
+# （image 清单不区分 kind，均为镜像归档）。
+- name: 包含 image docker load 逻辑（vendor_bundle）
+  ansible.builtin.include_tasks: stage_artifact_image.yml

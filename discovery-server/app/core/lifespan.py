@@ -19,6 +19,10 @@ from app.core.logging_config import get_logger
 from app.discovery.semantic_matcher import SemanticAgentMatcher
 from app.discovery.semantic_matcher_holder import set_matcher
 from app.discovery.service import start_health_check_task, stop_health_check_task
+from app.heartbeat_sync.exception import AliveSyncError as AliveSyncTransportError
+from app.heartbeat_sync.holder import clear_alive_reader, set_alive_reader
+from app.heartbeat_sync.runtime import start_alive_sync, stop_alive_sync
+from app.heartbeat_sync.store import PostgresAliveSyncStore
 from app.sync.client import start_dsp_sync, stop_dsp_sync
 from app.sync.exception import SyncOperationError
 from app.sync.model import Agent
@@ -35,6 +39,7 @@ SEMANTIC_MATCHER_STARTUP_ERRORS = (OSError, RuntimeError, ValueError, TypeError)
 SEMANTIC_MATCHER_SHUTDOWN_ERRORS = (OSError, RuntimeError, ValueError, TypeError)
 DSP_SYNC_SHUTDOWN_ERRORS = (SyncOperationError, OSError, RuntimeError, ValueError, TypeError)
 FORWARDER_HEALTH_CHECK_SHUTDOWN_ERRORS = (OSError, RuntimeError, ValueError, TypeError)
+ALIVE_SYNC_SHUTDOWN_ERRORS = (AliveSyncTransportError, OSError, RuntimeError, ValueError, TypeError)
 POLLING_CYCLE_ERRORS = (httpx.HTTPError, SQLAlchemyError, KeyError, TypeError, ValueError)
 TRUNCATE_AVAILABLE_AGENTS_RUNTIME_SQL = text("TRUNCATE TABLE available_agents_runtime")
 INSERT_AVAILABLE_AGENTS_RUNTIME_SQL = text(
@@ -61,6 +66,7 @@ class RuntimeServicesState:
     dsp_sync: BackgroundServiceStatus = field(default_factory=BackgroundServiceStatus)
     forwarder_health_check: BackgroundServiceStatus = field(default_factory=BackgroundServiceStatus)
     available_agents_polling: BackgroundServiceStatus = field(default_factory=BackgroundServiceStatus)
+    alive_sync: BackgroundServiceStatus = field(default_factory=BackgroundServiceStatus)
     available_agents_last_updated: str = ""
     total_active_agents: int = 0
     available_agents_count: int = 0
@@ -106,10 +112,12 @@ class RuntimeCoordinator:
         await self._start_dsp_sync()
         self._start_forwarder_health_check()
         self._start_available_agents_polling()
+        await self._start_alive_sync()
 
     async def shutdown(self) -> None:
         """停止所有后台运行时服务。"""
 
+        await self._stop_alive_sync()
         await self._stop_semantic_matcher()
         await self._stop_dsp_sync()
         await self._stop_forwarder_health_check()
@@ -122,7 +130,7 @@ class RuntimeCoordinator:
             logger.exception("数据库连接关闭失败", error=str(exc))
 
     def _start_semantic_matcher(self) -> None:
-        mode = (settings.DISCOVERY_MODE or "gpu").strip().lower()
+        mode = (settings.DISCOVERY_MODE or "cpu").strip().lower()
 
         try:
             logger.info("开始初始化语义匹配器", mode=mode)
@@ -295,6 +303,49 @@ class RuntimeCoordinator:
         self._polling_task = None
         self.runtime_state.available_agents_polling.running = False
         logger.info("available-agents 轮询任务已停止")
+
+    async def _start_alive_sync(self) -> None:
+        """启动 alive-sync 后台任务（满足所有守卫条件时）。"""
+        if not settings.ALIVE_SYNC_ENABLED:
+            self.runtime_state.alive_sync.running = False
+            logger.info("alive-sync 未启用（ALIVE_SYNC_ENABLED=false），跳过")
+            return
+        if not settings.ALIVE_SYNC_AUTO_START:
+            self.runtime_state.alive_sync.running = False
+            logger.info("alive-sync 自动启动关闭（ALIVE_SYNC_AUTO_START=false），跳过")
+            return
+        if not self._has_http_url(settings.ALIVE_SYNC_PROVIDER_BASE_URL):
+            self.runtime_state.alive_sync.running = False
+            logger.info("alive-sync PROVIDER_BASE_URL 未配置，跳过")
+            return
+        if settings.APP_ENV == "testing":
+            self.runtime_state.alive_sync.running = False
+            logger.info("alive-sync 在测试态不自动拉起（APP_ENV=testing），跳过")
+            return
+
+        try:
+            store = PostgresAliveSyncStore()
+            set_alive_reader(store)
+            await start_alive_sync(settings)
+            self.runtime_state.alive_sync.running = True
+            self.runtime_state.alive_sync.last_error = None
+            logger.info("alive-sync 后台任务启动成功")
+        except ALIVE_SYNC_SHUTDOWN_ERRORS as exc:
+            clear_alive_reader()
+            self.runtime_state.alive_sync.running = False
+            self.runtime_state.alive_sync.last_error = str(exc)
+            logger.exception("alive-sync 启动失败", error=str(exc))
+
+    async def _stop_alive_sync(self) -> None:
+        """停止 alive-sync 后台任务。"""
+        try:
+            await stop_alive_sync()
+            logger.info("alive-sync 后台任务已停止")
+        except ALIVE_SYNC_SHUTDOWN_ERRORS as exc:
+            logger.warning("alive-sync 停止时出错（忽略）: %s", exc)
+        finally:
+            clear_alive_reader()
+            self.runtime_state.alive_sync.running = False
 
     async def _poll_available_agents(self) -> None:
         while True:

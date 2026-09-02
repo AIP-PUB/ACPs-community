@@ -1,0 +1,19 @@
+# config/testing.toml — 测试环境覆盖配置
+
+[logging]
+level = "WARNING"
+format = "console"
+
+[ca_server]
+mock = true
+
+[verification]
+auto_approve_identity = true
+auto_approve_org = true
+code_bypass = "123456"
+
+[rate_limit]
+enabled = false
+
+[otel]
+enabled = false

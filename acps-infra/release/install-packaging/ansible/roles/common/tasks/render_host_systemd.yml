@@ -1,0 +1,137 @@
+---
+# render_host_systemd.yml
+# host 模式：为一个组件（或组件的一个子入口，如 registry_server_mtls）渲染
+# systemd 单元 /etc/systemd/system/acps-<unit>.service（本设计 §5.2 / 实施计划
+# Step 8）。只负责渲染，不 daemon-reload / enable / start —— 那是
+# deploy_host_service.yml 的职责，二者按 acps_compose_service_name 配对调用。
+#
+# 期望（调用方 vars）：
+#   acps_compose_service_name  （必填）单元逻辑名，如 registry_server /
+#                              registry_server_mtls（与 deploy_service.yml 调用一致，
+#                              渲染出的单元文件为 acps-<name>.service）
+#   acps_host_install_dest     （必填）WorkingDirectory；即
+#                              stage_artifact_host_app_release.yml 的落地根目录。
+#                              升级后 / 已迁入 releases 布局时须为
+#                              {runtime}/{component}/current（经 current），
+#                              禁止写死 releases/<具体版本> 作为长期路径。
+#   acps_host_env_file         （必填）EnvironmentFile 绝对路径（app.env）
+#   acps_host_entrypoint_lookup_dest
+#                             （可选）解析 runtime-package.toml 的目录；默认
+#                              acps_host_install_dest。升级 stage 到 releases/<ver>
+#                              而 unit 经 current 时，可指向 staged dest。
+#
+# ExecStart 三级解析（先到先得，都缺失则 fail —— 禁止猜测模块名）：
+#   1) acps_host_entrypoint          角色显式覆盖（本次调用直接指定的字面 entrypoint）
+#   2) acps_host_component_id        从 entrypoint lookup dest（默认
+#                                     acps_host_install_dest；升级可为 staged
+#                                     releases/<ver>）下 runtime-package.toml
+#                                     的 [[components]] 按 id 精确查找 entrypoint
+#   3) host_component_entrypoints[acps_compose_service_name]
+#                                     group_vars 兜底表（本设计 §5.2 第 3 级）
+
+- name: 要求 render_host_systemd 必填参数
+  ansible.builtin.assert:
+    that:
+      - acps_compose_service_name is defined
+      - (acps_compose_service_name | string | length) > 0
+      - acps_host_install_dest is defined
+      - (acps_host_install_dest | string | length) > 0
+      - acps_host_env_file is defined
+      - (acps_host_env_file | string | length) > 0
+    fail_msg: >-
+      render_host_systemd.yml requires acps_compose_service_name,
+      acps_host_install_dest and acps_host_env_file.
+
+- name: 禁止 unit WorkingDirectory 写死 releases/<具体版本>
+  when: >-
+    (acps_host_install_dest | regex_search('/releases/[^/]+/?$')) is not none
+  ansible.builtin.fail:
+    msg: >-
+      render_host_systemd: acps_host_install_dest={{ acps_host_install_dest }}
+      looks like releases/<version>. Unit WorkingDirectory/ExecStart must go via
+      {component}/current (design §2.1 / H4 Layer D.5). Pass the current symlink
+      path instead.
+
+- name: 解析 entrypoint 查找目录（staged release 或 install_dest）
+  ansible.builtin.set_fact:
+    _acps_host_entrypoint_lookup_dest: >-
+      {{
+        acps_host_entrypoint_lookup_dest
+        | default(
+            acps_host_release_dest
+            | default(acps_host_install_dest, true),
+            true
+          )
+      }}
+
+- name: 重置本次调用的 entrypoint 解析状态
+  ansible.builtin.set_fact:
+    _acps_host_entrypoint_resolved: ""
+
+- name: 采用角色显式覆盖 entrypoint（解析第 1 级）
+  when: (acps_host_entrypoint | default('') | string | length) > 0
+  ansible.builtin.set_fact:
+    _acps_host_entrypoint_resolved: "{{ acps_host_entrypoint }}"
+
+- name: 从 runtime-package.toml 解析 entrypoint（解析第 2 级）
+  when:
+    - (_acps_host_entrypoint_resolved | length) == 0
+    - (acps_host_component_id | default('') | string | length) > 0
+  block:
+    - name: stage runtime_package_entrypoint.py 到目标
+      ansible.builtin.copy:
+        src: "{{ acps_release_root }}/scripts/runtime_package_entrypoint.py"
+        dest: "{{ acps_runtime_root }}/staging/runtime_package_entrypoint.py"
+        mode: "0755"
+
+    - name: 解析 [[components]].entrypoint
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_python_bin }}"
+          - "{{ acps_runtime_root }}/staging/runtime_package_entrypoint.py"
+          - "--file"
+          - "{{ _acps_host_entrypoint_lookup_dest }}/runtime-package.toml"
+          - "--component"
+          - "{{ acps_host_component_id }}"
+      register: _acps_host_entrypoint_lookup
+      changed_when: false
+
+    - name: 记录从 runtime-package.toml 解析出的 entrypoint
+      ansible.builtin.set_fact:
+        _acps_host_entrypoint_resolved: "{{ _acps_host_entrypoint_lookup.stdout | trim }}"
+
+- name: 从 host_component_entrypoints 兜底表解析（解析第 3 级）
+  when:
+    - (_acps_host_entrypoint_resolved | length) == 0
+    - (host_component_entrypoints | default({}))[acps_compose_service_name] | default('') | length > 0
+  ansible.builtin.set_fact:
+    _acps_host_entrypoint_resolved: "{{ host_component_entrypoints[acps_compose_service_name] }}"
+
+- name: 三级解析均未命中 → fail（禁止猜测模块名）
+  when: (_acps_host_entrypoint_resolved | length) == 0
+  ansible.builtin.fail:
+    msg: >-
+      render_host_systemd: cannot resolve ExecStart entrypoint for
+      acps_compose_service_name={{ acps_compose_service_name }}
+      (acps_component_key={{ acps_component_key | default('?') }}). Tried, in order:
+      (1) acps_host_entrypoint role override — not given;
+      (2) app/runtime-package.toml [[components]].entrypoint for component id
+      {{ acps_host_component_id | default('<not given>') }} under
+      {{ _acps_host_entrypoint_lookup_dest | default(acps_host_install_dest) }} — missing/empty;
+      (3) host_component_entrypoints['{{ acps_compose_service_name }}'] in
+      group_vars — not set. Fix one of the above; ExecStart must never guess a
+      module name from the component id.
+
+- name: 渲染 systemd 单元 /etc/systemd/system/acps-{{ acps_compose_service_name }}.service
+  become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+  ansible.builtin.template:
+    src: systemd/acps-service.j2
+    dest: "/etc/systemd/system/acps-{{ acps_compose_service_name }}.service"
+    mode: "0644"
+  vars:
+    acps_host_resolved_entrypoint: "{{ _acps_host_entrypoint_resolved }}"
+  register: _acps_host_unit_render
+
+- name: 记录本次渲染是否变更（供 deploy_host_service.yml 判定是否需重启）
+  ansible.builtin.set_fact:
+    acps_host_unit_changed: "{{ _acps_host_unit_render.changed }}"

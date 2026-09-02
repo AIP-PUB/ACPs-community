@@ -1,0 +1,160 @@
+{
+  "aic": "",
+  "active": false,
+  "lastModifiedTime": "2025-10-11T14:18:36.821882+08:00",
+  "protocolVersion": "02.02",
+  "name": "北京城区旅游智能体",
+  "description": "北京城区旅游智能体（Partner）。职责：为北京城六区（东城/西城/朝阳/海淀/丰台/石景山）提供景点推荐、主题/多日/亲子行程规划、路线与时间效率优化、文化深度体验建议。范围：仅限城六区内部，不覆盖郊区。交通支持：可在城区行程内部给出景点间轻量交通衔接建议（如步行/地铁选择），不提供跨区进出北京或郊区交通方案。明确拒绝：① 郊区景点与行程（密云/怀柔/延庆等）；② 餐饮/美食推荐；③ 北京外或跨城旅游规划；④ 专业交通/酒店预订请求。混合请求时保留城区可执行部分并说明拒绝项。",
+  "version": "1.0.0",
+  "provider": {
+    "organization": "ACPs工作组",
+    "department": "",
+    "url": "https://ioa.pub",
+    "license": "京ICP备2025124884号-4"
+  },
+  "securitySchemes": {
+    "mtls": {
+      "type": "mutualTLS",
+      "description": "智能体间mTLS双向认证"
+    }
+  },
+  "endPoints": [
+    {
+      "url": "https://localhost:9023/rpc",
+      "transport": "JSONRPC",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    },
+    {
+      "url": "amqps://rabbitmq:5671/acps?inbox=inbox_{AIC}",
+      "transport": "AMQP",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    }
+  ],
+  "certificate": {
+    "altNames": {
+      "dns": [
+        "localhost"
+      ]
+    }
+  },
+  "capabilities": {
+    "streaming": false,
+    "notification": false,
+    "messageQueue": [
+      "rabbitmq:>=4.2"
+    ]
+  },
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "beijing_urban.cultural-attraction-recommendation",
+      "name": "文化景点推荐",
+      "description": "推荐北京城区的历史文化景点，包括故宫、天坛、颐和园等文化遗产和博物馆。拒绝郊区景点请求。",
+      "version": "1.0.0",
+      "tags": [
+        "文化景点",
+        "历史遗产",
+        "博物馆",
+        "深度文化"
+      ],
+      "examples": [
+        "请推荐北京最具代表性的文化景点，我想深入了解中国历史文化，包括故宫、天坛这样的世界文化遗产",
+        "我对中国古代历史很感兴趣，想参观一些能够了解北京历史变迁的景点和博物馆，请详细推荐并说明特色",
+        "想体验北京的传统文化，除了著名的景点，还有哪些能体现老北京文化的胡同、四合院或传统建筑群值得游览？"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "beijing_urban.family-friendly-itinerary",
+      "name": "亲子游行程规划",
+      "description": "为家庭用户设计适合亲子游的城区景点和行程安排，考虑儿童需求和体验。拒绝与家庭出行无关的行程规划请求。",
+      "version": "1.0.0",
+      "tags": [
+        "亲子游",
+        "家庭出行",
+        "儿童友好",
+        "体验安排"
+      ],
+      "examples": [
+        "我带着8岁和12岁的孩子来北京旅游，请推荐一些既有教育意义又能让孩子感兴趣的城区景点，最好安排成两日游",
+        "想设计一个适合全家老小的北京一日游行程，包括适合老人的轻松景点和能让孩子开心的互动体验",
+        "我们是三代同堂的家庭出游，需要考虑婴儿车通行和老人体力，请推荐一些家庭友好的城区景点和游览路线"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "beijing_urban.urban-route-optimization",
+      "name": "城区路线优化",
+      "description": "优化城区景点间的游览路线，减少交通时间，提高游览效率。拒绝与北京城区无关的路线请求。",
+      "version": "1.0.0",
+      "tags": [
+        "路线优化",
+        "动线规划",
+        "交通便利",
+        "效率提升"
+      ],
+      "examples": [
+        "我只有一天时间游览北京城区，请帮我设计最高效的路线，包括故宫、天安门、景山公园等必去景点，减少交通时间",
+        "请优化我的北京三日游路线：第一天想去故宫和天安门，第二天计划颐和园和圆明园，第三天想去天坛和胡同，如何安排最合理？",
+        "我想在有限的时间内体验最多的北京城区精华，请帮我制定一个不太累但效率很高的两日游线路规划"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "beijing_urban.budget-conscious-planning",
+      "name": "预算规划服务",
+      "description": "根据用户预算制定合适的城区旅游方案，提供性价比高的游览建议。拒绝缺少预算信息的预算优化请求。",
+      "version": "1.0.0",
+      "tags": [
+        "预算控制",
+        "性价比",
+        "经济实惠",
+        "费用规划"
+      ],
+      "examples": [
+        "我的预算只有500元，请为我制定一个经济实惠的北京城区一日游方案，包括门票、餐饮和交通的详细费用分配",
+        "学生党穷游北京，预算控制在300元以内，想去几个代表性景点，请推荐性价比最高的游览路线和省钱攻略",
+        "想要在预算1000元内完成北京城区的深度文化游，请帮我合理分配费用并推荐值得花钱的体验项目"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    }
+  ]
+}

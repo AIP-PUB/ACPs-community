@@ -1,0 +1,231 @@
+---
+# probe_os_package_version.yml — 探测已装 os_package 版本字符串（写入 state）
+# （本设计 §2.3 / §4.3；无 releases/，artifact_id = 包版本串）
+#
+# 期望：acps_component_key in postgresql|redis|rabbitmq
+# 出参：
+#   _acps_os_pkg_version_str
+#   acps_image_meta.file（供 commit_state 默认 artifact_id）
+
+- name: 要求 os_package 组件 key
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - acps_component_key in ['postgresql', 'redis', 'rabbitmq']
+    fail_msg: >-
+      probe_os_package_version: unsupported acps_component_key
+      {{ acps_component_key | default('undefined') }}.
+
+- name: 探测 postgresql 包版本
+  when: acps_component_key == 'postgresql'
+  block:
+    - name: 加载 postgresql defaults + OS vars
+      ansible.builtin.include_vars:
+        file: "{{ role_path }}/../postgresql/defaults/main.yml"
+
+    - name: 加载 postgresql OS 系族 vars
+      ansible.builtin.include_vars:
+        file: "{{ role_path }}/../postgresql/vars/{{ ansible_os_family }}.yml"
+
+    - name: RedHat — rpm 查询 postgresql server 包
+      when: ansible_os_family == 'RedHat'
+      ansible.builtin.command:
+        argv:
+          - rpm
+          - -q
+          - --qf
+          - "%{NAME}-%{VERSION}-%{RELEASE}"
+          - "postgresql{{ postgresql_os_major_version }}-server"
+      register: _acps_os_pkg_rpm
+      changed_when: false
+      failed_when: false
+
+    - name: Debian — dpkg 查询 postgresql 包
+      when: ansible_os_family == 'Debian'
+      ansible.builtin.command:
+        argv:
+          - dpkg-query
+          - -W
+          - -f
+          - "${Package}=${Version}"
+          - "postgresql-{{ postgresql_os_major_version }}"
+      register: _acps_os_pkg_dpkg
+      changed_when: false
+      failed_when: false
+
+    - name: 绑定 postgresql 版本串
+      ansible.builtin.set_fact:
+        _acps_os_pkg_version_str: >-
+          {{
+            (
+              _acps_os_pkg_rpm.stdout | default('') | trim
+              if ansible_os_family == 'RedHat'
+              else (_acps_os_pkg_dpkg.stdout | default('') | trim)
+            )
+            if (
+              (
+                ansible_os_family == 'RedHat'
+                and (_acps_os_pkg_rpm.rc | default(1) | int) == 0
+                and (_acps_os_pkg_rpm.stdout | default('') | trim | length) > 0
+              )
+              or (
+                ansible_os_family == 'Debian'
+                and (_acps_os_pkg_dpkg.rc | default(1) | int) == 0
+                and (_acps_os_pkg_dpkg.stdout | default('') | trim | length) > 0
+              )
+            )
+            else ('postgresql-' ~ (postgresql_os_major_version | string))
+          }}
+
+- name: 探测 redis 包版本
+  when: acps_component_key == 'redis'
+  block:
+    - name: redis-server --version
+      ansible.builtin.command:
+        argv: [redis-server, --version]
+      register: _acps_redis_ver
+      changed_when: false
+      failed_when: false
+
+    - name: RedHat — rpm 查询 redis
+      when:
+        - ansible_os_family == 'RedHat'
+        - (_acps_redis_ver.rc | default(1) | int) != 0
+      ansible.builtin.command:
+        argv: [rpm, -q, --qf, "%{NAME}-%{VERSION}-%{RELEASE}", redis]
+      register: _acps_redis_rpm
+      changed_when: false
+      failed_when: false
+
+    - name: Debian — dpkg 查询 redis-server
+      when:
+        - ansible_os_family == 'Debian'
+        - (_acps_redis_ver.rc | default(1) | int) != 0
+      ansible.builtin.command:
+        argv: [dpkg-query, -W, -f, "${Package}=${Version}", redis-server]
+      register: _acps_redis_dpkg
+      changed_when: false
+      failed_when: false
+
+    - name: 绑定 redis 版本串
+      ansible.builtin.set_fact:
+        _acps_os_pkg_version_str: >-
+          {{
+            (
+              'redis-' ~ (
+                (_acps_redis_ver.stdout | regex_search('v=([0-9]+\\.[0-9]+\\.[0-9]+)', '\\1'))
+                | default([''], true)
+                | first
+              )
+            )
+            if (
+              (_acps_redis_ver.rc | default(1) | int) == 0
+              and (
+                (_acps_redis_ver.stdout | regex_search('v=([0-9]+\\.[0-9]+\\.[0-9]+)'))
+                is not none
+              )
+            )
+            else (
+              (_acps_redis_rpm.stdout | default('') | trim)
+              if (
+                ansible_os_family == 'RedHat'
+                and (_acps_redis_rpm.rc | default(1) | int) == 0
+              )
+              else (
+                (_acps_redis_dpkg.stdout | default('') | trim)
+                if (
+                  ansible_os_family == 'Debian'
+                  and (_acps_redis_dpkg.rc | default(1) | int) == 0
+                )
+                else 'redis-unknown'
+              )
+            )
+          }}
+
+- name: 探测 rabbitmq 包版本
+  when: acps_component_key == 'rabbitmq'
+  block:
+    - name: RedHat — rpm 查询 rabbitmq-server
+      when: ansible_os_family == 'RedHat'
+      ansible.builtin.command:
+        argv: [rpm, -q, --qf, "%{NAME}-%{VERSION}-%{RELEASE}", rabbitmq-server]
+      register: _acps_rmq_rpm
+      changed_when: false
+      failed_when: false
+
+    - name: Debian — dpkg 查询 rabbitmq-server
+      when: ansible_os_family == 'Debian'
+      ansible.builtin.command:
+        argv: [dpkg-query, -W, -f, "${Package}=${Version}", rabbitmq-server]
+      register: _acps_rmq_dpkg
+      changed_when: false
+      failed_when: false
+
+    - name: rabbitmqctl version 兜底
+      when: >-
+        (
+          ansible_os_family == 'RedHat'
+          and (_acps_rmq_rpm.rc | default(1) | int) != 0
+        ) or (
+          ansible_os_family == 'Debian'
+          and (_acps_rmq_dpkg.rc | default(1) | int) != 0
+        )
+      ansible.builtin.command:
+        argv: [rabbitmqctl, version]
+      register: _acps_rmq_ctl
+      changed_when: false
+      failed_when: false
+
+    - name: 绑定 rabbitmq 版本串
+      ansible.builtin.set_fact:
+        _acps_os_pkg_version_str: >-
+          {{
+            (_acps_rmq_rpm.stdout | default('') | trim)
+            if (
+              ansible_os_family == 'RedHat'
+              and (_acps_rmq_rpm.rc | default(1) | int) == 0
+              and (_acps_rmq_rpm.stdout | default('') | trim | length) > 0
+            )
+            else (
+              (_acps_rmq_dpkg.stdout | default('') | trim)
+              if (
+                ansible_os_family == 'Debian'
+                and (_acps_rmq_dpkg.rc | default(1) | int) == 0
+                and (_acps_rmq_dpkg.stdout | default('') | trim | length) > 0
+              )
+              else (
+                ('rabbitmq-' ~ (_acps_rmq_ctl.stdout | default('') | trim))
+                if (
+                  (_acps_rmq_ctl.rc | default(1) | int) == 0
+                  and (_acps_rmq_ctl.stdout | default('') | trim | length) > 0
+                )
+                else 'rabbitmq-unknown'
+              )
+            )
+          }}
+
+- name: 要求探测到非空版本串
+  ansible.builtin.assert:
+    that:
+      - (_acps_os_pkg_version_str | default('') | string | length) > 0
+    fail_msg: >-
+      probe_os_package_version: empty version for {{ acps_component_key }}
+      on {{ inventory_hostname }}.
+
+- name: 绑定 commit_state 用 artifact meta（包版本串；无 image tag）
+  ansible.builtin.set_fact:
+    acps_image_meta: >-
+      {{
+        {
+          'file': (_acps_os_pkg_version_str | string),
+          'app_release': (_acps_os_pkg_version_str | string),
+        }
+      }}
+    acps_host_layout: os_package
+    acps_host_release_path: ""
+
+- name: 宣告 os_package 版本串
+  ansible.builtin.debug:
+    msg: >-
+      os_package {{ acps_component_key }} version={{ _acps_os_pkg_version_str }}
+      (state artifact_id; no releases/).

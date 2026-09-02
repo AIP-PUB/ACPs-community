@@ -1,0 +1,178 @@
+---
+# rollback_one_component_image.yml — 单组件制品回滚（image-mode）
+#
+# 由 rollback_one_component.yml 按 acps_deploy_mode=image 分派。
+# 语义须与 H4 前字节级行为一致（不得回归）。
+#
+# 期望（play vars，由分派层绑定）：
+#   acps_rollback_component_key / acps_rollback_role / acps_component_key
+#   _acps_rollback_components
+# 可选：acps_rollback_to
+#
+# 流程：读 state → 解析 previous → 确保镜像可用 → role（render/recreate/health）
+# → commit_state（current=已恢复，previous 已清除）。
+
+- name: 解析回滚用 state 文件路径
+  ansible.builtin.set_fact:
+    _acps_rb_state_file: "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}/components/{{ acps_component_key }}.json"
+
+- name: 要求组件 state 文件
+  ansible.builtin.stat:
+    path: "{{ _acps_rb_state_file }}"
+  register: _acps_rb_state_stat
+
+- name: state 缺失时失败（无回滚目标）
+  when: not (_acps_rb_state_stat.stat.exists | bool)
+  ansible.builtin.fail:
+    msg: >-
+      Cannot rollback {{ acps_component_key }}: no state at {{ _acps_rb_state_file }}.
+      Scene preserved; register-state / upgrade first, or intervene manually.
+
+- name: 为回滚加载组件 state
+  ansible.builtin.slurp:
+    src: "{{ _acps_rb_state_file }}"
+  register: _acps_rb_state_slurp
+
+- name: 解析组件 state JSON
+  ansible.builtin.set_fact:
+    _acps_rb_state_doc: "{{ _acps_rb_state_slurp.content | b64decode | from_json }}"
+
+- name: 要求 previous 快照
+  when: >-
+    (_acps_rb_state_doc.previous is not defined)
+    or (_acps_rb_state_doc.previous is none)
+    or (_acps_rb_state_doc.previous is not mapping)
+  ansible.builtin.fail:
+    msg: >-
+      Cannot rollback {{ acps_component_key }}: previous is null/absent in
+      {{ _acps_rb_state_file }}. V1 只保留最近一次 previous。
+      Scene preserved.
+
+- name: 从 previous 绑定回滚目标
+  ansible.builtin.set_fact:
+    _acps_rollback_target: "{{ _acps_rb_state_doc.previous }}"
+
+- name: 校验可选 acps_rollback_to 与保留 previous
+  when: (acps_rollback_to | default('') | string | length) > 0
+  ansible.builtin.assert:
+    that:
+      - >-
+        (acps_rollback_to | string) == (_acps_rollback_target.version | default('') | string)
+        or (acps_rollback_to | string) == (_acps_rollback_target.image_tag | default('') | string)
+    fail_msg: >-
+      acps_rollback_to={{ acps_rollback_to }} does not match retained previous
+      (version={{ _acps_rollback_target.version | default('') }},
+      image_tag={{ _acps_rollback_target.image_tag | default('') }}).
+      V1 only keeps one previous generation. Scene preserved.
+
+- name: 要求 image-mode 组件的 previous image_tag
+  when: (_acps_rollback_target.image_tag | default('') | string | length) == 0
+  ansible.builtin.fail:
+    msg: >-
+      Cannot rollback {{ acps_component_key }}: previous.image_tag empty in state.
+      Scene preserved.
+
+- name: 检查目标上是否存在 previous 镜像 tag
+  ansible.builtin.command:
+    argv: [docker, image, inspect, "{{ _acps_rollback_target.image_tag }}"]
+  register: _acps_rb_img_inspect
+  changed_when: false
+  failed_when: false
+
+- name: 解析控制节点 previous 制品路径
+  when: _acps_rb_img_inspect.rc != 0
+  ansible.builtin.set_fact:
+    _acps_rb_artifact_control: >-
+      {{
+        acps_artifacts_images ~ '/'
+        ~ (_acps_rollback_target.artifact_id | default('', true) | string)
+      }}
+
+- name: 镜像缺失时检查 previous 制品
+  when: _acps_rb_img_inspect.rc != 0
+  ansible.builtin.stat:
+    path: "{{ _acps_rb_artifact_control }}"
+  register: _acps_rb_artifact_stat
+  delegate_to: localhost
+  become: false
+
+- name: previous 镜像与制品均不可用时失败
+  when:
+    - _acps_rb_img_inspect.rc != 0
+    - >-
+      (_acps_rollback_target.artifact_id | default('') | string | length) == 0
+      or not (_acps_rb_artifact_stat.stat.exists | default(false) | bool)
+      or (_acps_rb_artifact_stat.stat.size | default(0) | int) <= 0
+  ansible.builtin.fail:
+    msg: >-
+      Cannot rollback {{ acps_component_key }}: previous image
+      {{ _acps_rollback_target.image_tag }} not on host and artifact missing/empty
+      ({{ _acps_rb_artifact_control | default('n/a') }}). Scene preserved; reload
+      previous image or restore artifact manually.
+
+- name: 将 previous 镜像归档 load 到目标
+  when: _acps_rb_img_inspect.rc != 0
+  block:
+    - name: 确保回滚镜像远程 staging 目录
+      ansible.builtin.file:
+        path: "{{ acps_runtime_root }}/staging/images"
+        state: directory
+        mode: "0755"
+
+    - name: 分发 previous 镜像归档
+      ansible.builtin.copy:
+        src: "{{ _acps_rb_artifact_control }}"
+        dest: "{{ acps_runtime_root }}/staging/images/{{ _acps_rollback_target.artifact_id }}"
+        mode: "0644"
+
+    - name: docker load previous 归档
+      ansible.builtin.command:
+        argv:
+          - docker
+          - load
+          - -i
+          - "{{ acps_runtime_root }}/staging/images/{{ _acps_rollback_target.artifact_id }}"
+
+    - name: load 后移除 staged previous 归档
+      ansible.builtin.file:
+        path: "{{ acps_runtime_root }}/staging/images/{{ _acps_rollback_target.artifact_id }}"
+        state: absent
+
+    - name: load 后确认 previous 镜像
+      ansible.builtin.command:
+        argv: [docker, image, inspect, "{{ _acps_rollback_target.image_tag }}"]
+      changed_when: false
+
+- name: 宣告回滚切换目标
+  ansible.builtin.debug:
+    msg: >-
+      rollback {{ acps_component_key }}:
+      current_tag={{ _acps_rb_state_doc.image_tag | default('') }}
+      → previous_tag={{ _acps_rollback_target.image_tag }}
+      (version {{ _acps_rollback_target.version | default('') }};
+      same_tag={{
+        (_acps_rb_state_doc.image_tag | default('') | string)
+        == (_acps_rollback_target.image_tag | default('') | string)
+      }})
+
+- name: 为 role stage/render 固定镜像 tag 覆盖
+  ansible.builtin.set_fact:
+    acps_image_tag: "{{ _acps_rollback_target.image_tag }}"
+
+- name: 应用组件 role（stage 跳过 load / render / recreate / health；无中途 commit）
+  ansible.builtin.include_role:
+    name: "{{ acps_rollback_role }}"
+
+- name: role 后重新绑定组件 key（stage_artifact 可能 set_fact 相同 key）
+  ansible.builtin.set_fact:
+    acps_component_key: "{{ acps_rollback_component_key }}"
+
+- name: commit_state after health (current=restored; clear previous)
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: commit_state.yml
+  vars:
+    acps_state_version: "{{ _acps_rollback_target.version | default(acps_version) }}"
+    acps_state_artifact_id: "{{ _acps_rollback_target.artifact_id }}"
+    acps_state_image_tag: "{{ _acps_rollback_target.image_tag }}"
+    acps_state_clear_previous: true

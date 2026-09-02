@@ -1,0 +1,23 @@
+---
+# common/tasks/reload_tls_dependents.yml
+#
+# 共享 TLS 依赖重启闭包入口（证书分发与 broker role 共用）。
+# 期望：acps_tls_upstream ∈ {redis, rabbitmq, mq-auth-server}
+# 语义：与 cert_provision/reload_dependents.yml 完全相同（单实现）。
+#
+# 禁止引入持久 bounces.json；调用方仅在「本轮确实 restart/recreate」后调用。
+
+- name: 断言 acps_tls_upstream
+  ansible.builtin.assert:
+    that:
+      - acps_tls_upstream is defined
+      - acps_tls_upstream | string | length > 0
+    fail_msg: "reload_tls_dependents requires acps_tls_upstream (redis|rabbitmq|mq-auth-server)"
+
+- name: 调用 cert_provision 依赖闭包（材料变更=true）
+  ansible.builtin.include_role:
+    name: cert_provision
+    tasks_from: reload_dependents.yml
+  vars:
+    _profile: "{{ acps_tls_upstream }}"
+    _cert_materials_changed: true

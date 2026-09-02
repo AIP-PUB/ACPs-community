@@ -1,0 +1,103 @@
+---
+# deploy_host_service.yml
+# host 模式服务部署（本设计 §5.2 / 实施计划 Step 8）：daemon-reload → enable --now。
+# 期望：acps_compose_service_name（= render_host_systemd.yml 渲染出的
+# acps-<name>.service 逻辑名）；可选 acps_compose_force_recreate（对齐 image
+# 分支同名参数：true 时无条件重启，确保新 ExecStart/EnvironmentFile 生效）。
+# 可选：调用方传入 acps_health_url 时在本文件末尾执行 health_http.yml；
+# 未传入时由角色在 deploy 之后自行探针（与 image 分支一致）。
+#
+# H4：若 acps_host_release_dest 已设（升级 stage 到 releases/<ver>），在重启前
+# 先 cutover current → 该版本，使 WorkingDirectory 经 current 命中新树。
+# 回滚：acps_host_cutover_done 已 true，且清空 acps_host_release_dest /
+# acps_host_forbid_cutover=true，禁止再次切到「新 stage dest」。
+
+- name: 要求 acps_compose_service_name 已定义
+  ansible.builtin.assert:
+    that:
+      - acps_compose_service_name is defined
+      - (acps_compose_service_name | string | length) > 0
+    fail_msg: "deploy_host_service.yml requires acps_compose_service_name"
+
+# migrate 失败不得 cutover：db_migrate_host 成功前 ok=false；失败则 play 已停。
+# 若 role 误把 deploy 提前到 migrate 之前，本闸门会硬失败。
+- name: host 升级 cutover 前 — migrate 闸门
+  when:
+    - (acps_deploy_mode | default('image')) == 'host'
+    - (acps_host_release_dest | default('') | string | length) > 0
+    - not (acps_host_cutover_done | default(false) | bool)
+    - not (acps_host_forbid_cutover | default(false) | bool)
+    - not (acps_skip_stage_artifact | default(false) | bool)
+    - (acps_host_cutover_requires_migrate | default(false) | bool)
+    - not (acps_host_db_migrate_ok | default(false) | bool)
+  ansible.builtin.fail:
+    msg: >-
+      deploy_host_service: refuse cutover for {{ acps_component_key | default('?') }} —
+      db migrate is required but has not succeeded (acps_host_cutover_requires_migrate=true,
+      acps_host_db_migrate_ok=false). Ensure db_migrate.yml runs before deploy_service
+      on the upgrade path; migrate failure must not switch current.
+
+- name: host 升级 cutover — current → staged release（重启前）
+  when:
+    - (acps_deploy_mode | default('image')) == 'host'
+    - (acps_host_release_dest | default('') | string | length) > 0
+    - acps_component_key is defined
+    - (acps_component_key | string | length) > 0
+    - not (acps_host_cutover_done | default(false) | bool)
+    - not (acps_host_forbid_cutover | default(false) | bool)
+    - not (acps_skip_stage_artifact | default(false) | bool)
+  ansible.builtin.include_tasks: cutover_host_current.yml
+
+- name: daemon-reload + enable + (re)start acps-{{ acps_compose_service_name }}.service
+  become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+  ansible.builtin.systemd:
+    name: "acps-{{ acps_compose_service_name }}.service"
+    daemon_reload: true
+    enabled: true
+    state: >-
+      {{
+        'restarted'
+        if (
+          (acps_compose_force_recreate | default(false) | bool)
+          or (acps_force_app_reinstall | default(false) | bool)
+          or (acps_force_vendor_reinstall | default(false) | bool)
+          or (acps_host_unit_changed | default(false) | bool)
+          or (acps_host_env_changed | default(false) | bool)
+          or (acps_host_app_install_changed | default(false) | bool)
+          or (acps_host_vendor_install_changed | default(false) | bool)
+          or (acps_host_cutover_done | default(false) | bool)
+        )
+        else 'started'
+      }}
+  register: _acps_host_service_deploy
+
+- name: 部署后确认单元处于 active
+  become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+  ansible.builtin.command:
+    argv: [systemctl, is-active, "acps-{{ acps_compose_service_name }}.service"]
+  register: _acps_host_service_active
+  changed_when: false
+  failed_when: false
+
+- name: 断言单元已启动
+  ansible.builtin.assert:
+    that:
+      - (_acps_host_service_active.stdout | default('') | trim) == 'active'
+    fail_msg: >-
+      acps-{{ acps_compose_service_name }}.service is not active after
+      enable/start (state={{ _acps_host_service_active.stdout | default('') | trim }}).
+      Check `journalctl -u acps-{{ acps_compose_service_name }}.service` on the
+      target host.
+
+- name: 可选 HTTP 健康检查（acps_health_url 由调用方传入时）
+  when: (acps_health_url | default('') | string | length) > 0
+  ansible.builtin.include_tasks: health_http.yml
+
+# 首装路径：service 启动成功后注册 current。
+# 升级路径必须在切换前调用 save_previous_state，再 commit_state。
+- name: 服务启动后提交组件版本 state
+  when:
+    - acps_component_key is defined
+    - (acps_component_key | string | length) > 0
+    - not (acps_skip_state_commit | default(false) | bool)
+  ansible.builtin.include_tasks: commit_state.yml

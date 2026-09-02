@@ -1,0 +1,9 @@
+Usage: acps-cli monitor [OPTIONS] COMMAND [ARGS]...
+Query AMP monitor-server data.
+access     Query access read models.
+audit      Query audit read models and integrity tasks.
+heartbeat  Query heartbeat read models.
+message    Query message read models.
+metrics    Query metrics read models.
+status     Check monitor-server health.
+system     Query system read models.

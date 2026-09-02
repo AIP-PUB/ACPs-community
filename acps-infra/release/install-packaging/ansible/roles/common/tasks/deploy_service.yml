@@ -1,0 +1,7 @@
+---
+# deploy_service.yml
+# 承载分派层（mode 无关中性入口）：按 acps_deploy_mode include 对应实现文件。
+# image → deploy_image_service.yml（= 现 deploy_compose_service.yml，逻辑字节不变）。
+# host  → deploy_host_service.yml（systemctl；Step 8 前为友好失败 stub）。
+- name: 按 mode 分派 deploy_service 实现
+  ansible.builtin.include_tasks: "deploy_{{ acps_deploy_mode }}_service.yml"

@@ -1,0 +1,22 @@
+---
+# ensure_acps_user.yml
+# host 模式 systemd 运行身份：创建 acps 系统组/用户（本设计 §5.2 / §6.3）。
+# image 模式容器内身份与本机账号无关，调用方须 when: acps_deploy_mode == 'host'。
+# 变量：acps_systemd_user / acps_systemd_group（group_vars/all.yml 默认 acps/acps）。
+
+- name: 确保 acps 系统组存在
+  become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+  ansible.builtin.group:
+    name: "{{ acps_systemd_group }}"
+    system: true
+    state: present
+
+- name: 确保 acps 系统用户存在（无交互登录、无家目录）
+  become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+  ansible.builtin.user:
+    name: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+    state: present

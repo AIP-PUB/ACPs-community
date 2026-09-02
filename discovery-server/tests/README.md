@@ -21,6 +21,11 @@
 
 若未显式设置 `DISCOVERY_TEST_MODE`、`DISCOVERY_E2E_MODE`，标准 `integration` / `e2e` / `all` 入口会默认依次执行 CPU、GPU 两种模式；如需只跑单一模式，可在命令前覆盖对应环境变量。
 
+`just test bootstrap`（以及 `just test check`）会强制确保测试环境已安装 `gpu` extra（`uv sync --extra gpu`）。这与"测试态 GPU 分支模型文件缺失时优雅降级跳过"是两类完全不同的场景，不要混淆：
+
+- **gpu extra 未安装**（`torch`/`FlagEmbedding` 包本身缺失）：这是环境准备问题，`just test bootstrap` 应该在测试运行前就已经补齐；如果仍然遇到，说明本地环境绕过了 bootstrap，应执行 `uv sync --extra gpu` 补齐，而不是让测试跳过。
+- **本地 embedding 模型路径/设备缺失**（`EMBEDDING_MODEL_PATH`、`EMBEDDING_DEVICES` 未配置）：这是测试态刻意不依赖真实大模型文件的设计取舍，语义匹配器会优雅降级跳过启动，黑盒用例继续验证 mode 切换、健康检查和非语义路径，这类降级是预期行为。
+
 如需固定端口调试，可显式设置 `DISCOVERY_E2E_PORT`；未设置时默认使用随机空闲端口，和 `registry-server`、`ca-server` 的黑盒 e2e 工作流保持一致。
 
 e2e 启动所需的大模型相关变量按以下顺序解析：

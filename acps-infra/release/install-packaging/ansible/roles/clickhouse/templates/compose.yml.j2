@@ -1,0 +1,18 @@
+services:
+  clickhouse:
+    image: {{ acps_effective_image_tag }}
+    environment:
+      CLICKHOUSE_DB: amp
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "{{ clickhouse_http_port }}:8123"
+    volumes:
+      - {{ acps_data_root }}/clickhouse:/var/lib/clickhouse:z
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    restart: unless-stopped
+    networks:
+      - {{ acps_docker_network }}

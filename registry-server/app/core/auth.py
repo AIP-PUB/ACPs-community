@@ -23,8 +23,10 @@ from app.account.exception_auth import (
     TokenValidationError,
 )
 from app.account.model import RoleType, User
+from app.account.service_oidc import get_or_create_user_from_principal, sync_user_email
 from app.core.config import settings
 from app.core.db_session import get_session
+from app.core.oidc import validate_access_token, validate_optional_access_token
 from app.utils.utils import get_beijing_time
 
 # argon2 hasher（新用户默认）
@@ -90,11 +92,10 @@ async def _get_user_with_roles(session: AsyncSession, user_id: uuid.UUID) -> Use
     return result.scalar_one_or_none()
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_session)) -> User:
-    """从 JWT token 解析当前用户，并校验数据库中的已保存 token 状态。"""
+async def get_current_local_user(token: str, session: AsyncSession) -> User:
+    """从本地 JWT token 解析当前用户，并校验数据库中的已保存 token 状态。"""
     credentials_exception = TokenValidationError()
     try:
-        # 解码 token
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         token_type = payload.get("type")
         if token_type not in (None, "access"):
@@ -126,6 +127,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSe
     return user
 
 
+async def get_current_user(token: str = Depends(oauth2_scheme), session: AsyncSession = Depends(get_session)) -> User:
+    """根据当前认证模式解析当前用户。"""
+    if not settings.oidc_enabled:
+        return await get_current_local_user(token, session)
+
+    principal = await validate_access_token(token)
+    user = await get_or_create_user_from_principal(session, principal)
+    await sync_user_email(session, user, principal)
+    return user
+
+
 def get_optional_token(request: Request) -> str | None:
     """
     获取 Authorization header，如果没有则返回 None。
@@ -147,6 +159,13 @@ async def safe_get_current_user(
     """
     if not token:
         return None
+    if settings.oidc_enabled:
+        principal = await validate_optional_access_token(token)
+        if principal is None:
+            return None
+        user = await get_or_create_user_from_principal(session, principal)
+        await sync_user_email(session, user, principal)
+        return user
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         token_type = payload.get("type")
@@ -158,14 +177,14 @@ async def safe_get_current_user(
         user_id = uuid.UUID(subject)
     except PyJWTError, ValueError:
         return None
-    user = await _get_user_with_roles(session, user_id)
-    if user is None or not user.is_active:
+    local_user = await _get_user_with_roles(session, user_id)
+    if local_user is None or not local_user.is_active:
         return None
-    if not user.access_token or user.access_token != token:
+    if not local_user.access_token or local_user.access_token != token:
         return None
-    if user.token_expires_at and get_beijing_time() > user.token_expires_at:
+    if local_user.token_expires_at and get_beijing_time() > local_user.token_expires_at:
         return None
-    return user
+    return local_user
 
 
 def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:

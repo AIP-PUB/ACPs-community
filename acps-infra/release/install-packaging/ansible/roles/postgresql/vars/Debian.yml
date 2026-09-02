@@ -1,0 +1,12 @@
+---
+# Ubuntu — PGDG-apt 仓库 + postgresql-<ver> + postgresql-<ver>-pgvector；
+# 装包自动建簇（本设计 §6.4(2)），无需显式 initdb。
+# ubuntu22：live apt.postgresql.org；ubuntu20：apt-archive（见 os_package_install.yml）。
+postgresql_os_packages:
+  - "postgresql-{{ postgresql_os_major_version }}"
+  - "postgresql-{{ postgresql_os_major_version }}-pgvector"
+postgresql_os_service_name: "postgresql@{{ postgresql_os_major_version }}-main"
+postgresql_os_bin_dir: "/usr/lib/postgresql/{{ postgresql_os_major_version }}/bin"
+postgresql_os_data_dir: "/var/lib/postgresql/{{ postgresql_os_major_version }}/main"
+postgresql_os_config_dir: "/etc/postgresql/{{ postgresql_os_major_version }}/main"
+postgresql_os_requires_initdb: false

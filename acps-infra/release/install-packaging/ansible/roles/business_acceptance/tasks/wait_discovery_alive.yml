@@ -1,0 +1,169 @@
+---
+# day2 / 强 recreate 后、business.yml 之前的 Discovery per-AIC 就绪门禁。
+# 只跑 Step D 的 D2（--d2-only）；不跑 D1，不替代 business A–D。
+# force renew 后部分 AIC 可能短暂缺失于 aliveMap；默认加长超时 + 失败后 settle 再试一次。
+
+- name: wait-discovery-alive 要求 Discovery + demo
+  ansible.builtin.assert:
+    that:
+      - discovery_server_enabled | bool
+      - demo_partner_enabled | bool
+      - demo_leader_enabled | bool
+    fail_msg: >-
+      wait-discovery-alive.yml requires discovery_server_enabled=true and both
+      demos enabled (ACS under control staging). Run after site.yml; before
+      business.yml when day2 force renew/upgrade may have recreated agents.
+
+- name: 解析 wait-discovery-alive 路径
+  ansible.builtin.set_fact:
+    _biz_wait_discovery_base: >-
+      http://{{ hostvars | acps_group_addr(groups, 'discovery_server') }}:{{
+        discovery_server_port | default(9005) }}
+    _biz_wait_cli: "{{ acps_cli_bin | default(acps_control_root ~ '/acps-cli/venv/bin/acps-cli') }}"
+    _biz_wait_cfg: "{{ acps_cli_config | default(acps_control_root ~ '/acps-cli/acps-cli.toml') }}"
+    _biz_wait_partner_root: "{{ acps_control_root }}/work/staging/demo-partner"
+    _biz_wait_leader_root: "{{ acps_control_root }}/work/staging/demo-leader"
+    _biz_wait_timeout: "{{ acps_business_wait_alive_timeout_seconds | default(480) }}"
+    _biz_wait_retry: "{{ acps_business_wait_alive_retry | default(true) | bool }}"
+    _biz_wait_settle: "{{ acps_business_wait_alive_retry_settle_seconds | default(90) }}"
+
+- name: wait 前刷新 Registry OIDC 会话（acps-cli discover）
+  when: keycloak_enabled | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    SCRIPT="{{ acps_release_root }}/scripts/oidc_password_login.py"
+    KC_HOST="{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+    PUBLIC_BASE="http://${KC_HOST}:{{ keycloak_port }}"
+    FETCH_ISSUER_REG="${PUBLIC_BASE}/realms/acps-registry"
+    TOK="{{ acps_control_root }}/work/tokens"
+    mkdir -p "$TOK"
+    export ACPS_OIDC_PUBLIC_BASE_FILE="{{ acps_control_root }}/work/oidc_public_base"
+    printf '%s\n' "$PUBLIC_BASE" > "$ACPS_OIDC_PUBLIC_BASE_FILE"
+    "$PY" "$SCRIPT" \
+      --issuer "$FETCH_ISSUER_REG" --public-base "$PUBLIC_BASE" \
+      --client-id "{{ keycloak_registry_install_client_id | default('registry-install') }}" \
+      --username "{{ registry_bootstrap_username | default(registry_admin_username) }}" \
+      --password "{{ registry_bootstrap_password | default(registry_admin_password) }}" \
+      --token-file "$TOK/registry-user.json" \
+      --service registry --account-kind user \
+      --session-issuer "http://${KC_HOST}:{{ keycloak_port }}/realms/acps-registry"
+    test -s "$TOK/registry-user.json"
+    echo "OIDC_SESSION_OK_WAIT_ALIVE"
+  args:
+    executable: /bin/bash
+
+- name: Keycloak 关闭时断言 registry token 存在
+  when: not (keycloak_enabled | bool)
+  ansible.builtin.stat:
+    path: "{{ acps_control_root }}/work/tokens/registry-user.json"
+  register: _biz_wait_reg_token
+
+- name: local-auth registry token 缺失时失败
+  when: not (keycloak_enabled | bool)
+  ansible.builtin.assert:
+    that:
+      - _biz_wait_reg_token.stat.exists | default(false)
+    fail_msg: >-
+      local auth token missing: {{ acps_control_root }}/work/tokens/registry-user.json.
+      Re-run site.yml (control_acps_cli) before wait-discovery-alive.yml.
+
+- name: 等待 Discovery aliveMap 覆盖 Leader + Partners（D2-only，第 1 次）
+  ansible.builtin.command:
+    argv:
+      - "{{ acps_tools_python | default('python3') }}"
+      - "{{ acps_release_root }}/scripts/business_acceptance_step_d.py"
+      - "--d2-only"
+      - "--discovery-base-url"
+      - "{{ _biz_wait_discovery_base | trim }}"
+      - "--cli-bin"
+      - "{{ _biz_wait_cli }}"
+      - "--cli-config"
+      - "{{ _biz_wait_cfg }}"
+      - "--partner-root"
+      - "{{ _biz_wait_partner_root }}"
+      - "--leader-root"
+      - "{{ _biz_wait_leader_root }}"
+      - "--d2-timeout-seconds"
+      - "{{ _biz_wait_timeout | string }}"
+      - "--poll-interval-seconds"
+      - "{{ acps_business_step_d_poll_interval_seconds | default(5) | string }}"
+      - "--http-timeout-seconds"
+      - "{{ acps_business_step_d_http_timeout_seconds | default(30) | string }}"
+  environment:
+    ACPS_OIDC_PUBLIC_BASE_FILE: "{{ acps_control_root }}/work/oidc_public_base"
+  register: _biz_wait1
+  failed_when: false
+  changed_when: false
+
+# NOTE: do not re-register the same var inside a skipped block — Ansible still
+# writes a skipped result and would overwrite a successful attempt-1 register
+# (rc missing → default(1) → false fail with empty stdout).
+
+- name: 首次 wait 失败时 settle 后重试一次
+  when:
+    - (_biz_wait1.rc | default(1) | int) != 0
+    - _biz_wait_retry | bool
+  block:
+    - name: 宣告 wait 将 settle 后重试
+      ansible.builtin.debug:
+        msg: >-
+          wait-discovery-alive attempt 1 failed (rc={{ _biz_wait1.rc }});
+          settle {{ _biz_wait_settle }}s then retry once
+          (timeout={{ _biz_wait_timeout }}s). Force renew / recreate 后
+          aliveMap 滞后通常可收敛；仍失败再查 heartbeat→alive-delta。
+
+    - name: settle before wait retry
+      ansible.builtin.pause:
+        seconds: "{{ _biz_wait_settle | int }}"
+
+    - name: 等待 Discovery aliveMap（D2-only，第 2 次）
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_tools_python | default('python3') }}"
+          - "{{ acps_release_root }}/scripts/business_acceptance_step_d.py"
+          - "--d2-only"
+          - "--discovery-base-url"
+          - "{{ _biz_wait_discovery_base | trim }}"
+          - "--cli-bin"
+          - "{{ _biz_wait_cli }}"
+          - "--cli-config"
+          - "{{ _biz_wait_cfg }}"
+          - "--partner-root"
+          - "{{ _biz_wait_partner_root }}"
+          - "--leader-root"
+          - "{{ _biz_wait_leader_root }}"
+          - "--d2-timeout-seconds"
+          - "{{ _biz_wait_timeout | string }}"
+          - "--poll-interval-seconds"
+          - "{{ acps_business_step_d_poll_interval_seconds | default(5) | string }}"
+          - "--http-timeout-seconds"
+          - "{{ acps_business_step_d_http_timeout_seconds | default(30) | string }}"
+      environment:
+        ACPS_OIDC_PUBLIC_BASE_FILE: "{{ acps_control_root }}/work/oidc_public_base"
+      register: _biz_wait2
+      failed_when: false
+      changed_when: false
+
+- name: 汇总 wait-discovery-alive 结果（优先 attempt 2）
+  ansible.builtin.set_fact:
+    _biz_wait: >-
+      {{ _biz_wait2
+         if (_biz_wait2 is defined and (_biz_wait2.rc is defined))
+         else _biz_wait1 }}
+
+- name: wait-discovery-alive 最终失败
+  when: (_biz_wait.rc | default(1) | int) != 0
+  ansible.builtin.fail:
+    msg: >-
+      wait-discovery-alive failed after
+      {{ '2 attempts' if (_biz_wait_retry | bool) else '1 attempt' }}
+      (timeout={{ _biz_wait_timeout }}s each;
+      settle={{ _biz_wait_settle }}s between when retry on).
+      Check Forwarder→amp.heartbeat→Monitor→alive-delta→Discovery.
+      Last stdout:
+      {{ _biz_wait.stdout | default('') | truncate(2000, true, '…') }}
+
+- name: wait-discovery-alive 摘要
+  ansible.builtin.debug:
+    msg: "{{ _biz_wait.stdout_lines | default([]) }}"

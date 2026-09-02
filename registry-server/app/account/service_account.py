@@ -7,14 +7,17 @@ from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 from fastapi import status
 from sqlalchemy import desc, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import Session, selectinload
 
 from app.account.exception_account import AccountError, AccountErrorCode
 from app.account.model import Role, RoleType, User
-from app.agent.model import EmailCode
+from app.agent.exception import AgentError, AgentErrorCode
+from app.agent.model import Agent, EmailCode
 from app.agent.smtp import send_password
 from app.core.auth import get_password_hash, verify_password
+from app.utils.aic import generate_aic_provider_code, normalize_aic_level_code
 from app.utils.utils import get_beijing_time
 
 if TYPE_CHECKING:
@@ -34,6 +37,175 @@ EMAIL_EMAIL_COLUMN = cast("Any", EmailCode.email)
 EMAIL_EXPIRES_AT_COLUMN = cast("Any", EmailCode.expires_at)
 EMAIL_CODE_USED_AT_COLUMN = cast("Any", EmailCode.used_at)
 EMAIL_CREATED_COLUMN = cast("Any", EmailCode.created_at)
+AGENT_ID_COLUMN = cast("Any", Agent.id)
+AGENT_CREATED_BY_ID_COLUMN = cast("Any", Agent.created_by_id)
+AGENT_AIC_COLUMN = cast("Any", Agent.aic)
+AGENT_IS_DELETED_COLUMN = cast("Any", Agent.is_deleted)
+AIC_PROVIDER_CODE_ALLOC_RETRIES = 8
+
+
+def _existing_aic_provider_code(user: User) -> str | None:
+    raw = user.aic_provider_code
+    if raw is None:
+        return None
+    stripped = raw.strip()
+    if not stripped:
+        return None
+    return normalize_aic_level_code(stripped)
+
+
+def _aic_owner_not_found_error(user_id: uuid.UUID) -> AgentError:
+    return AgentError(
+        status_code=status.HTTP_409_CONFLICT,
+        error_name=AgentErrorCode.AIC_OWNER_NOT_FOUND,
+        error_msg="Agent owner not found while assigning AIC provider code",
+        input_params={"user_id": str(user_id)},
+    )
+
+
+def _aic_provider_code_alloc_failed_error(user_id: uuid.UUID) -> AgentError:
+    return AgentError(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        error_name=AgentErrorCode.GENERATE_AIC_FAILED,
+        error_msg="Failed to allocate a unique AIC provider code",
+        input_params={"user_id": str(user_id)},
+    )
+
+
+def _user_aic_provider_lock_stmt(user_id: uuid.UUID) -> Any:
+    return (
+        select(User)
+        .options(selectinload(USER_ROLES_RELATIONSHIP))
+        .where(user_id == USER_ID_COLUMN)
+        .limit(1)
+        .with_for_update()
+    )
+
+
+async def lock_user_for_aic_provider_code_async(session: AsyncSession, user_id: uuid.UUID) -> User:
+    """锁定用户行以便分配或改写 AIC 第7级。"""
+    result = await session.execute(_user_aic_provider_lock_stmt(user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise _aic_owner_not_found_error(user_id)
+    return cast("User", user)
+
+
+def lock_user_for_aic_provider_code(db: Session, user_id: uuid.UUID) -> User:
+    """锁定用户行以便分配或改写 AIC 第7级（同步路径）。"""
+    result = db.execute(_user_aic_provider_lock_stmt(user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise _aic_owner_not_found_error(user_id)
+    return cast("User", user)
+
+
+async def ensure_user_aic_provider_code_async(session: AsyncSession, user_id: uuid.UUID) -> str:
+    """返回账户第7级序号；为空则在当前事务中随机分配并写入。"""
+    user = await lock_user_for_aic_provider_code_async(session, user_id)
+    existing = _existing_aic_provider_code(user)
+    if existing is not None:
+        return existing
+
+    for _ in range(AIC_PROVIDER_CODE_ALLOC_RETRIES):
+        code = generate_aic_provider_code()
+        user.aic_provider_code = code
+        try:
+            async with session.begin_nested():
+                session.add(user)
+                await session.flush()
+            return code
+        except IntegrityError:
+            user.aic_provider_code = None
+            continue
+
+    raise _aic_provider_code_alloc_failed_error(user_id)
+
+
+def ensure_user_aic_provider_code(db: Session, user_id: uuid.UUID) -> str:
+    """返回账户第7级序号；为空则在当前事务中随机分配并写入（同步路径）。"""
+    user = lock_user_for_aic_provider_code(db, user_id)
+    existing = _existing_aic_provider_code(user)
+    if existing is not None:
+        return existing
+
+    for _ in range(AIC_PROVIDER_CODE_ALLOC_RETRIES):
+        code = generate_aic_provider_code()
+        user.aic_provider_code = code
+        try:
+            with db.begin_nested():
+                db.add(user)
+                db.flush()
+            return code
+        except IntegrityError:
+            user.aic_provider_code = None
+            continue
+
+    raise _aic_provider_code_alloc_failed_error(user_id)
+
+
+async def _user_has_in_use_aic_async(session: AsyncSession, user_id: uuid.UUID) -> bool:
+    stmt = (
+        select(AGENT_ID_COLUMN)
+        .where(user_id == AGENT_CREATED_BY_ID_COLUMN)
+        .where(AGENT_AIC_COLUMN.is_not(None))
+        .where(AGENT_IS_DELETED_COLUMN.is_(False))
+        .limit(1)
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none() is not None
+
+
+async def set_user_aic_provider_code(session: AsyncSession, user_id: uuid.UUID, raw_code: str) -> User:
+    """管理员预置或改写账户 AIC 第7级。有在用 AIC 时禁止改号。"""
+    result = await session.execute(_user_aic_provider_lock_stmt(user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise AccountError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_name=AccountErrorCode.USER_NOT_FOUND,
+            error_msg="User not found",
+            input_params={"user_id": str(user_id)},
+        )
+    locked_user = cast("User", user)
+
+    try:
+        normalized = normalize_aic_level_code(raw_code)
+    except ValueError as exc:
+        raise AccountError(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            error_name=AccountErrorCode.AIC_PROVIDER_CODE_INVALID,
+            title="Invalid AIC Provider Code",
+            detail="AIC provider code must be 1 to 6 Base36 characters and must not be all zeros",
+            input_params={"user_id": str(user_id)},
+        ) from exc
+
+    existing = _existing_aic_provider_code(locked_user)
+    if existing == normalized:
+        return locked_user
+
+    if await _user_has_in_use_aic_async(session, user_id):
+        raise AccountError(
+            status_code=status.HTTP_409_CONFLICT,
+            error_name=AccountErrorCode.AIC_PROVIDER_CODE_IN_USE,
+            title="AIC Provider Code In Use",
+            detail="Delete all in-use agents before changing the AIC provider code",
+            input_params={"user_id": str(user_id)},
+        )
+
+    locked_user.aic_provider_code = normalized
+    session.add(locked_user)
+    try:
+        await session.flush()
+    except IntegrityError as exc:
+        raise AccountError(
+            status_code=status.HTTP_409_CONFLICT,
+            error_name=AccountErrorCode.AIC_PROVIDER_CODE_CONFLICT,
+            title="AIC Provider Code Conflict",
+            detail="AIC provider code is already assigned to another account",
+            input_params={"user_id": str(user_id)},
+        ) from exc
+    return locked_user
 
 
 @overload
@@ -379,7 +551,15 @@ async def update_user_password(session: AsyncSession, user_id: uuid.UUID, old_pa
 
     # 校验旧密码
     hashed_password = user.hashed_password
-    if hashed_password is None or not verify_password(old_password, hashed_password):
+    if hashed_password is None:
+        raise AccountError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            error_name=AccountErrorCode.INCORRECT_PASSWORD,
+            error_msg="Incorrect password",
+            input_params={"user_id": str(user_id)},
+        )
+    is_valid, _ = verify_password(old_password, hashed_password)
+    if not is_valid:
         raise AccountError(
             status_code=status.HTTP_400_BAD_REQUEST,
             error_name=AccountErrorCode.INCORRECT_PASSWORD,
@@ -518,6 +698,9 @@ async def admin_reset_password(session: AsyncSession, user_id: uuid.UUID, new_pa
     # 更新密码
     auth_service.validate_password_complexity(new_password)
     user.hashed_password = get_password_hash(new_password)
+    user.access_token = None
+    user.refresh_token = None
+    user.token_expires_at = None
     user.updated_at = get_beijing_time()
 
     session.add(user)

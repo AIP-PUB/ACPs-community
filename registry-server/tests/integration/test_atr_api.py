@@ -6,7 +6,7 @@ from sqlalchemy import select
 from app.account.model import RoleType
 from app.agent.exception import AtrErrorCode
 from app.agent.model import Agent, ApprovalStatus
-from app.utils.aic import generate_aic, generate_ontology_aic
+from tests.support.aic import generate_aic, generate_ontology_aic
 from tests.support.constants import DEFAULT_LOGIN_VALUE
 from tests.support.database import create_agent_with_change_log, create_user
 
@@ -76,6 +76,13 @@ async def test_register_entity_creates_entity_and_exposes_acs(client, mtls_clien
             }
         ],
         "entityMeta": {"tenant": "integration"},
+        "certificate": {
+            "altNames": {
+                "dns": ["entity.example.com"],
+                "ip": ["10.0.1.50"],
+            },
+            "requestedValidity": 365,
+        },
     }
 
     public_response = await client.post("/acps-atr-v2/entity", json=payload)
@@ -115,6 +122,13 @@ async def test_register_entity_creates_entity_and_exposes_acs(client, mtls_clien
     entity_aic = response.json()["result"]["entityAic"]
     assert entity_aic != ontology_aic
     assert response.json()["result"]["entityMeta"] == {"tenant": "integration"}
+    assert response.json()["result"]["certificate"] == {
+        "altNames": {
+            "dns": ["entity.example.com"],
+            "ip": ["10.0.1.50"],
+        },
+        "requestedValidity": 365,
+    }
 
     db_session.expire_all()
     result = await db_session.execute(select(Agent).where(Agent.aic == entity_aic).limit(1))
@@ -125,11 +139,19 @@ async def test_register_entity_creates_entity_and_exposes_acs(client, mtls_clien
     assert entity.acs is not None
     assert entity.acs["entityMeta"] == {"tenant": "integration"}
     assert entity.acs["endPoints"][0]["url"] == "https://entity.example.com/callback"
+    assert entity.acs["certificate"] == {
+        "altNames": {
+            "dns": ["entity.example.com"],
+            "ip": ["10.0.1.50"],
+        },
+        "requestedValidity": 365,
+    }
 
     acs_response = await client.get(f"/acps-atr-v2/acs/{entity_aic}")
     assert acs_response.status_code == 200
     assert acs_response.json()["aic"] == entity_aic
     assert acs_response.json()["active"] is True
+    assert acs_response.json()["certificate"]["altNames"]["dns"] == ["entity.example.com"]
 
 
 async def test_register_entity_rejects_non_owner_without_staff_role(client, mtls_client, db_session) -> None:

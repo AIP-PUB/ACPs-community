@@ -43,6 +43,12 @@ if TYPE_CHECKING:
 logger = structlog.get_logger()
 
 SHARED_INBOX_RETRY_SECONDS = 5
+_NON_RETRYABLE_SHARED_INBOX_ERROR_MARKERS = (
+    "ACCESS_REFUSED",
+    "AUTHENTICATION",
+    "LOGIN WAS REFUSED",
+    "NOT_ALLOWED",
+)
 
 
 def _require_non_empty(value: str | None, field_name: str) -> str:
@@ -66,6 +72,7 @@ class GroupHandler:
         runner: GenericRunner,
         rabbitmq_config: dict[str, Any] | None = None,
         ssl_context: ssl.SSLContext | None = None,
+        identity_binding_enabled: bool = True,
     ):
         """
         初始化群组处理器
@@ -78,6 +85,7 @@ class GroupHandler:
         self.runner = runner
         self.rabbitmq_config = rabbitmq_config or {}
         self.ssl_context = ssl_context
+        self.identity_binding_enabled = identity_binding_enabled
 
         # AIC 标识（从 runner 的 ACS 获取或构造）
         acs = runner.acs
@@ -105,13 +113,21 @@ class GroupHandler:
         if self._shared_mq_retry_task and not self._shared_mq_retry_task.done():
             return
 
-        started = await self._start_shared_inbox_consumer()
-        if started:
+        start_result = await self._start_shared_inbox_consumer()
+        if start_result is not False:
             return
 
         self._shared_mq_retry_task = asyncio.create_task(self._retry_start_shared_inbox_consumer())
 
-    async def _start_shared_inbox_consumer(self) -> bool:
+    def _should_retry_shared_inbox_start(self, exc: Exception) -> bool:
+        error_text = str(exc).upper()
+        if any(marker in error_text for marker in _NON_RETRYABLE_SHARED_INBOX_ERROR_MARKERS):
+            return False
+        if isinstance(exc, OSError):
+            return True
+        return True
+
+    async def _start_shared_inbox_consumer(self) -> bool | None:
         mq_config = self._resolve_rabbitmq_config()
         shared_mq_client = GroupPartnerMqClient(
             partner_aic=self.partner_aic,
@@ -121,6 +137,7 @@ class GroupHandler:
             rabbitmq_user=mq_config["user"],
             rabbitmq_password=mq_config["password"],
             ssl_context=self.ssl_context,
+            identity_binding_enabled=self.identity_binding_enabled,
             robust_connection=True,
         )
 
@@ -130,6 +147,7 @@ class GroupHandler:
         except (AMQPError, OSError) as exc:
             with contextlib.suppress(Exception):
                 await shared_mq_client.close()
+            should_retry = self._should_retry_shared_inbox_start(exc)
             logger.warning(
                 "RabbitMQ unavailable, group inbox disabled",
                 agent=self.agent_name,
@@ -137,9 +155,10 @@ class GroupHandler:
                 port=mq_config["port"],
                 vhost=mq_config["vhost"],
                 error=str(exc)[:100],
-                retry_in_seconds=SHARED_INBOX_RETRY_SECONDS,
+                will_retry=should_retry,
+                retry_in_seconds=SHARED_INBOX_RETRY_SECONDS if should_retry else 0,
             )
-            return False
+            return False if should_retry else None
 
         self._shared_mq_client = shared_mq_client
         logger.info(
@@ -155,12 +174,14 @@ class GroupHandler:
         try:
             while self._shared_mq_client is None:
                 await asyncio.sleep(SHARED_INBOX_RETRY_SECONDS)
-                started = await self._start_shared_inbox_consumer()
-                if started:
+                start_result = await self._start_shared_inbox_consumer()
+                if start_result is True:
                     logger.info(
                         "Inbox consumer recovered",
                         agent=self.agent_name,
                     )
+                    return
+                if start_result is None:
                     return
         finally:
             self._shared_mq_retry_task = None
@@ -209,6 +230,10 @@ class GroupHandler:
             connection=shared_connection,
             connection_owner=shared_connection is None,
             robust_connection=False,
+            identity_binding_enabled=self.identity_binding_enabled,
+            message_emitter=self.runner._message_emitter,
+            message_system="rabbitmq",
+            # trace_context_provider=None — O-M6 ContextVar 自动承接
         )
 
     def _bind_group_client(self, client: GroupPartnerMqClient) -> None:
@@ -923,6 +948,8 @@ class GroupHandler:
     async def shutdown(self) -> None:
         """关闭群组处理器"""
         logger.info("[GroupHandler:%s] Shutting down...", self.agent_name)
+        self.runner.remove_state_change_listener(self._on_runner_state_change)
+        self.runner._on_state_change_callback = None
         if self._shared_mq_retry_task:
             self._shared_mq_retry_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):

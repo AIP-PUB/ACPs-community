@@ -1,0 +1,29 @@
+---
+# resolve_acps_os_facts.yml
+# 从 Ansible facts 补齐 acps_os_id / acps_el_major（仅补缺，不跑白名单）。
+# 供 ensure_os_packages / os_package / vendor stage 在跳过 preflight 时仍能正确分支。
+# 完整白名单断言仍由 preflight_host_os_id.yml 负责。
+
+- name: 补齐 acps_el_major
+  when: (acps_el_major | default('') | string | length) == 0
+  ansible.builtin.set_fact:
+    acps_el_major: "{{ ansible_distribution_major_version | string }}"
+
+- name: 补齐 acps_os_id
+  when: (acps_os_id | default('') | string | length) == 0
+  vars:
+    _dist: "{{ ansible_distribution | lower }}"
+    _major: "{{ ansible_distribution_major_version | string }}"
+    _ver: "{{ ansible_distribution_version | string }}"
+    _el_like: "{{ _dist in ['rocky', 'redhat', 'almalinux'] }}"
+  ansible.builtin.set_fact:
+    acps_os_id: >-
+      {{
+        'rocky8' if (_el_like | bool) and _major == '8' else (
+          'rocky9' if (_el_like | bool) and _major == '9' else (
+            'ubuntu20' if _dist == 'ubuntu' and _ver.startswith('20.04') else (
+              'ubuntu22' if _dist == 'ubuntu' and _ver.startswith('22.04') else ''
+            )
+          )
+        )
+      }}

@@ -220,6 +220,31 @@ class EndPoint(BaseModel):
     )
 
 
+class CertificateAltNames(BaseModel):
+    """需要写入实体证书 SAN 的 DNS/IP 条目。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    dns: list[str] | None = Field(None, description="需要加入证书 DNS SAN 的主机名列表")
+    ip: list[str] | None = Field(None, description="需要加入证书 IP SAN 的地址列表")
+
+
+class AgentCertificate(BaseModel):
+    """实体证书签发配置，对应 ACS `certificate` 字段。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    altNames: CertificateAltNames | None = Field(  # noqa: N815
+        None,
+        description="需要写入证书 SAN 的 DNS/IP 条目",
+    )
+    requestedValidity: int | None = Field(  # noqa: N815
+        None,
+        ge=1,
+        description="证书期望有效期（天）。最终值由 CA Server 按系统上限裁剪。",
+    )
+
+
 class EntityRegistrationRequest(BaseModel):
     """
     实体注册请求模型（ATR-Registry-Server.md 规范）
@@ -246,11 +271,15 @@ class EntityRegistrationRequest(BaseModel):
         None,
         description="实体的额外元数据（可选）。可包含地理位置、环境信息、用户绑定关系等。",
     )
+    certificate: AgentCertificate | None = Field(
+        None,
+        description="实体证书签发配置（可选）。写入实体 ACS，供 CA 签发实体服务端证书时读取 SAN 与期望有效期。",
+    )
 
     @field_validator("ontologyAic")
     @classmethod
     def validate_ontology_aic_format(cls, v: str) -> str:
-        """验证本体 AIC 格式：ACPs-spec-AIC-v02.01（点分10段 + CRC16）。"""
+        """验证本体 AIC 格式：ACPs-spec-AIC-v02.02（点分10段 + CRC16）。"""
         v = v.strip()
         if not aic.validate_aic(v):
             raise ValueError("Invalid ontologyAic format")
@@ -272,6 +301,7 @@ class EntityRegistrationResult(BaseModel):
         description="实体绑定的终端用户 ID（如果提供）",
     )
     entityMeta: dict[str, Any] | None = Field(None, description="实体的额外元数据")  # noqa: N815
+    certificate: AgentCertificate | None = Field(None, description="实体证书签发配置")
 
 
 class EntityRegistrationError(BaseModel):

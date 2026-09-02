@@ -1,0 +1,8 @@
+---
+# resolve_cert_owner.yml
+# 承载分派层（mode 无关中性入口）：按 acps_deploy_mode include 对应实现。
+# image → resolve_cert_owner_image.yml（现有从镜像解析 uid:gid，逻辑不变）。
+# host  → resolve_cert_owner_host.yml（acps_systemd_user 或发行版服务用户，
+# getent 本地账号；禁止 resolve_image_uid.py，见本设计 §4.4 / §6.3）。
+- name: 按 mode 分派 resolve_cert_owner 实现
+  ansible.builtin.include_tasks: "resolve_cert_owner_{{ acps_deploy_mode }}.yml"

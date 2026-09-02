@@ -32,6 +32,7 @@ from typing import Any
 
 import httpx
 import pytest
+from acps_sdk.aip.aip_identity import extract_common_name
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TEST_SERVER_HOST = "127.0.0.1"
@@ -44,40 +45,75 @@ MAX_POLL_TIME_LONG = 120
 
 # 扫描 online 目录发现所有 agent 及其端口配置
 _PARTNERS_ONLINE_DIR = PROJECT_ROOT / "partners" / "online"
+_LEADER_TLS_DIR = PROJECT_ROOT.parent / "demo-leader" / "leader" / "atr"
 
 
-def _get_test_client_cert() -> tuple[str, str] | None:
-    """获取测试用的客户端证书路径 (cert_file, key_file)。"""
-    # 优先使用具备 clientAuth EKU 的 client 证书；回退到 server 证书仅用于兼容旧环境。
+def _cert_common_name(cert_file: Path) -> str | None:
+    cert = ssl._ssl._test_decode_cert(str(cert_file))  # type: ignore[attr-defined]
+    return extract_common_name(cert)
+
+
+def _discover_test_identity() -> tuple[Path, Path, Path, str] | None:
+    """获取测试用 mTLS 身份 (cert, key, ca, sender_aic)。"""
+    leader_cert_file = _LEADER_TLS_DIR / "client.pem"
+    leader_key_file = _LEADER_TLS_DIR / "client.key"
+    leader_ca_file = _LEADER_TLS_DIR / "trust-bundle.pem"
+    if leader_cert_file.is_file() and leader_key_file.is_file() and leader_ca_file.is_file():
+        common_name = _cert_common_name(leader_cert_file)
+        if common_name:
+            return leader_cert_file, leader_key_file, leader_ca_file, common_name
+
     if _PARTNERS_ONLINE_DIR.is_dir():
         for entry in sorted(_PARTNERS_ONLINE_DIR.iterdir(), key=lambda e: e.name):
             mq_cert_file = entry / "client.pem"
             mq_key_file = entry / "client.key"
-            if mq_cert_file.is_file() and mq_key_file.is_file():
-                return (str(mq_cert_file), str(mq_key_file))
+            ca_file = entry / "trust-bundle.pem"
+            if mq_cert_file.is_file() and mq_key_file.is_file() and ca_file.is_file():
+                common_name = _cert_common_name(mq_cert_file)
+                if common_name:
+                    return mq_cert_file, mq_key_file, ca_file, common_name
 
             cert_file = entry / "server.pem"
             key_file = entry / "server.key"
-            if cert_file.is_file() and key_file.is_file():
-                return (str(cert_file), str(key_file))
+            if cert_file.is_file() and key_file.is_file() and ca_file.is_file():
+                common_name = _cert_common_name(cert_file)
+                if common_name:
+                    return cert_file, key_file, ca_file, common_name
     return None
 
 
-_TEST_CLIENT_CERT = _get_test_client_cert()
+_TEST_IDENTITY = _discover_test_identity()
+TEST_CLIENT_CERT_FILE = _TEST_IDENTITY[0] if _TEST_IDENTITY else None
+TEST_CLIENT_KEY_FILE = _TEST_IDENTITY[1] if _TEST_IDENTITY else None
+TEST_CA_CERT_FILE = _TEST_IDENTITY[2] if _TEST_IDENTITY else None
+TEST_SENDER_AIC = _TEST_IDENTITY[3] if _TEST_IDENTITY else "test-leader-e2e"
+FORGED_SENDER_AIC = "1.2.156.3088.1.1.D55UOU.NEBZUA.1.0QLD"
 
 
 def _build_test_client_ssl_context() -> ssl.SSLContext:
     """构建 E2E 测试专用 SSLContext，避免使用已弃用的 cert= 参数。"""
-    context = ssl.create_default_context()
+    if TEST_CA_CERT_FILE is not None:
+        context = ssl.create_default_context(cafile=str(TEST_CA_CERT_FILE))
+    else:
+        context = ssl.create_default_context()
     context.check_hostname = False
-    context.verify_mode = ssl.CERT_NONE
-    if _TEST_CLIENT_CERT is not None:
-        cert_file, key_file = _TEST_CLIENT_CERT
-        context.load_cert_chain(certfile=cert_file, keyfile=key_file)
+    if TEST_CLIENT_CERT_FILE is not None and TEST_CLIENT_KEY_FILE is not None:
+        context.load_cert_chain(
+            certfile=str(TEST_CLIENT_CERT_FILE),
+            keyfile=str(TEST_CLIENT_KEY_FILE),
+        )
     return context
 
 
 _TEST_CLIENT_SSL_CONTEXT = _build_test_client_ssl_context()
+
+
+def _apply_test_rabbitmq_overrides(env: dict[str, str]) -> None:
+    """仅向 E2E 子进程传递隔离 RabbitMQ 的连接覆盖项。"""
+    for field_name in ("HOST", "PORT", "USER", "PASSWORD", "VHOST"):
+        value = os.getenv(f"TEST_RABBITMQ_{field_name}")
+        if value:
+            env[f"RABBITMQ_{field_name}"] = value
 
 
 def _discover_agent_urls(online_dir: Path | None = None) -> dict[str, str]:
@@ -210,6 +246,7 @@ def _managed_e2e_agent_urls() -> Iterator[dict[str, str]]:
 
     runtime_root, runtime_agent_urls, reserved_sockets = _prepare_temp_online_dir()
     env = os.environ.copy()
+    _apply_test_rabbitmq_overrides(env)
     env["PARTNERS_ONLINE_DIR"] = str(runtime_root / "online")
 
     with log_path.open("w+", encoding="utf-8") as log_file:
@@ -256,6 +293,7 @@ def create_task_command(
     task_id: str,
     session_id: str,
     command_id: str | None = None,
+    sender_id: str | None = None,
 ) -> dict[str, Any]:
     """创建 AIP v2 TaskCommand"""
     now = datetime.now(BEIJING_TZ)
@@ -264,7 +302,7 @@ def create_task_command(
         "id": command_id or f"cmd-{now.timestamp()}",
         "sentAt": now.isoformat(),
         "senderRole": "leader",
-        "senderId": "test-leader-e2e",
+        "senderId": sender_id or TEST_SENDER_AIC,
         "command": command,
         "dataItems": [{"type": "text", "text": text}] if text else [],
         "taskId": task_id,
@@ -298,9 +336,10 @@ def send_rpc(
     task_id: str,
     session_id: str,
     agent_urls: dict[str, str],
+    sender_id: str | None = None,
 ) -> dict[str, Any]:
     """发送 RPC 请求到对应 agent 的独立端口。"""
-    task_command = create_task_command(text, command, task_id, session_id)
+    task_command = create_task_command(text, command, task_id, session_id, sender_id=sender_id)
     request = create_rpc_request(task_command)
     base_url = _get_agent_url(agent_name, agent_urls)
 

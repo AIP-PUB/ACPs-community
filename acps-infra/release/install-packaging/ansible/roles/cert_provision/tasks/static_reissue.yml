@@ -1,0 +1,26 @@
+---
+# Same-AIC leaf reissue for static profiles (no agent save/delete).
+# Expect: _profile, _profile_outdir_name already set.
+
+- name: 运行 static profile 同 AIC reissue
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    SCRIPT="{{ acps_release_root }}/scripts/reissue_profile_leaves.py"
+    CLI="{{ acps_control_root }}/acps-cli/venv/bin/acps-cli"
+    CFG="{{ acps_control_root }}/acps-cli/acps-cli.toml"
+    OUT="{{ acps_control_root }}/work/certs/{{ _profile_outdir_name }}"
+    "$PY" "$SCRIPT" \
+      --profile "{{ _profile }}" \
+      --profile-dir "$OUT" \
+      --cli-bin "$CLI" \
+      --cli-config "$CFG" \
+      --work-dir "$OUT/.reissue-work"
+  args:
+    executable: /bin/bash
+  register: _static_reissue_out
+  changed_when: true
+
+- name: 宣告 static reissue 结果
+  ansible.builtin.debug:
+    msg: "{{ _static_reissue_out.stdout_lines | default([]) }}"

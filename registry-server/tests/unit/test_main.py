@@ -64,7 +64,7 @@ async def test_build_app_returns_cors_headers_for_allowed_origin(monkeypatch: py
         "cors",
         {
             "enabled": True,
-            "origins": ["http://localhost:9010"],
+            "origins": ["http://localhost:9030"],
             "allow_methods": ["GET", "POST", "OPTIONS"],
             "allow_headers": ["Authorization", "Content-Type"],
             "expose_headers": ["X-Request-ID"],
@@ -78,13 +78,13 @@ async def test_build_app_returns_cors_headers_for_allowed_origin(monkeypatch: py
         response = await client.options(
             "/health",
             headers={
-                "Origin": "http://localhost:9010",
+                "Origin": "http://localhost:9030",
                 "Access-Control-Request-Method": "GET",
             },
         )
 
     assert response.status_code == 200
-    assert response.headers.get("access-control-allow-origin") == "http://localhost:9010"
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:9030"
 
 
 async def test_build_app_does_not_set_cors_header_for_disallowed_origin(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -93,7 +93,7 @@ async def test_build_app_does_not_set_cors_header_for_disallowed_origin(monkeypa
         "cors",
         {
             "enabled": True,
-            "origins": ["http://localhost:9010"],
+            "origins": ["http://localhost:9030"],
             "allow_methods": ["GET", "POST", "OPTIONS"],
             "allow_headers": ["Authorization", "Content-Type"],
             "allow_credentials": False,

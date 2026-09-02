@@ -1,0 +1,19 @@
+# config/development.toml — 开发环境覆盖配置
+
+[server]
+reload = true
+uvicorn_log_level = "debug"
+
+[app]
+docs_enabled = true
+
+[logging]
+level = "DEBUG"
+format = "console"
+
+[registry_server]
+mock = true
+
+[atr]
+# 开发环境允许所有 IP 访问 ATR 管理端点
+mgmt_allow_ip_list = "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"

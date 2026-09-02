@@ -1,0 +1,124 @@
+---
+# preflight_host_vendor_glibc.yml
+# rocky8 / ubuntu20：对 amp_forwarder（glibc228）归档做轻量 ELF/glibc 探测。
+# 只拷贝 fluent-bit 小包（避免 redpanda 全量 scp 阻塞 preflight）；
+# 失败条件限于 libc/ld-linux/GLIBC 不兼容（可选插件 lib 如 libpq 不卡死）。
+
+- name: 判定是否需要 vendor glibc 早期门禁
+  ansible.builtin.set_fact:
+    _preflight_glibc_gate: >-
+      {{ (acps_os_id | default('')) in ['rocky8', 'ubuntu20'] }}
+
+- name: 跳过 vendor glibc 门禁（非 rocky8/ubuntu20）
+  when: not (_preflight_glibc_gate | bool)
+  ansible.builtin.debug:
+    msg: "host vendor glibc preflight: skip (acps_os_id={{ acps_os_id | default('?') }})"
+    verbosity: 1
+
+- name: vendor glibc 早期门禁（amp_forwarder）
+  when: _preflight_glibc_gate | bool
+  block:
+    - name: 记录目标机 glibc
+      ansible.builtin.command:
+        argv: [ldd, --version]
+      register: _target_ldd_ver
+      changed_when: false
+
+    - name: 控制节点解析 amp_forwarder manifest
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_tools_python | default('python3') }}"
+          - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+          - "--manifest"
+          - "{{ acps_manifest_path }}"
+          - "--table"
+          - vendor
+          - "--component"
+          - amp_forwarder
+      register: _fw_manifest
+      changed_when: false
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_become: false
+
+    - name: 选择 amp_forwarder 门禁归档（优先 file_glibc228）
+      vars:
+        _fw_meta: "{{ _fw_manifest.stdout | from_json }}"
+        _fw_file: >-
+          {{
+            (_fw_meta.file_glibc228 | default('') | string)
+            if ((_fw_meta.file_glibc228 | default('') | string | length) > 0)
+            else (_fw_meta.file | string)
+          }}
+      ansible.builtin.set_fact:
+        _gate_fw_archive: "{{ acps_artifacts_vendor }}/{{ _fw_file }}"
+        _gate_fw_name: "{{ _fw_file }}"
+
+    - name: 断言门禁归档存在且非空
+      ansible.builtin.stat:
+        path: "{{ _gate_fw_archive }}"
+      register: _gate_fw_stat
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_become: false
+
+    - name: 要求 amp_forwarder 门禁归档可用
+      ansible.builtin.assert:
+        that:
+          - _gate_fw_stat.stat.exists | default(false)
+          - (_gate_fw_stat.stat.size | default(0) | int) > 0
+          - (_gate_fw_name | length) > 0
+        fail_msg: >-
+          vendor glibc gate: amp_forwarder archive missing/empty:
+          {{ _gate_fw_archive }} (acps_os_id={{ acps_os_id }}).
+          Rebuild host package so artifacts/vendor includes file_glibc228
+          for rocky8/ubuntu20.
+
+    - name: 确保目标临时目录
+      ansible.builtin.file:
+        path: /tmp/acps-glibc-gate
+        state: directory
+        mode: "0755"
+
+    - name: 分发 amp_forwarder 归档到目标机
+      ansible.builtin.copy:
+        src: "{{ _gate_fw_archive }}"
+        dest: "/tmp/acps-glibc-gate/{{ _gate_fw_name }}"
+        mode: "0644"
+
+    - name: 探测 fluent-bit glibc/loader 兼容性
+      ansible.builtin.shell: |
+        set -euo pipefail
+        echo "target_ldd: {{ _target_ldd_ver.stdout_lines | first | default('') }}"
+        TMP=$(mktemp -d /tmp/acps-glibc-gate/extract.XXXXXX)
+        tar -xzf "/tmp/acps-glibc-gate/{{ _gate_fw_name }}" -C "$TMP"
+        FB=$(find "$TMP" -type f -name fluent-bit | head -n1)
+        test -n "$FB"
+        chmod +x "$FB"
+        LDD_OUT=$(ldd "$FB" 2>&1 || true)
+        echo "$LDD_OUT" | head -n40
+        if echo "$LDD_OUT" | grep -E 'libc\.so\.[0-9]+ => not found|ld-linux.*not found|GLIBC_[0-9.]+ not found'; then
+          echo "fluent-bit glibc/loader incompatible" >&2
+          exit 1
+        fi
+        echo "fluent-bit ldd glibc OK: $FB"
+        rm -rf "$TMP"
+      args:
+        executable: /bin/bash
+      register: _gate_probe
+      changed_when: false
+
+    - name: 门禁通过日志
+      ansible.builtin.debug:
+        msg: >-
+          vendor glibc gate OK on {{ inventory_hostname }}
+          (acps_os_id={{ acps_os_id }}; fw={{ _gate_fw_name }})
+  always:
+    - name: 清理目标门禁暂存
+      when: _preflight_glibc_gate | bool
+      ansible.builtin.file:
+        path: /tmp/acps-glibc-gate
+        state: absent
+      become: true

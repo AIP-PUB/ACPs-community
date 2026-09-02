@@ -12,7 +12,8 @@ import structlog
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import dsa, ec, ed448, ed25519, rsa, x448, x25519
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
+from cryptography.hazmat.primitives.asymmetric.types import CertificatePublicKeyTypes
 from cryptography.x509.oid import NameOID
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,6 +33,7 @@ from app.core.ca_manager import get_ca_manager
 from app.core.config import Settings, get_settings
 
 from .exception import AcmeError, AcmeException
+from .jwk import compute_jwk_thumbprint, public_jwk_projection, public_key_to_jwk
 from .jws_verifier import get_jws_verifier
 from .model import (
     AccountStatus,
@@ -60,15 +62,7 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-type CertificatePublicKey = (
-    dsa.DSAPublicKey
-    | rsa.RSAPublicKey
-    | ec.EllipticCurvePublicKey
-    | ed25519.Ed25519PublicKey
-    | ed448.Ed448PublicKey
-    | x25519.X25519PublicKey
-    | x448.X448PublicKey
-)
+type CertificatePublicKey = CertificatePublicKeyTypes
 
 
 class NonceService:
@@ -128,8 +122,12 @@ class JWKService:
     @staticmethod
     def compute_jwk_thumbprint(jwk: dict[str, Any]) -> str:
         """计算 JWK 指纹"""
-        jws_verifier = get_jws_verifier()
-        return jws_verifier.compute_jwk_thumbprint(jwk)
+        return compute_jwk_thumbprint(jwk)
+
+    @staticmethod
+    def project_public_jwk(jwk: dict[str, Any]) -> dict[str, str]:
+        """提取公开 JWK 投影。"""
+        return public_jwk_projection(jwk)
 
     @staticmethod
     def create_key_authorization(token: str, jwk: dict[str, Any]) -> str:
@@ -217,7 +215,7 @@ async def get_account_from_request(protected: dict[str, Any], account_service: A
         account_id = account_url.split("/")[-1]
         account = await account_service.get_account_by_id(int(account_id))
     elif "jwk" in protected:
-        jwk = protected["jwk"]
+        jwk = JWKService.project_public_jwk(protected["jwk"])
         key_id = JWKService.compute_jwk_thumbprint(jwk)
         account = await account_service.get_account_by_key_id(key_id)
     else:
@@ -393,11 +391,12 @@ class AccountService:
             )
 
         new_jwk = inner_protected["jwk"]
+        new_public_jwk = JWKService.project_public_jwk(new_jwk)
 
         jws_verifier = get_jws_verifier()
         inner_jws_string = f"{inner_protected_b64}.{inner_payload_b64}.{inner_signature_b64}"
         try:
-            jws_verifier.verify_jws_signature(inner_jws_string, new_jwk, expected_nonce=None, expected_url=None)
+            jws_verifier.verify_jws_signature(inner_jws_string, new_public_jwk, expected_nonce=None, expected_url=None)
         except Exception as e:
             raise AcmeException(
                 status_code=400,
@@ -416,14 +415,20 @@ class AccountService:
 
         current_jwk = json.loads(account.public_key)
         provided_old_key = inner_payload.get("oldKey")
-        if not provided_old_key or provided_old_key != current_jwk:
+        if not isinstance(provided_old_key, dict):
+            raise AcmeException(
+                status_code=400,
+                error_name=AcmeError.MALFORMED_REQUEST,
+                error_msg="oldKey does not match current account key",
+            )
+        if JWKService.project_public_jwk(provided_old_key) != current_jwk:
             raise AcmeException(
                 status_code=400,
                 error_name=AcmeError.MALFORMED_REQUEST,
                 error_msg="oldKey does not match current account key",
             )
 
-        new_key_id = JWKService.compute_jwk_thumbprint(new_jwk)
+        new_key_id = JWKService.compute_jwk_thumbprint(new_public_jwk)
         existing_account = await self.get_account_by_key_id(new_key_id)
         if existing_account and existing_account.id != account.id:
             raise AcmeException(
@@ -435,7 +440,7 @@ class AccountService:
         return await self.update_account(
             account,
             key_id=new_key_id,
-            public_key=json.dumps(new_jwk),
+            public_key=json.dumps(new_public_jwk),
         )
 
 
@@ -915,47 +920,13 @@ class CertificateService:
 
     def public_key_to_jwk(self, public_key: CertificatePublicKey) -> dict[str, str]:
         """将证书中的公钥转换为 JWK，供 ACME JWS 验签使用"""
-        jws_verifier = get_jws_verifier()
-
-        if isinstance(public_key, rsa.RSAPublicKey):
-            rsa_public_numbers = public_key.public_numbers()
-            modulus_length = (rsa_public_numbers.n.bit_length() + 7) // 8
-            exponent_length = (rsa_public_numbers.e.bit_length() + 7) // 8
-            return {
-                "kty": "RSA",
-                "n": jws_verifier.base64url_encode(rsa_public_numbers.n.to_bytes(modulus_length, "big")),
-                "e": jws_verifier.base64url_encode(rsa_public_numbers.e.to_bytes(exponent_length, "big")),
-            }
-
-        if isinstance(public_key, ec.EllipticCurvePublicKey):
-            ec_public_numbers = public_key.public_numbers()
-            coordinate_length = (public_key.curve.key_size + 7) // 8
-
-            if isinstance(public_key.curve, ec.SECP256R1):
-                curve_name = "P-256"
-            elif isinstance(public_key.curve, ec.SECP384R1):
-                curve_name = "P-384"
-            elif isinstance(public_key.curve, ec.SECP521R1):
-                curve_name = "P-521"
-            else:
-                raise AcmeException(
-                    status_code=400,
-                    error_name=AcmeError.UNSUPPORTED_ALGORITHM,
-                    error_msg=f"Unsupported certificate key curve: {type(public_key.curve).__name__}",
-                )
-
-            return {
-                "kty": "EC",
-                "crv": curve_name,
-                "x": jws_verifier.base64url_encode(ec_public_numbers.x.to_bytes(coordinate_length, "big")),
-                "y": jws_verifier.base64url_encode(ec_public_numbers.y.to_bytes(coordinate_length, "big")),
-            }
-
-        raise AcmeException(
-            status_code=400,
-            error_name=AcmeError.UNSUPPORTED_ALGORITHM,
-            error_msg=f"Unsupported certificate key type: {type(public_key).__name__}",
-        )
+        if not isinstance(public_key, (rsa.RSAPublicKey, ec.EllipticCurvePublicKey, ed25519.Ed25519PublicKey)):
+            raise AcmeException(
+                status_code=400,
+                error_name=AcmeError.UNSUPPORTED_ALGORITHM,
+                error_msg=f"Unsupported certificate key type: {type(public_key).__name__}",
+            )
+        return public_key_to_jwk(public_key)
 
     def validate_revocation_reason(self, reason_code: Any) -> int:
         """校验并返回吊销原因码"""

@@ -5,7 +5,6 @@ from collections.abc import Sequence
 from datetime import timedelta
 
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
 )
@@ -16,6 +15,7 @@ from sqlmodel import and_, desc, func, select
 
 from ..core.ca_manager import get_ca_manager
 from ..core.config import get_settings
+from ..core.crypto_utils import signature_algorithm_name, x509_signature_algorithm_for
 from .certificate_model import Certificate, CertificateStatus
 from .crl_model import CRL, CRLStatus, RevokedCertificateEntry
 from .time_utils import beijing_now
@@ -168,7 +168,7 @@ class CRLService:
         # 签名CRL
         crl = crl_builder.sign(
             private_key=ca_private_key,
-            algorithm=hashes.SHA256(),
+            algorithm=x509_signature_algorithm_for(ca_private_key),
         )
 
         # 转换为不同格式
@@ -195,7 +195,7 @@ class CRLService:
             crl_pem=crl_pem,
             crl_size=len(crl_der),
             distribution_points=distribution_points,
-            signature_algorithm="SHA256withRSA",
+            signature_algorithm=signature_algorithm_name(ca_private_key),
             signature_key_id=signature_key_id,
         )
 

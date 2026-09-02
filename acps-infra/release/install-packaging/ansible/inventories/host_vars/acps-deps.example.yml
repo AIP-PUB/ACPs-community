@@ -1,0 +1,9 @@
+# 多机 — 依赖基座 host_vars 示例。
+# 复制为 inventories/host_vars/<inventory 主机名>.yml（与 hosts.yml 中 FQDN 一致）。
+
+ansible_host: acps-deps.example
+acps_advertise_host: acps-deps.example
+ansible_user: deploy
+ansible_python_interpreter: /usr/bin/python3
+# 默认路径：/opt/acps、/var/lib/acps、/var/log/acps
+# 跨机：app 节点经 advertise FQDN 访问本机 PG/Redis/RMQ/AMP（勿写 Docker 服务名）。

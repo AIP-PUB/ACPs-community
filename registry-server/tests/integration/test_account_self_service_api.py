@@ -45,17 +45,26 @@ async def test_current_user_can_update_profile_and_password(client, db_session) 
         headers=headers,
         json={
             "name": "Updated Self User",
-            "org_name": "ACPS Labs",
-            "org_code": "ACPS-001",
+            "org_name": "ACPs Labs",
+            "org_code": "ACPs-001",
             "org_address": "Beijing",
         },
     )
     assert update_response.status_code == 200
     updated_profile = update_response.json()
     assert updated_profile["name"] == "Updated Self User"
-    assert updated_profile["org_name"] == "ACPS Labs"
-    assert updated_profile["org_code"] == "ACPS-001"
+    assert updated_profile["org_name"] == "ACPs Labs"
+    assert updated_profile["org_code"] == "ACPs-001"
     assert updated_profile["org_address"] == "Beijing"
+    assert updated_profile.get("aic_provider_code") is None
+
+    ignored_code_response = await client.put(
+        "/api/v1/account/me",
+        headers=headers,
+        json={"name": "Updated Self User", "aic_provider_code": "34C2"},
+    )
+    assert ignored_code_response.status_code == 200
+    assert ignored_code_response.json().get("aic_provider_code") is None
 
     password_response = await client.put(
         "/api/v1/account/me/password",

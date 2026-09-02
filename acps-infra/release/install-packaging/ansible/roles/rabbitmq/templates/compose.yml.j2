@@ -1,0 +1,29 @@
+services:
+  rabbitmq:
+    image: {{ acps_effective_image_tag }}
+    # Stable hostname → stable RABBITMQ nodename (rabbit@rabbitmq).
+    # Default Compose hostname is the container ID; recreate then opens a
+    # fresh mnesia node and drops broker-local state (e.g. vhost acps).
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: {{ rabbitmq_user }}
+      RABBITMQ_DEFAULT_PASS: {{ rabbitmq_password }}
+      RABBITMQ_NODENAME: rabbit@rabbitmq
+    ports:
+      - "{{ rabbitmq_amqps_port }}:5671"
+      - "{{ rabbitmq_mgmt_port }}:15672"
+    volumes:
+      - {{ acps_data_root }}/rabbitmq:/var/lib/rabbitmq:z
+      - {{ acps_runtime_root }}/certs/rabbitmq:/certs:ro,z
+      - {{ acps_runtime_root }}/config/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro,z
+      - {{ acps_runtime_root }}/config/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro,z
+    restart: unless-stopped
+{% set _acps_extra_hosts = hostvars | acps_compose_extra_hosts(groups) %}
+{% if _acps_extra_hosts %}
+    extra_hosts:
+{% for _eh in _acps_extra_hosts %}
+      - "{{ _eh }}"
+{% endfor %}
+{% endif %}
+    networks:
+      - {{ acps_docker_network }}

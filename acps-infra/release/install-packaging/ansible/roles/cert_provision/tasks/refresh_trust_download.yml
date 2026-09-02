@@ -1,0 +1,84 @@
+---
+# Download latest trust-bundle from inventory ca_server → control work dir.
+# Sets: acps_trust_bundle_local, acps_trust_bundle_sha256, acps_trust_bundle_ca_url
+
+- name: 要求 ca_server enabled and in inventory
+  ansible.builtin.assert:
+    that:
+      - ca_server_enabled | bool
+      - (groups['ca_server'] | default([])) | length > 0
+    fail_msg: "ca_server must be enabled and present in inventory to refresh trust-bundle"
+
+- name: 解析 ca_server advertise host (inventory, not hardcoded)
+  ansible.builtin.set_fact:
+    acps_trust_bundle_ca_host: "{{ hostvars | acps_group_addr(groups, 'ca_server') }}"
+    acps_trust_bundle_work: "{{ acps_control_root }}/work/certs/trust-bundle"
+    acps_trust_bundle_local: "{{ acps_control_root }}/work/certs/trust-bundle/trust-bundle.pem"
+
+- name: 构建 CA trust-bundle URL from inventory
+  ansible.builtin.set_fact:
+    acps_trust_bundle_ca_url: >-
+      http://{{ acps_trust_bundle_ca_host }}:{{ ca_server_port }}/acps-atr-v2/ca/trust-bundle
+
+- name: 确保 trust-bundle work dir on control node
+  ansible.builtin.file:
+    path: "{{ acps_trust_bundle_work }}"
+    state: directory
+    mode: "0700"
+
+- name: 确保 keyfiles dir for CLI trust path
+  ansible.builtin.file:
+    path: "{{ acps_control_root }}/work/keyfiles"
+    state: directory
+    mode: "0700"
+
+- name: Fail-fast CA health before download
+  ansible.builtin.uri:
+    url: "http://{{ acps_trust_bundle_ca_host }}:{{ ca_server_port }}/health"
+    method: GET
+    status_code: [200]
+    timeout: 10
+  register: _tb_health
+  failed_when: _tb_health.status | default(0) != 200
+
+- name: 从 ca_server 下载 trust-bundle (fail-fast)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    URL="{{ acps_trust_bundle_ca_url }}"
+    OUT="{{ acps_trust_bundle_local }}"
+    "$PY" - "$URL" "$OUT" <<'PY'
+    import hashlib, sys, urllib.error, urllib.request
+    from pathlib import Path
+
+    url, out = sys.argv[1], Path(sys.argv[2])
+    try:
+        with urllib.request.urlopen(url, timeout=15) as resp:
+            status = getattr(resp, "status", None) or resp.getcode()
+            if status != 200:
+                raise SystemExit(f"trust-bundle HTTP {status} from {url}")
+            body = resp.read()
+    except urllib.error.URLError as e:
+        raise SystemExit(f"CA unreachable for trust-bundle ({url}): {e}") from e
+    if not body or b"BEGIN CERTIFICATE" not in body:
+        raise SystemExit(f"trust-bundle from {url} is empty or not PEM")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(out.suffix + ".tmp")
+    tmp.write_bytes(body)
+    tmp.replace(out)
+    print(hashlib.sha256(body).hexdigest())
+    PY
+  args:
+    executable: /bin/bash
+  register: _tb_download
+  changed_when: true
+
+- name: 记录 downloaded trust-bundle digest
+  ansible.builtin.set_fact:
+    acps_trust_bundle_sha256: "{{ _tb_download.stdout | trim }}"
+
+- name: 同步 CLI default trust path (keyfiles)
+  ansible.builtin.copy:
+    src: "{{ acps_trust_bundle_local }}"
+    dest: "{{ acps_control_root }}/work/keyfiles/trust-bundle.pem"
+    mode: "0644"

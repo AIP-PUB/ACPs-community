@@ -1,0 +1,11 @@
+---
+acps_common_health_retries: 30
+acps_common_health_delay: 2
+acps_compose_services_dir: "{{ acps_compose_dir }}/services"
+# 版本 state（image-mode）
+acps_state_root: "{{ acps_runtime_root }}/state"
+acps_skip_state_commit: false
+# 控制节点工作区默认（role defaults 优先低于 inventory all.vars / host_vars / -e）。
+# 多拓扑并行时在 hosts.yml all.vars 设独立路径，例如：
+#   acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control-image-multi"
+acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control"

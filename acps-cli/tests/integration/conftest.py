@@ -5,6 +5,7 @@
     - registry-server → http://localhost:9001
     - ca-server       → http://localhost:9003
     - discovery-server → http://localhost:9005
+    - monitor-server  → http://localhost:9009
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from pathlib import Path
 import pytest
 
 from tests._local_services import (
+    DEFAULT_MONITOR_URL,
     DEFAULT_MQ_AUTH_URL,
     DEFAULT_MQ_GROUP_URL,
     LocalServiceRuntime,
@@ -41,12 +43,13 @@ CA_URL = os.getenv("CA_URL", "http://localhost:9003")
 DISCO_URL = os.getenv("DISCO_URL", "http://localhost:9005")
 MQ_GROUP_URL = os.getenv("MQ_GROUP_API_URL", DEFAULT_MQ_GROUP_URL)
 MQ_AUTH_URL = os.getenv("MQ_AUTH_API_URL", DEFAULT_MQ_AUTH_URL)
+MONITOR_URL = os.getenv("MONITOR_URL", os.getenv("MONITOR_BASE_URL", DEFAULT_MONITOR_URL))
 CONFIG_FILE_NAME = "acps-cli.toml"
-TOKEN_DIR_NAME = ".acps-cli"
+TOKEN_DIR_NAME = ".acps-cli"  # nosec B105 - integration test fixture path, not a secret
 TEXT_PLAIN_MODE = "text/plain"
 DEFAULT_REGISTRY_ADMIN_USERNAME = "admin"
 DEFAULT_REGISTRY_ADMIN_SECRET = "".join(["admin", "123"])
-DEFAULT_CA_ADMIN_API_TOKEN = "test-ca-admin-token"
+DEFAULT_CA_ADMIN_API_TOKEN = "local-ca-admin-token"  # nosec B105 - matches ca-server .env.example local default
 
 # ─── 测试用户名前缀（每次测试生成唯一用户，避免冲突） ───────────────────────────
 
@@ -66,7 +69,7 @@ def _service_skip_message(service_name: str, base_url: str) -> str:
     return (
         f"{service_name} not reachable at {base_url} — "
         "start the local services documented in README.md "
-        "or run just doctor first"
+        "or run just dev check first"
     )
 
 
@@ -149,6 +152,20 @@ def mq_cert_dir(local_service_runtime: LocalServiceRuntime) -> Path:
     except RuntimeError as exc:
         pytest.fail(str(exc))
     return get_mq_dev_cert_dir(local_service_runtime)
+
+
+@pytest.fixture(scope="session")
+def monitor_url(local_service_runtime: LocalServiceRuntime) -> str:
+    """返回 monitor-server 基础 URL，不可达时按默认本地拓扑自动准备。"""
+    try:
+        ensure_local_services(
+            local_service_runtime,
+            required_services=["monitor"],
+            base_urls={"monitor": MONITOR_URL},
+        )
+    except RuntimeError as exc:
+        pytest.fail(str(exc))
+    return MONITOR_URL
 
 
 @pytest.fixture(scope="session")
@@ -259,6 +276,24 @@ def disco_conf(reg_conf: Path, disco_url: str) -> Path:
     return conf
 
 
+@pytest.fixture()
+def monitor_conf(work_dir: Path, monitor_url: str) -> Path:
+    """在工作目录写入 acps-cli.toml（monitor section），返回配置文件路径。"""
+    conf = work_dir / CONFIG_FILE_NAME
+    conf.write_text(
+        "\n".join(
+            [
+                "[monitor]",
+                f'base_url = "{monitor_url}"',
+                'api_prefix = "/acps-amp-v1"',
+                "timeout_seconds = 15",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return conf
+
+
 # ─── cert 命令配置文件 fixture ────────────────────────────────────────────────
 
 
@@ -301,7 +336,7 @@ def acs_file(work_dir: Path) -> tuple[Path, str, str]:
         "aic": "",
         "active": False,
         "lastModifiedTime": now,
-        "protocolVersion": "02.01",
+        "protocolVersion": "02.02",
         "name": name,
         "version": version,
         "description": "集成测试用 Agent",

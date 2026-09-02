@@ -1,0 +1,133 @@
+---
+# stage_artifact_image.yml
+# 期望：acps_component_key（manifest key），可选 acps_image_tag 覆盖
+# 仅将归档复制到需要该组件的主机，再 docker load。
+#
+# 幂等策略（不以「tag 存在」代替「包内制品已加载」）：
+# - 比较控制节点 archive 的 SHA-256 与目标机已记录 digest；
+# - tag 缺失、digest 不一致、或 acps_force_image_load=true 时才分发并 docker load；
+# - load 成功后写入 {{ acps_runtime_root }}/state/images/<archive>.sha256。
+
+- name: 从 release-manifest.toml 解析镜像映射
+  ansible.builtin.command:
+    argv:
+      - "{{ acps_tools_python | default('python3') }}"
+      - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+      - "--manifest"
+      - "{{ acps_manifest_path }}"
+      - "--component"
+      - "{{ acps_component_key }}"
+  register: _manifest_lookup
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 解析 manifest lookup JSON
+  ansible.builtin.set_fact:
+    # 将 key 持久化为 host fact：include_role vars 无法保留到后续
+    # deploy_compose_service → commit_state。
+    acps_component_key: "{{ acps_component_key }}"
+    acps_image_meta: "{{ _manifest_lookup.stdout | from_json }}"
+
+- name: 设置有效镜像 tag 与路径
+  ansible.builtin.set_fact:
+    acps_effective_image_tag: "{{ acps_image_tag | default(acps_image_meta.tag, true) }}"
+    acps_image_archive_control: "{{ acps_artifacts_images }}/{{ acps_image_meta.file }}"
+    acps_image_staging_dir: "{{ acps_runtime_root }}/staging/images"
+    acps_image_archive_remote: "{{ acps_runtime_root }}/staging/images/{{ acps_image_meta.file }}"
+    acps_image_digest_dir: "{{ acps_runtime_root }}/state/images"
+    acps_image_digest_file: "{{ acps_runtime_root }}/state/images/{{ acps_image_meta.file }}.sha256"
+
+- name: 检查控制节点归档
+  ansible.builtin.stat:
+    path: "{{ acps_image_archive_control }}"
+    checksum_algorithm: sha256
+    get_checksum: true
+  register: _archive_stat
+  delegate_to: localhost
+  become: false
+
+- name: 要求控制节点归档存在
+  ansible.builtin.assert:
+    that:
+      - _archive_stat.stat.exists
+      - _archive_stat.stat.size | int > 0
+      - (_archive_stat.stat.checksum | default('') | length) > 0
+    fail_msg: >-
+      Control-node image archive missing/empty or checksum unavailable:
+      {{ acps_image_archive_control }}
+
+- name: 记录包内归档 SHA-256
+  ansible.builtin.set_fact:
+    acps_image_archive_sha256: "{{ _archive_stat.stat.checksum }}"
+
+- name: 检查目标上是否已有镜像 tag
+  ansible.builtin.command:
+    argv: [docker, image, inspect, "{{ acps_effective_image_tag }}"]
+  register: _img_inspect
+  changed_when: false
+  failed_when: false
+
+- name: 读取目标已记录的镜像归档 digest
+  ansible.builtin.slurp:
+    src: "{{ acps_image_digest_file }}"
+  register: _img_digest_slurp
+  failed_when: false
+  changed_when: false
+
+- name: 判定是否需要 docker load
+  ansible.builtin.set_fact:
+    acps_image_need_load: >-
+      {{
+        (acps_force_image_load | default(false) | bool)
+        or (_img_inspect.rc | default(1) | int != 0)
+        or (
+          (_img_digest_slurp.content | default('') | length) == 0
+          or (
+            (_img_digest_slurp.content | b64decode | trim)
+            != (acps_image_archive_sha256 | string)
+          )
+        )
+      }}
+
+- name: 需要时 load 镜像归档
+  when: acps_image_need_load | bool
+  block:
+    - name: 确保远程镜像归档 staging 目录
+      ansible.builtin.file:
+        path: "{{ acps_image_staging_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: 确保镜像 digest 状态目录
+      ansible.builtin.file:
+        path: "{{ acps_image_digest_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: 向目标主机分发镜像归档
+      ansible.builtin.copy:
+        src: "{{ acps_image_archive_control }}"
+        dest: "{{ acps_image_archive_remote }}"
+        mode: "0644"
+
+    - name: 在目标 docker load 归档
+      ansible.builtin.command:
+        argv: [docker, load, -i, "{{ acps_image_archive_remote }}"]
+      register: _docker_load
+
+    - name: 写入已加载归档 SHA-256
+      ansible.builtin.copy:
+        content: "{{ acps_image_archive_sha256 }}\n"
+        dest: "{{ acps_image_digest_file }}"
+        mode: "0644"
+
+    - name: load 成功后移除 staged 归档
+      ansible.builtin.file:
+        path: "{{ acps_image_archive_remote }}"
+        state: absent
+
+- name: stage 后确认镜像 tag 存在
+  ansible.builtin.command:
+    argv: [docker, image, inspect, "{{ acps_effective_image_tag }}"]
+  changed_when: false

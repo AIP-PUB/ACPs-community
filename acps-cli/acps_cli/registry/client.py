@@ -12,11 +12,16 @@ import httpx
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 
+from acps_cli.shared.auth_session import AuthSessionError, OidcAuthSessionManager
+
 from .config import Config
 from .exceptions import RegistryClientError
 from .storage import TokenStore
 
 LOGGER = logging.getLogger(__name__)
+
+# 派生实体 ATR 请求体中允许从 --payload-file 透传的字段。
+ENTITY_REGISTRATION_PAYLOAD_FIELDS = ("endPoints", "entityUserId", "entityMeta", "certificate")
 
 
 class RegistryApiClient:
@@ -25,8 +30,16 @@ class RegistryApiClient:
     ATR_OK_STATUS = "ok"
     USER_NOT_FOUND_ERROR = "USER_NOT_FOUND"
 
-    def __init__(self, config: Config):
+    def __init__(
+        self,
+        config: Config,
+        *,
+        auth_mode: str = "local",
+        oidc_session: OidcAuthSessionManager | None = None,
+    ):
         self.config = config
+        self.auth_mode = auth_mode
+        self.oidc_session = oidc_session
         self.token_store = TokenStore(config.token_file)
 
     @property
@@ -55,10 +68,33 @@ class RegistryApiClient:
         self.token_store.save(token_data)
 
     def _get_auth_header(self) -> dict[str, str]:
+        if self.auth_mode == "oidc":
+            if self.oidc_session is None:
+                raise RegistryClientError("OIDC auth session is not configured")
+            try:
+                access_token = self.oidc_session.get_access_token()
+            except AuthSessionError as exc:
+                raise RegistryClientError(str(exc)) from exc
+            return {"Authorization": f"Bearer {access_token}"}
         token_data = self.token_store.load()
         if token_data is None or "access_token" not in token_data:
             raise RegistryClientError("No access token found, run login first")
         return {"Authorization": f"Bearer {token_data['access_token']}"}
+
+    def _refresh_auth_header_after_unauthorized(self) -> dict[str, str]:
+        if self.auth_mode == "oidc":
+            if self.oidc_session is None:
+                raise RegistryClientError("OIDC auth session is not configured")
+            try:
+                access_token = self.oidc_session.handle_unauthorized()
+            except AuthSessionError as exc:
+                raise RegistryClientError(f"{exc}. Verify OIDC configuration and log in again.") from exc
+            return {"Authorization": f"Bearer {access_token}"}
+        refreshed = self.refresh_local_token()
+        refreshed_access_token = refreshed.get("access_token")
+        if not isinstance(refreshed_access_token, str) or not refreshed_access_token:
+            raise RegistryClientError("Refresh response missing access_token", payload=refreshed)
+        return {"Authorization": f"Bearer {refreshed_access_token}"}
 
     def _request(
         self,
@@ -72,6 +108,7 @@ class RegistryApiClient:
         data: dict[str, Any] | None = None,
         cert: tuple[str, str] | None = None,
         verify: str | bool | None = None,
+        retry_on_unauthorized: bool = True,
     ) -> Any:
         target_base_url = base_url or self.base_api_url
         url = f"{target_base_url}{path}"
@@ -82,39 +119,30 @@ class RegistryApiClient:
             headers["Content-Type"] = "application/json"
         resolved_verify = True if verify is None else verify
 
-        LOGGER.debug(f"Registry request {method} {url}")
-        try:
-            if cert is None:
-                response = httpx.request(
-                    method,
-                    url,
-                    headers=headers,
-                    params=params,
-                    json=json_body,
-                    data=data,
-                    timeout=self.config.timeout_seconds,
-                    verify=resolved_verify,
-                )
-            else:
-                ssl_context = self._build_client_ssl_context(
-                    cert=cert,
-                    verify=resolved_verify,
-                )
-                with httpx.Client(
-                    verify=ssl_context,
-                    timeout=self.config.timeout_seconds,
-                ) as client:
-                    response = client.request(
-                        method,
-                        url,
-                        headers=headers,
-                        params=params,
-                        json=json_body,
-                        data=data,
-                        timeout=self.config.timeout_seconds,
-                    )
-        except httpx.RequestError as exc:
-            raise RegistryClientError(f"Request failed: {exc}") from exc
+        response = self._send_request(
+            method=method,
+            url=url,
+            headers=headers,
+            params=params,
+            json_body=json_body,
+            data=data,
+            cert=cert,
+            verify=resolved_verify,
+        )
+
+        if response.status_code == 401 and auth_required and retry_on_unauthorized:
+            retry_headers = dict(headers)
+            retry_headers.update(self._refresh_auth_header_after_unauthorized())
+            response = self._send_request(
+                method=method,
+                url=url,
+                headers=retry_headers,
+                params=params,
+                json_body=json_body,
+                data=data,
+                cert=cert,
+                verify=resolved_verify,
+            )
 
         LOGGER.debug(f"Registry response {method} {path} -> {response.status_code}")
 
@@ -128,7 +156,9 @@ class RegistryApiClient:
             raise RegistryClientError(
                 message=self._build_error_message(
                     payload,
-                    default_message=f"API request failed: {method} {path}",
+                    default_message=self._build_default_error_message(
+                        method=method, path=path, status_code=response.status_code
+                    ),
                 ),
                 status_code=response.status_code,
                 payload=payload,
@@ -140,6 +170,51 @@ class RegistryApiClient:
             return response.json()
         except ValueError as exc:
             raise RegistryClientError("Invalid JSON response from server") from exc
+
+    def _send_request(
+        self,
+        *,
+        method: str,
+        url: str,
+        headers: dict[str, str],
+        params: dict[str, Any] | None,
+        json_body: Any | None,
+        data: dict[str, Any] | None,
+        cert: tuple[str, str] | None,
+        verify: str | bool,
+    ) -> httpx.Response:
+        LOGGER.debug(f"Registry request {method} {url}")
+        try:
+            if cert is None:
+                return httpx.request(
+                    method,
+                    url,
+                    headers=headers,
+                    params=params,
+                    json=json_body,
+                    data=data,
+                    timeout=self.config.timeout_seconds,
+                    verify=verify,
+                )
+            ssl_context = self._build_client_ssl_context(
+                cert=cert,
+                verify=verify,
+            )
+            with httpx.Client(
+                verify=ssl_context,
+                timeout=self.config.timeout_seconds,
+            ) as client:
+                return client.request(
+                    method,
+                    url,
+                    headers=headers,
+                    params=params,
+                    json=json_body,
+                    data=data,
+                    timeout=self.config.timeout_seconds,
+                )
+        except httpx.RequestError as exc:
+            raise RegistryClientError(f"Request failed: {exc}") from exc
 
     def _build_client_ssl_context(
         self,
@@ -191,6 +266,23 @@ class RegistryApiClient:
         )
         if not isinstance(result, dict) or "access_token" not in result:
             raise RegistryClientError("Login response missing access_token", payload=result)
+        self._save_token_response(result)
+        return result
+
+    def refresh_local_token(self) -> dict[str, Any]:
+        token_data = self.token_store.load()
+        refresh_token = token_data.get("refresh_token") if token_data else None
+        if not refresh_token:
+            raise RegistryClientError("Current session does not include a refresh token, run login again")
+        result = self._request(
+            "POST",
+            "/auth/refresh-token",
+            auth_required=False,
+            json_body={"refresh_token": refresh_token},
+            retry_on_unauthorized=False,
+        )
+        if not isinstance(result, dict) or "access_token" not in result:
+            raise RegistryClientError("Refresh response missing access_token", payload=result)
         self._save_token_response(result)
         return result
 
@@ -252,6 +344,28 @@ class RegistryApiClient:
     def clear_token(self) -> None:
         self.token_store.clear()
 
+    def logout(self) -> dict[str, Any]:
+        token_data = self.token_store.load()
+        auth_required = isinstance(token_data, dict) and "access_token" in token_data
+        result = self._request(
+            "POST",
+            "/auth/logout",
+            auth_required=auth_required,
+        )
+        if not isinstance(result, dict):
+            raise RegistryClientError("Invalid response for /auth/logout", payload=result)
+        return result
+
+    def _build_default_error_message(self, *, method: str, path: str, status_code: int) -> str:
+        if status_code == 410 and self.auth_mode == "local":
+            return (
+                "Registry local auth endpoint is disabled. "
+                "The server may have switched to OIDC; update [registry.auth].mode."
+            )
+        if status_code == 401 and self.auth_mode == "oidc":
+            return "OIDC authentication failed after retry. Verify issuer/client configuration and log in again."
+        return f"API request failed: {method} {path}"
+
     def whoami(self) -> dict[str, Any]:
         result = self._request("GET", "/account/me", auth_required=True)
         if not isinstance(result, dict):
@@ -270,6 +384,17 @@ class RegistryApiClient:
         )
         if not isinstance(result, dict):
             raise RegistryClientError("Invalid response for /account/me/password", payload=result)
+        return result
+
+    def reset_user_password(self, user_id: str, new_password: str) -> dict[str, Any]:
+        result = self._request(
+            "PUT",
+            f"/account/user/{user_id}/password",
+            auth_required=True,
+            json_body={"new_password": new_password},
+        )
+        if not isinstance(result, dict):
+            raise RegistryClientError("Invalid response for admin reset user password", payload=result)
         return result
 
     def list_my_agents(
@@ -326,7 +451,7 @@ class RegistryApiClient:
         if not entity_payload:
             return body
 
-        for field_name in ("endPoints", "entityUserId", "entityMeta"):
+        for field_name in ENTITY_REGISTRATION_PAYLOAD_FIELDS:
             if field_name in entity_payload:
                 body[field_name] = entity_payload[field_name]
         return body

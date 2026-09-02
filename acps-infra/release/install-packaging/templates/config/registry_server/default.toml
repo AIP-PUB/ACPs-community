@@ -1,0 +1,103 @@
+# config/default.toml — 默认配置（所有环境共享的基础值）
+
+[api]
+v1_str = "/api/v1"
+title = "Agent Internet Backend API"
+
+[server]
+host = "0.0.0.0"
+port = 9001
+enable_mtls_listener = true
+mtls_port = 9002
+reload = false
+uvicorn_log_level = "info"
+root_path = ""
+
+[file]
+upload_base_path = "./data/uploads"
+
+[database]
+pool_size = 5
+max_overflow = 10
+pool_recycle = 1800                # 30 分钟
+pool_timeout = 30
+session_timezone = "Asia/Shanghai"
+
+[jwt]
+algorithm = "HS256"
+access_token_expire_minutes = 60     # 1 小时
+refresh_token_expire_minutes = 10080 # 7 天
+
+[cors]
+enabled = false                   # 各环境 TOML 可覆盖为 true
+origins = []                      # 各环境 TOML 覆盖为具体域名列表，"*" 表示全放行但会禁用 credentials
+allow_origin_regex = ""
+allow_credentials = false
+allow_methods = ["*"]
+allow_headers = ["*"]
+expose_headers = ["X-Request-ID"]
+max_age = 600
+
+[rate_limit]
+enabled = true
+health = "60/minute"
+auth = "20/minute"
+public_read = "120/minute"
+
+[logging]
+level = "INFO"
+format = "json"
+
+[otel]
+enabled = false
+endpoint = "http://localhost:4317"
+service_name = "registry-server"
+
+[atr]
+base_path = "/acps-atr-v2"
+allow_ip_list = "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+[eab]
+credential_expire_hours = 24
+
+[verification]
+auto_approve_identity = false
+auto_approve_org = false
+code_bypass = ""
+
+[ca_server]
+base_url = "http://localhost:9003"
+mock = false
+
+[dsp]
+base_path = "/acps-dsp-v2"
+retention_window_hours = 168        # 7 天
+retention_max_records = 100000
+snapshot_access_timeout_hours = 2
+snapshot_max_lifetime_hours = 24
+snapshot_cleanup_interval_hours = 1
+changes_max_limit = 10000
+changes_default_limit = 1000
+webhook_batch_window_seconds = 5
+
+[aic]
+# AIC 第5级版本号。Base36 单字符，取值 1～Z。缺省为 "1"。不提供环境变量覆盖。
+protocol_version = "1"
+# 本 Registry 作为 ARSP 的序号（AIC 第6级）。Base36，1～6 位，取值 1～ZZZZZZ。
+# 允许前导零；1 与 0001 是不同序号。不提供环境变量覆盖。
+arsp_code = "1"
+# AIC 第8级（本体序列号）自动生成长度。Base36，1～9 位。缺省为 6。不提供环境变量覆盖。
+ontology_serial_len = 6
+# AIC 第9级（实体序列号）自动生成长度。Base36，1～9 位。缺省为 6。
+# 仅用于实体 AIC；本体 AIC 的第9级固定为字符 0。不提供环境变量覆盖。
+instance_serial_len = 6
+
+[project]
+name = "agent-registry"
+version = "2.2.0"
+
+[smtp]
+smtp_server = ""     # 建议通过 .env 中 SMTP_SERVER 覆盖
+smtp_port = 465      # 默认 SMTP 端口；可通过 .env 中 SMTP_PORT 覆盖
+email_address = ""   # 建议通过 .env 中 EMAIL_ADDRESS 覆盖
+email_password = ""  # 建议通过 .env 中 EMAIL_PASSWORD 覆盖

@@ -1,0 +1,63 @@
+# image-mode 启动策略。
+#
+# 每个 app id 到 image-mode 构建策略的显式映射：
+# - import_checks：应用镜像 smoke里要执行的最小 import 校验模块列表，
+# 必须显式声明，不能由脚本从 app id 猜测（ 成功标准 14）。
+# 取值来源：各 app 应用最终发布包 build-manifest.toml 的
+# validation_import_checks（装配阶段已验证过的值），或按项目模板约定的
+# internal_wheels 声明推导（见 lib/build_context.py / lib/build_app_image.py 的消费逻辑）。
+# - gpu_assert_present / cpu_assert_absent：仅 discovery-server 这类有 CPU/GPU
+# variant 依赖分层的 app 使用，含义与 assembly runtime_smoke.py 的
+# --assert-present/--assert-absent 一致。
+# - force_include_assets / force_exclude_assets：可选，按 [[assets]].path 精确
+# 覆盖默认的 kind 归类策略（默认排除 kind ∈ {doc, systemd_unit}，其余默认包含）。
+# 当前 8 个 app 均不需要覆盖，字段留空数组仅作为 schema 占位。
+
+[apps.registry-server]
+import_checks = ["app", "acps_sdk"]
+force_include_assets = []
+force_exclude_assets = []
+
+[apps.ca-server]
+import_checks = ["app"]
+force_include_assets = []
+force_exclude_assets = []
+
+[apps.discovery-server]
+import_checks = ["app", "acps_sdk"]
+gpu_assert_present = ["torch", "FlagEmbedding"]
+cpu_assert_absent = ["torch", "FlagEmbedding"]
+# discovery-server 的 GPU 本地模型推理栈（torch/FlagEmbedding 等）在 pyproject.toml 里
+# 声明为 [project.optional-dependencies].gpu，不是硬依赖；单纯 `pip install app_wheel`
+# 不会拉入这些包，即使它们已经在 wheelhouse/ 中。variant=gpu 时必须安装
+# `app_wheel[gpu]` 才能让 pip 解析到这组 extras（ 遗漏的一个关键细节，
+# 已通过 discovery-server gpu 真实包端到端构建验证发现并修正）。variant=cpu 没有
+# 对应的 pip extra（cpu 依赖就是 base 依赖），因此不在这里声明，安装时不追加 extra。
+variant_pip_extras = { gpu = "gpu" }
+force_include_assets = []
+force_exclude_assets = []
+
+[apps.monitor-server]
+import_checks = ["app", "acps_sdk"]
+force_include_assets = []
+force_exclude_assets = []
+
+[apps.mq-auth-server]
+import_checks = ["app"]
+force_include_assets = []
+force_exclude_assets = []
+
+[apps.demo-leader]
+import_checks = ["leader", "acps_sdk", "acps_cli"]
+force_include_assets = []
+force_exclude_assets = []
+
+[apps.demo-partner]
+import_checks = ["partners", "acps_sdk", "acps_cli"]
+force_include_assets = []
+force_exclude_assets = []
+
+[apps.acps-cli]
+import_checks = ["acps_cli", "acps_sdk"]
+force_include_assets = []
+force_exclude_assets = []

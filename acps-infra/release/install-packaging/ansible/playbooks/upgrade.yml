@@ -1,0 +1,398 @@
+---
+# upgrade.yml — 组件升级（image / host 共用入口；按 acps_deploy_mode 分派承载）
+#
+# 与 site.yml（首装）入口分离。复用组件 role + common
+# stage_artifact / deploy_*（image：compose up — 禁止 -v；host：releases+current）。
+#
+# 必需：-e acps_upgrade_components=registry_server[,ca_server,...]
+# 可选：-e acps_upgrade_skip_smoke=true（默认 false）
+# 可选：-e acps_upgrade_follow_refresh_trust=true|false
+#   CSV 含 ca_server 时默认 true → 组件成功后、smoke 前 follow refresh-trust（§9.5.9 / BP13）。
+#   显式 false → WARNING；旁路收敛矩阵禁止将该 opt-out 作证据。
+#   仅 app（无 ca_server）不自动 refresh。不内嵌 renew-certs。
+#
+# 多组件顺序与 site 阶段依赖对齐（见下方 play）。
+#
+# 对应：playbooks/rollback.yml 读取 previous 并回切。
+
+- name: "升级 — 规范化 + preflight"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tasks:
+    - name: 升级选择 preflight + 依赖探测
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: preflight_upgrade.yml
+
+- name: "升级 — 集群基线 preflight"
+  hosts: all
+  gather_facts: true
+  become: true
+  roles:
+    - role: baseline
+  tasks:
+    - name: 共享集群 preflight
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: preflight_cluster.yml
+
+    - name: 将升级选择镜像到目标主机
+      ansible.builtin.set_fact:
+        _acps_upgrade_components: "{{ hostvars['localhost']['_acps_upgrade_components'] }}"
+
+    # host 升级 stage app-release 需要 pinned acps_python_bin；site 会装，
+    # 但 upgrade 独立入口无 fact 时须重跑 install_python（幂等）。
+    - name: host 模式确保业务机 pinned CPython（acps_python_bin）
+      when: (acps_deploy_mode | default('image')) == 'host'
+      ansible.builtin.include_role:
+        name: install_python
+      vars:
+        acps_install_python: true
+
+# --- 按 C 顺序的组件 play（仅运行所选 key）---
+# acps_skip_state_commit：role 部署不得在切换中途 commit；upgrade_one 在 health 后 commit。
+
+- name: "升级 — postgresql"
+  hosts: postgresql
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: postgresql
+    acps_upgrade_role: postgresql
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — keycloak"
+  hosts: keycloak
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: keycloak
+    acps_upgrade_role: keycloak
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+# G §5.3 / S2：CSV 含 CLI 与业务组件时，CLI 先于 registry/ca/discovery 等业务应用。
+# host → upgrade_one（releases+current）；image → 既有扁平 upgrade_one_image（不得回归）。
+- name: "升级 — control acps-cli"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: acps_cli
+    acps_upgrade_role: control_acps_cli
+    acps_state_scope: control
+    acps_runtime_root: "{{ acps_control_root | dirname }}"
+    acps_state_root: "{{ acps_control_root | dirname }}/state"
+  tasks:
+    - name: host 模式确保控制节点 pinned CPython（acps_cli / §6.2）
+      when: (acps_deploy_mode | default('image')) == 'host'
+      ansible.builtin.include_role:
+        name: install_python
+      vars:
+        acps_install_python: true
+
+    - name: 升级 control CLI（经 upgrade_one 按 mode 分派）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — registry_server"
+  hosts: registry_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: registry_server
+    acps_upgrade_role: registry_server
+  tasks:
+    - name: 检测现有 registry mTLS 监听器（image：docker inspect）
+      when: (acps_deploy_mode | default('image')) == 'image'
+      ansible.builtin.command:
+        argv:
+          - docker
+          - inspect
+          - "{{ acps_compose_project_prefix }}-registry_server_mtls-1"
+      register: _upgrade_reg_mtls_image
+      failed_when: false
+      changed_when: false
+
+    - name: 检测现有 registry mTLS 监听器（host：systemctl）
+      when: (acps_deploy_mode | default('image')) == 'host'
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - acps-registry_server_mtls.service
+      register: _upgrade_reg_mtls_host
+      failed_when: false
+      changed_when: false
+
+    - name: 已部署时保持 mTLS 监听器启用
+      ansible.builtin.set_fact:
+        registry_server_enable_mtls_listener: >-
+          {{
+            (
+              (_upgrade_reg_mtls_image.rc | default(1) | int) == 0
+            )
+            if (acps_deploy_mode | default('image')) == 'image'
+            else (
+              (_upgrade_reg_mtls_host.rc | default(1) | int) == 0
+            )
+          }}
+
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — ca_server"
+  hosts: ca_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: ca_server
+    acps_upgrade_role: ca_server
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — discovery_server"
+  hosts: discovery_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: "discovery_server_{{ discovery_server_variant | default('cpu') }}"
+    acps_upgrade_role: discovery_server
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — redis"
+  hosts: redis
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: redis
+    acps_upgrade_role: redis
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — rabbitmq"
+  hosts: rabbitmq
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: rabbitmq
+    acps_upgrade_role: rabbitmq
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — mq_auth_server"
+  hosts: mq_auth_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: mq_auth_server
+    acps_upgrade_role: mq_auth_server
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — redpanda"
+  hosts: redpanda
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: redpanda
+    acps_upgrade_role: redpanda
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — victoria_metrics"
+  hosts: victoria_metrics
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: victoria_metrics
+    acps_upgrade_role: victoria_metrics
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — clickhouse"
+  hosts: clickhouse
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: clickhouse
+    acps_upgrade_role: clickhouse
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — minio"
+  hosts: minio
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: minio
+    acps_upgrade_role: minio
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — opensearch"
+  hosts: opensearch
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: opensearch
+    acps_upgrade_role: opensearch
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — monitor_server"
+  hosts: monitor_server
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: monitor_server
+    acps_upgrade_role: monitor_server
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — demo_partner"
+  hosts: demo_partner
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: demo_partner
+    acps_upgrade_role: demo_partner
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — demo_leader"
+  hosts: demo_leader
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: demo_leader
+    acps_upgrade_role: demo_leader
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — amp_forwarder（§9.5.6 / BP10 进 CSV）"
+  hosts: demo_leader:demo_partner
+  gather_facts: true
+  become: true
+  vars:
+    acps_skip_state_commit: true
+    acps_upgrade_component_key: amp_forwarder
+    acps_upgrade_role: amp_forwarder
+  tasks:
+    - name: 升级单个组件
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: upgrade_one_component.yml
+
+- name: "升级 — follow refresh-trust（§9.5.9 / BP13）"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    acps_trust_bundle_run_probe: false
+  tasks:
+    - name: WARNING — 显式 opt-out follow refresh（矩阵禁用）
+      when: hostvars['localhost']._acps_upgrade_follow_refresh_opt_out | default(false) | bool
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: acps_upgrade_follow_refresh_trust=false — skipping follow
+          refresh-trust after ca_server upgrade（break-glass only；旁路收敛矩阵 /
+          宣称收敛证据必须使用默认 follow=true 路径）
+
+    - name: follow refresh-trust（复用 refresh_trust_bundle_run；不内嵌 renew）
+      when: hostvars['localhost']._acps_upgrade_follow_refresh_trust | default(false) | bool
+      ansible.builtin.include_role:
+        name: cert_provision
+        tasks_from: refresh_trust_bundle_run.yml
+
+- name: "升级 — 基础 smoke"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    acps_smoke_include_demo: "{{ (demo_partner_enabled | bool) or (demo_leader_enabled | bool) }}"
+  tasks:
+    - name: 成功路径打印 committed vs requested（§9.5.8 / BP12）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: print_upgrade_summary.yml
+
+    - name: WARNING — 按请求跳过 smoke（§9.5.7 / BP11；收敛矩阵禁止）
+      when: acps_upgrade_skip_smoke | default(false) | bool
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: acps_upgrade_skip_smoke=true — skipping basic smoke
+          （break-glass only；旁路收敛矩阵 / 宣称收敛证据必须 skip_smoke=false）
+
+    - name: 升级后基础 smoke
+      when: not (acps_upgrade_skip_smoke | default(false) | bool)
+      ansible.builtin.include_role:
+        name: smoke_basic

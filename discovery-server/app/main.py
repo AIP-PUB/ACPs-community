@@ -19,6 +19,7 @@ from app.core.logging_config import configure_logging
 from app.core.request_context import request_context_middleware
 from app.core.security_headers import security_headers_middleware
 from app.discovery.discovery_api import router as discovery_router
+from app.heartbeat_sync.api import router as alive_sync_router
 from app.sync.api import router as dsp_router
 
 logger = configure_logging(__name__)
@@ -37,6 +38,7 @@ app.middleware("http")(security_headers_middleware)
 
 app.include_router(discovery_router, prefix="/acps-adp-v2", tags=["用户使用的发现API"])
 app.include_router(dsp_router, prefix="/admin/dsp", tags=["数据同步 DSP 的管理维护测试用 API"])
+app.include_router(alive_sync_router, prefix="/admin/alive-sync", tags=["AMP Alive 同步的管理维护测试用 API"])
 register_exception_handlers(app)
 
 

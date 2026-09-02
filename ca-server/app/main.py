@@ -17,11 +17,13 @@ from app.acme.api import router as acme_router
 from app.acme.error_handler import ACMEErrorHandler
 from app.certificates.api import router as certificates_router
 from app.certificates.api_ext import router as ext_router
+from app.certificates.api_keys import router as keys_router
+from app.common.ocsp_service import OCSPService
 from app.core.atr_ip_filter import ATRManagementIPFilterMiddleware
 from app.core.base_exception import register_exception_handlers
 from app.core.ca_manager import get_ca_manager
 from app.core.config import settings
-from app.core.db_session import close_async_engine, close_sync_engine
+from app.core.db_session import async_session_factory, close_async_engine, close_sync_engine
 from app.core.logging_config import setup_logging
 from app.crl.api import router as crl_router
 from app.ocsp.api import router as ocsp_router
@@ -73,6 +75,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     """
     # 强制启动时初始化 CAManager；文件校验失败则抛出异常，中止启动
     get_ca_manager()
+    async with async_session_factory() as session:
+        service = OCSPService(session)
+        await service.bootstrap_default_responder()
+        await session.commit()
     yield
     await close_async_engine()
     close_sync_engine()
@@ -120,6 +126,7 @@ app.include_router(
     tags=["不在ACPs体系中的证书管理，基本的功能"],
 )
 app.include_router(ext_router, prefix="/acps-atr-v2/ca", tags=["Extension API"])
+app.include_router(keys_router, prefix="/acps-atr-v2/ca", tags=["Public Key Query"])
 app.include_router(crl_router, prefix="/acps-atr-v2/crl", tags=["CRL"])
 app.include_router(ocsp_router, prefix="/acps-atr-v2/ocsp", tags=["OCSP"])
 

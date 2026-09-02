@@ -1,4 +1,5 @@
 import asyncio
+import os
 import time
 import warnings
 from functools import lru_cache
@@ -44,7 +45,18 @@ def _load_bgem3_flag_model() -> Any:
             message=r"builtin type swigvarlink has no __module__ attribute",
             category=DeprecationWarning,
         )
-        from FlagEmbedding import BGEM3FlagModel
+        try:
+            from FlagEmbedding import BGEM3FlagModel
+        except ImportError as exc:
+            # GPU 本地模型栈（torch/FlagEmbedding 等）现在只在 `gpu` extra 里声明，base
+            # 环境不会安装。裸 ModuleNotFoundError 对运维/开发者不够直观，这里转换成
+            # RuntimeError（落在 SEMANTIC_MATCHER_STARTUP_ERRORS 内，会被 lifespan 优雅
+            # 降级为"语义匹配器未启动"而不是让进程崩溃），并给出明确的安装指引。
+            raise RuntimeError(
+                "GPU 模式需要本地模型推理依赖（torch/FlagEmbedding 等），但当前环境未安装。"
+                "请执行 `uv sync --extra gpu`（或安装 `discovery-server[gpu]`）后重试，"
+                "或将 DISCOVERY_MODE 切换为 cpu 使用远端 Embedding/LLM API。"
+            ) from exc
 
     return BGEM3FlagModel
 
@@ -79,7 +91,7 @@ class SemanticAgentMatcher:
             batch_size: 批处理大小，建议32-64
             max_wait_time: 最大等待时间，平衡延迟和吞吐
         """
-        self.mode = (mode or settings.DISCOVERY_MODE or "gpu").strip().lower()
+        self.mode = (mode or settings.DISCOVERY_MODE or "cpu").strip().lower()
         self.reranker_url = reranker_url
 
         # CPU 模式走 Embedding LLM，不加载本地 embedding/reranker。
@@ -101,8 +113,10 @@ class SemanticAgentMatcher:
             self.client = AsyncOpenAI(
                 api_key=resolved_api_key,
                 base_url=resolved_base_url,
-                timeout=30.0,
-                max_retries=0,
+                timeout=float(
+                    os.environ.get("EMBEDDING_TIMEOUT") or getattr(settings, "EMBEDDING_TIMEOUT", 180) or 180
+                ),
+                max_retries=int(os.environ.get("EMBEDDING_MAX_RETRIES") or "3"),
             )
             self.model_name = resolved_model_name
             self.reranker_url = ""

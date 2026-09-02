@@ -1,0 +1,132 @@
+---
+# os_package_install.yml — host 模式：ensure_repos + install_packages（Redis
+# ≥7，本设计 §5.5 / §6.4(2)）。幂等；不清 AOF/data 目录。可能被 site.yml
+# 证书签发前的预装 play（先建立 redis 系统账号，供 cert_provision 属主规范化
+# 使用，见本设计 §4.4）与本 role 自身 host 主流程各调用一次。
+
+- name: 加载 OS 系族默认（包名/服务名/数据目录/仓库）
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
+- name: 补齐 acps_os_id / acps_el_major（防御）
+  ansible.builtin.include_tasks: "{{ role_path }}/../common/tasks/resolve_acps_os_facts.yml"
+
+- name: RedHat rocky9 -- 切换到 redis:7 dnf 模块流（AppStream 非模块默认包为 6.2.x，不满足）
+  # 幂等：已在 redis:7 流上时 `switch-to` 报 "Nothing to do"，changed_when 已处理。
+  # `switch-to` 同时覆盖“未装”与“已装非模块 6.x（须先卸载再切流）”两种起始状态，
+  # 且为原地升级（保留 /var/lib/redis 数据，不同于先 remove 再 install）。
+  when:
+    - ansible_os_family == 'RedHat'
+    - (acps_os_id | default('')) != 'rocky8'
+  become: true
+  ansible.builtin.command:
+    argv: [dnf, -y, module, switch-to, "{{ redis_os_module_stream }}"]
+  register: _redis_module_switch
+  changed_when: "'Nothing to do' not in (_redis_module_switch.stdout | default(''))"
+
+- name: RedHat rocky8 -- Remi redis:remi-7.2（AppStream 无 redis:7）
+  when:
+    - ansible_os_family == 'RedHat'
+    - (acps_os_id | default('')) == 'rocky8'
+  become: true
+  block:
+    - name: 安装 epel-release（Remi 依赖）
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/common/tasks/ensure_os_packages.yml"
+      vars:
+        acps_pkg_names: epel-release
+        acps_pkg_state: present
+
+    - name: 检查 remi-release 是否已安装
+      ansible.builtin.command:
+        argv: [rpm, -q, remi-release]
+      register: _redis_remi_rpm_q
+      changed_when: false
+      failed_when: false
+
+    - name: 下载 remi-release-8 RPM
+      when: _redis_remi_rpm_q.rc != 0
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -fsSL
+          - -o
+          - /tmp/remi-release-8.rpm
+          - https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+      changed_when: true
+
+    - name: 安装 remi-release-8
+      when: _redis_remi_rpm_q.rc != 0
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/common/tasks/ensure_os_packages.yml"
+      vars:
+        acps_pkg_names: /tmp/remi-release-8.rpm
+        acps_pkg_state: present
+        acps_pkg_disable_gpg_check: true
+
+    - name: 清理 remi-release 临时 RPM
+      when: _redis_remi_rpm_q.rc != 0
+      ansible.builtin.file:
+        path: /tmp/remi-release-8.rpm
+        state: absent
+
+    - name: 重置 redis 模块（离开 AppStream redis:5/6）
+      ansible.builtin.command:
+        argv: [dnf, -y, module, reset, redis]
+      register: _redis_module_reset
+      changed_when: "'Nothing to do' not in (_redis_module_reset.stdout | default(''))"
+      failed_when: false
+
+    - name: 切换到 Remi redis:remi-7.2
+      ansible.builtin.command:
+        argv: [dnf, -y, module, switch-to, "{{ redis_os_remi_module_stream }}"]
+      register: _redis_remi_switch
+      changed_when: "'Nothing to do' not in (_redis_remi_switch.stdout | default(''))"
+
+- name: Debian -- 确保 redis.io 官方 APT 仓库（发行版仓库为 <7，不满足）
+  when:
+    - ansible_os_family == 'Debian'
+    - redis_os_repo_setup | bool
+  become: true
+  block:
+    - name: 安装仓库前置依赖
+      ansible.builtin.apt:
+        name: [lsb-release, curl, gnupg]
+        state: present
+        update_cache: true
+
+    - name: 检查 redis.io GPG key 是否已存在
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/redis-archive-keyring.gpg
+      register: _redis_key
+
+    - name: 下载并安装 redis.io GPG key（幂等：creates 守护）
+      when: not _redis_key.stat.exists
+      ansible.builtin.shell: |
+        set -euo pipefail
+        curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+        chmod 644 /usr/share/keyrings/redis-archive-keyring.gpg
+      args:
+        executable: /bin/bash
+        creates: /usr/share/keyrings/redis-archive-keyring.gpg
+
+    - name: 写入 redis.io APT 源
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/redis.list
+        mode: "0644"
+        content: >-
+          deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg]
+          https://packages.redis.io/deb {{ ansible_distribution_release }} main
+      register: _redis_apt_list
+
+    - name: apt update（新增 redis.io 源后）
+      when: _redis_apt_list.changed
+      ansible.builtin.apt:
+        update_cache: true
+
+- name: 安装/升级 Redis 包（upgrade 路径传 acps_os_package_state=latest）
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/common/tasks/ensure_os_packages.yml"
+  vars:
+    acps_pkg_names: "{{ redis_os_packages }}"
+    acps_pkg_state: "{{ acps_os_package_state | default('present') }}"
+
+- name: 记录 Redis 包安装结果
+  ansible.builtin.set_fact:
+    _redis_pkg_install: "{{ _acps_pkg_result }}"

@@ -32,14 +32,16 @@ HTTP_REQUEST_TIMEOUT = int(os.environ.get("HTTP_REQUEST_TIMEOUT", "180"))
 GROUP_MIN_MEMBERS = int(os.environ.get("GROUP_MIN_MEMBERS", "2"))
 LLM_ERROR_CODES = {"LLM_CALL_ERROR", "LLM_SERVICE_UNAVAILABLE", "LLM_PARSE_ERROR"}
 GREETING_QUERY = "你好。"
-TRAVEL_PLAN_QUERY = (
-    "请帮我规划一个北京三日游，两人同行，我从上海出发，出行日期是 2026-05-01 到 2026-05-03，"
-    "预算 5000 元，想要景点、美食、酒店和交通建议。"
-)
+# Turn2 故意省略 hotel/transport 必填槽（人数、入住晚数、出发城、明确城际日期），
+# 以提高 china_hotel / china_transport 进入 AwaitingInput 的命中率。
+TRAVEL_PLAN_QUERY = "请帮我规划北京游，需要景点、美食、酒店和城际交通建议。"
+# Turn3 精确补齐 skills 缺口 + 少量偏好（供 TASK_INPUT 合法收敛）。
 TRAVEL_SUPPLEMENT_QUERY = (
-    "补充一下，我更想住朝阳区，晚餐偏向北京特色菜，预算可以提高到 6000 元；"
-    "城际交通按上海往返北京、5 月 1 日出发 5 月 3 日返程来规划。"
+    "两人出行；酒店 2026-05-01 入住、住两晚、希望朝阳区；"
+    "城际交通上海往返北京，5月1日去、5月3日返程；"
+    "晚餐偏北京菜，预算可到 6000。"
 )
+WARNING_SKIP_SUPPLEMENT_PREFIX = "WARNING: skip supplement — no AwaitingInput partners"
 
 
 class SmokeError(Exception):
@@ -73,14 +75,14 @@ def request_json(
     if payload is not None:
         body = json.dumps(payload).encode("utf-8")
         headers["Content-Type"] = "application/json"
-    request = urllib.request.Request(  # noqa: S310
+    request = urllib.request.Request(  # noqa: S310  # nosec B310 - URL scheme is validated above
         url,
         data=body,
         headers=headers,
         method=method,
     )
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
+        with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310  # nosec B310 - URL scheme is validated above
             status = response.status
             raw_body = response.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
@@ -152,6 +154,39 @@ def extract_group_id(result: dict, active_task: dict) -> str | None:
     return None
 
 
+def partner_task_states(partner_tasks: dict) -> dict[str, str]:
+    states: dict[str, str] = {}
+    for aic, task in partner_tasks.items():
+        if not isinstance(task, dict):
+            continue
+        raw = task.get("state")
+        if raw is None and isinstance(task.get("status"), dict):
+            raw = task["status"].get("state")
+        if raw is None:
+            continue
+        states[str(aic)] = str(raw)
+    return states
+
+
+def is_awaiting_input_state(state: str | None) -> bool:
+    if not state:
+        return False
+    normalized = state.strip().lower().replace("_", "-")
+    return normalized in {"awaiting-input", "awaitinginput"}
+
+
+def needs_task_input_supplement(snapshot: dict) -> bool:
+    """True only when TASK_INPUT/supplement is still valid."""
+    if int(snapshot.get("awaiting_input_count") or 0) > 0:
+        return True
+    if snapshot.get("result_type") == "clarification":
+        states = snapshot.get("partner_states") or {}
+        if not states:
+            return True
+        return any(is_awaiting_input_state(s) for s in states.values())
+    return False
+
+
 def submit(
     query: str,
     mode: str,
@@ -215,6 +250,8 @@ def poll_result(
         dialog_context = result.get("dialogContext") or {}
         recent_turns = dialog_context.get("recentTurns") or []
         group_id = extract_group_id(result, active_task)
+        partner_states = partner_task_states(partner_tasks)
+        awaiting_input_count = sum(1 for state in partner_states.values() if is_awaiting_input_state(state))
 
         last_snapshot = {
             "result_type": user_result.get("type"),
@@ -225,6 +262,8 @@ def poll_result(
             "dialog_turns": len(recent_turns),
             "group_id": group_id,
             "closed": bool(result.get("closed")),
+            "partner_states": partner_states,
+            "awaiting_input_count": awaiting_input_count,
         }
 
         if last_snapshot["result_type"] in {"final", "clarification", "error"}:
@@ -401,21 +440,34 @@ def run_direct_rpc() -> None:
         snapshot["partner_task_count"] >= 1,
         f"direct_rpc turn 2 未观察到 partnerTasks: {snapshot}",
     )
+    log(
+        "direct_rpc turn 2 state: "
+        f"result_type={snapshot.get('result_type')} "
+        f"awaiting_input={snapshot.get('awaiting_input_count')} "
+        f"partner_states={snapshot.get('partner_states')}"
+    )
 
-    log("direct_rpc turn 3: supplement task")
-    session_id_again, _ = submit(
-        query=TRAVEL_SUPPLEMENT_QUERY,
-        mode="direct_rpc",
-        session_id=session_id,
-        active_task_id=snapshot["active_task_id"],
-    )
-    ensure(session_id_again == session_id, "direct_rpc turn 3 sessionId 发生变化")
-    snapshot = poll_result(session_id, "direct_rpc", TASK_POLL_TIMEOUT, RPC_POLL_INTERVAL)
-    ensure(
-        snapshot["result_type"] in {"final", "clarification"},
-        f"direct_rpc turn 3 未收敛: {snapshot}",
-    )
-    ensure(snapshot["dialog_turns"] >= 3, f"direct_rpc turn 3 对话轮次异常: {snapshot}")
+    if needs_task_input_supplement(snapshot):
+        log("direct_rpc turn 3: supplement task")
+        session_id_again, _ = submit(
+            query=TRAVEL_SUPPLEMENT_QUERY,
+            mode="direct_rpc",
+            session_id=session_id,
+            active_task_id=snapshot["active_task_id"],
+        )
+        ensure(session_id_again == session_id, "direct_rpc turn 3 sessionId 发生变化")
+        snapshot = poll_result(session_id, "direct_rpc", TASK_POLL_TIMEOUT, RPC_POLL_INTERVAL)
+        ensure(
+            snapshot["result_type"] in {"final", "clarification"},
+            f"direct_rpc turn 3 未收敛: {snapshot}",
+        )
+        ensure(snapshot["dialog_turns"] >= 3, f"direct_rpc turn 3 对话轮次异常: {snapshot}")
+    else:
+        warn(
+            f"{WARNING_SKIP_SUPPLEMENT_PREFIX} "
+            f"(result_type={snapshot.get('result_type')}, "
+            f"states={snapshot.get('partner_states')}); continue lifecycle"
+        )
 
     log("direct_rpc turn 4: cancel session")
     cancel_session(session_id)
@@ -454,8 +506,42 @@ def run_group() -> None:
         snapshot["partner_task_count"] >= 2,
         f"group turn 2 未观察到多个 partnerTasks: {snapshot}",
     )
+    log(
+        "group turn 2 state: "
+        f"result_type={snapshot.get('result_type')} "
+        f"awaiting_input={snapshot.get('awaiting_input_count')} "
+        f"partner_states={snapshot.get('partner_states')}"
+    )
     if not snapshot["group_id"]:
         warn(f"group turn 2 未在 result 中暴露 groupId，改用 /group 运行态补齐: {snapshot}")
+
+    # Decide / run supplement BEFORE the long inbox wait so partners are less
+    # likely to leave AwaitingInput while we wait for invitation routes.
+    if needs_task_input_supplement(snapshot):
+        log("group turn 3: supplement task")
+        session_id_again, _ = submit(
+            query=TRAVEL_SUPPLEMENT_QUERY,
+            mode="group",
+            session_id=session_id,
+            active_task_id=snapshot["active_task_id"],
+        )
+        ensure(session_id_again == session_id, "group turn 3 sessionId 发生变化")
+        snapshot = poll_result(session_id, "group", GROUP_POLL_TIMEOUT, GROUP_POLL_INTERVAL)
+        ensure(
+            snapshot["result_type"] in {"final", "clarification"},
+            f"group turn 3 未收敛: {snapshot}",
+        )
+        ensure(snapshot["dialog_turns"] >= 3, f"group turn 3 对话轮次异常: {snapshot}")
+        ensure(
+            snapshot["partner_task_count"] >= 2,
+            f"group turn 3 未维持多个 partnerTasks: {snapshot}",
+        )
+    else:
+        warn(
+            f"{WARNING_SKIP_SUPPLEMENT_PREFIX} "
+            f"(result_type={snapshot.get('result_type')}, "
+            f"states={snapshot.get('partner_states')}); continue lifecycle"
+        )
 
     expected_group_id = snapshot["group_id"]
     runtime = wait_for_group_runtime(
@@ -468,25 +554,6 @@ def run_group() -> None:
     ensure(
         len(member_aics) >= GROUP_MIN_MEMBERS,
         f"group runtime 成员数不足，无法覆盖优雅退出/强制移除场景: {runtime}",
-    )
-
-    log("group turn 3: supplement task")
-    session_id_again, _ = submit(
-        query=TRAVEL_SUPPLEMENT_QUERY,
-        mode="group",
-        session_id=session_id,
-        active_task_id=snapshot["active_task_id"],
-    )
-    ensure(session_id_again == session_id, "group turn 3 sessionId 发生变化")
-    snapshot = poll_result(session_id, "group", GROUP_POLL_TIMEOUT, GROUP_POLL_INTERVAL)
-    ensure(
-        snapshot["result_type"] in {"final", "clarification"},
-        f"group turn 3 未收敛: {snapshot}",
-    )
-    ensure(snapshot["dialog_turns"] >= 3, f"group turn 3 对话轮次异常: {snapshot}")
-    ensure(
-        snapshot["partner_task_count"] >= 2,
-        f"group turn 3 未维持多个 partnerTasks: {snapshot}",
     )
     wait_for_group_runtime(
         session_id,

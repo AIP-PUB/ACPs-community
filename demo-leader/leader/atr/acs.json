@@ -1,12 +1,12 @@
 {
   "aic": "1.2.156.3088.1.1.SC64YN.Z5LSGY.1.0NMQ",
   "active": true,
-  "protocolVersion": "02.01",
+  "protocolVersion": "02.02",
   "lastModifiedTime": "2026-03-11T21:45:59.609051+08:00",
   "name": "旅游助理智能体",
   "description": "旅游助理：作为Leader Agent，负责分析用户的多维度旅游需求，将复杂的旅规划任务分解为五大维度（城际交通、住宿、城区人文、郊区自然、美食），智能路由到相应的Partner Agent，并整合各Partner的结果生成完整的旅游方案。支持会话管理、需求分析、任务分解、多Agent协调和结果整合。",
   "version": "1.0.0",
-  "webAppUrl": "http://localhost:9010",
+  "webAppUrl": "http://localhost:9030",
   "provider": {
     "organization": "ACPs工作组",
     "department": "",

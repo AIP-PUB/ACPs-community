@@ -20,6 +20,7 @@ import httpx
 import pytest
 
 from tests._local_services import (
+    DEFAULT_MONITOR_URL,
     DEFAULT_MQ_AUTH_URL,
     DEFAULT_MQ_GROUP_URL,
     LocalServiceRuntime,
@@ -40,12 +41,13 @@ CA_URL = os.getenv("CA_URL", "http://localhost:9003")
 DISCO_URL = os.getenv("DISCO_URL", "http://localhost:9005")
 MQ_GROUP_URL = os.getenv("MQ_GROUP_API_URL", DEFAULT_MQ_GROUP_URL)
 MQ_AUTH_URL = os.getenv("MQ_AUTH_API_URL", DEFAULT_MQ_AUTH_URL)
+MONITOR_URL = os.getenv("MONITOR_URL", os.getenv("MONITOR_BASE_URL", DEFAULT_MONITOR_URL))
 CONFIG_FILE_NAME = "acps-cli.toml"
-TOKEN_DIR_NAME = ".acps-cli"
+TOKEN_DIR_NAME = ".acps-cli"  # nosec B105 - e2e fixture path, not a secret
 TEXT_PLAIN_MODE = "text/plain"
 DEFAULT_REGISTRY_ADMIN_USERNAME = "admin"
 DEFAULT_REGISTRY_ADMIN_SECRET = "".join(["admin", "123"])
-DEFAULT_CA_ADMIN_API_TOKEN = "test-ca-admin-token"
+DEFAULT_CA_ADMIN_API_TOKEN = "local-ca-admin-token"  # nosec B105 - matches ca-server .env.example local default
 _DISCOVERY_E2E_FILE_PREFIX = "test_discovery_"
 _DSP_WEBHOOK_PAGE_SIZE = 100
 
@@ -188,6 +190,26 @@ def mq_cert_dir(
     """返回 mq-auth-server 已就绪的 dev 证书目录。"""
     del mq_service
     return get_mq_dev_cert_dir(local_service_runtime)
+
+
+@pytest.fixture(scope="session")
+def monitor_service(local_service_runtime: LocalServiceRuntime) -> str:
+    """确保 monitor-server 就绪；缺失时自动托管启动。"""
+    try:
+        ensure_local_services(
+            local_service_runtime,
+            required_services=["monitor"],
+            base_urls={"monitor": MONITOR_URL},
+        )
+    except RuntimeError as exc:
+        pytest.fail(str(exc))
+    return MONITOR_URL
+
+
+@pytest.fixture()
+def monitor_url(monitor_service: str) -> str:
+    del monitor_service
+    return MONITOR_URL
 
 
 @pytest.fixture(autouse=True)
@@ -357,6 +379,25 @@ def mq_config_file(work_dir: Path, mq_cert_dir: Path) -> Path:
     return config
 
 
+@pytest.fixture()
+def monitor_conf(work_dir: Path, monitor_url: str) -> Path:
+    """写入 monitor e2e 专用 acps-cli.toml（[monitor] section）。"""
+
+    config = work_dir / CONFIG_FILE_NAME
+    config.write_text(
+        "\n".join(
+            [
+                "[monitor]",
+                f'base_url = "{monitor_url}"',
+                'api_prefix = "/acps-amp-v1"',
+                "timeout_seconds = 15",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return config
+
+
 # ─── 凭据 ─────────────────────────────────────────────────────────────────────
 
 
@@ -387,7 +428,7 @@ def make_acs_file(work_dir: Path, name: str | None = None) -> tuple[Path, str, s
         "aic": "",
         "active": False,
         "lastModifiedTime": now,
-        "protocolVersion": "02.01",
+        "protocolVersion": "02.02",
         "name": agent_name,
         "version": version,
         "description": "E2E 测试用 Agent",

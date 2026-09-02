@@ -64,11 +64,11 @@ async def test_admin_user_management_lifecycle(client, db_session, e2e_run_id: s
     update_response = await client.put(
         f"/api/v1/account/user/{user_id}",
         headers=headers,
-        json={"name": "Updated Managed User", "org_name": "ACPS Admin Org"},
+        json={"name": "Updated Managed User", "org_name": "ACPs Admin Org"},
     )
     assert update_response.status_code == 200
     assert update_response.json()["name"] == "Updated Managed User"
-    assert update_response.json()["org_name"] == "ACPS Admin Org"
+    assert update_response.json()["org_name"] == "ACPs Admin Org"
 
     role_update_response = await client.put(
         f"/api/v1/account/user/{user_id}/roles",

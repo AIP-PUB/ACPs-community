@@ -300,9 +300,7 @@ async def refresh_crl(service: CRLServiceDep) -> CRLInfoResponse:
 
         # 返回新CRL信息
         distribution_point = (
-            new_crl.distribution_points[0]
-            if new_crl.distribution_points
-            else "https://ca.example.com/api/v1/crl/current"
+            new_crl.distribution_points[0] if new_crl.distribution_points else get_settings().crl_distribution_point_url
         )
 
         return CRLInfoResponse(

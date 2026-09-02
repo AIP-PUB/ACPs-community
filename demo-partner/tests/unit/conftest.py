@@ -9,6 +9,7 @@ Unit Test Fixtures - conftest.py
 
 import asyncio
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -24,6 +25,9 @@ import pytest
 PROJECT_ROOT = str(Path(__file__).resolve().parents[2])
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+
+# TestClient / ASGITransport 不携带真实 TLS 证书；单元测试默认关闭身份绑定。
+os.environ.setdefault("AIP_IDENTITY_BINDING_ENABLED", "false")
 
 from acps_sdk.aip.aip_base_model import (  # noqa: E402
     TaskCommand,

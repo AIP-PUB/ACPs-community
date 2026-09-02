@@ -1,0 +1,27 @@
+services:
+  amp_forwarder:
+    image: {{ amp_forwarder_image }}
+    command:
+      - /fluent-bit/bin/fluent-bit
+      - -c
+      - /fluent-bit/etc/fluent-bit.conf
+    volumes:
+      - {{ acps_runtime_root }}/config/amp_forwarder/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro,z
+      - {{ acps_runtime_root }}/config/amp_forwarder/parsers.conf:/fluent-bit/etc/parsers.conf:ro,z
+      - {{ acps_data_root }}/amp_forwarder:/var/lib/fluent-bit:z
+{% if _amp_fw_has_leader | bool %}
+      - {{ acps_log_root }}/demo_leader:/logs/demo_leader:ro,z
+{% endif %}
+{% if _amp_fw_has_partner | bool %}
+      - {{ acps_log_root }}/demo_partner:/logs/demo_partner:ro,z
+{% endif %}
+    restart: unless-stopped
+{% set _acps_extra_hosts = hostvars | acps_compose_extra_hosts(groups) %}
+{% if _acps_extra_hosts %}
+    extra_hosts:
+{% for _eh in _acps_extra_hosts %}
+      - "{{ _eh }}"
+{% endfor %}
+{% endif %}
+    networks:
+      - {{ acps_docker_network }}

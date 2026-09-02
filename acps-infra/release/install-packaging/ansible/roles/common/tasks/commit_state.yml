@@ -1,0 +1,168 @@
+---
+# commit_state.yml —
+# 安装或升级成功后写入/更新 current；保留 previous。
+# 首装：previous 保持 null。升级：先调用 save_previous_state。
+#
+# 期望：
+# acps_component_key — 组件 id，或 acps_state_scope: control
+# 可选（优先来源如下）：
+# acps_state_version — 默认 acps_version
+# acps_state_artifact_id — 默认 acps_image_meta.file
+# acps_state_image_tag — 默认 acps_effective_image_tag（control 为 null）
+# acps_state_root — 默认 {{ acps_runtime_root }}/state
+# acps_state_clear_previous — 若为 true，设 previous=null（回滚 commit 策略）
+# acps_state_layout — 可选：flat | releases（host；缺省不写，向后兼容）
+# acps_state_release_path — 可选：host releases/<ver> 绝对路径（缺省不写）
+# acps_state_migrate_id — 可选：alembic revision / 迁移标识（回滚闸门用）
+
+- name: 要求 component key for component scope
+  when: (acps_state_scope | default('component')) != 'control'
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - (acps_component_key | string | length) > 0
+    fail_msg: "commit_state requires acps_component_key (or acps_state_scope=control)"
+
+- name: 设置 state file path for commit
+  ansible.builtin.set_fact:
+    _acps_state_root: "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}"
+    _acps_state_file: >-
+      {{
+        (acps_state_root | default(acps_runtime_root ~ '/state'))
+        ~ (
+          '/control/acps_cli.json'
+          if (acps_state_scope | default('component')) == 'control'
+          else ('/components/' ~ acps_component_key ~ '.json')
+        )
+      }}
+    _acps_state_component: >-
+      {{
+        'acps_cli'
+        if (acps_state_scope | default('component')) == 'control'
+        else acps_component_key
+      }}
+    _acps_state_deploy_mode: >-
+      {{
+        'control'
+        if (acps_state_scope | default('component')) == 'control'
+        else (acps_deploy_mode | default('image'))
+      }}
+
+- name: 解析 current field values
+  ansible.builtin.set_fact:
+    _acps_state_version: "{{ acps_state_version | default(acps_version) }}"
+    _acps_state_artifact_id: >-
+      {{
+        acps_state_artifact_id
+        | default(acps_image_meta.file if (acps_image_meta is defined and acps_image_meta.file is defined) else '', true)
+      }}
+    _acps_state_image_tag: >-
+      {{
+        acps_state_image_tag
+        | default(
+            ''
+            if (acps_state_scope | default('component')) == 'control'
+            else (acps_effective_image_tag | default('', true)),
+            true
+          )
+      }}
+    _acps_state_updated_at: "{{ ansible_date_time.iso8601 | default(lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ')) }}"
+    _acps_state_layout: >-
+      {{
+        acps_state_layout
+        | default(acps_host_layout | default('', true), true)
+      }}
+    _acps_state_release_path: >-
+      {{
+        acps_state_release_path
+        | default(acps_host_release_path | default('', true), true)
+      }}
+    # 只读 acps_host_migrate_id（db_migrate_host）。不要回落到
+    # acps_state_migrate_id：若曾被 include_role vars 自引用模板污染，求值会递归爆炸。
+    _acps_state_migrate_id: "{{ acps_host_migrate_id | default('') | string }}"
+
+- name: 要求 artifact_id for image components
+  when:
+    - (acps_state_scope | default('component')) != 'control'
+    - (_acps_state_artifact_id | string | length) == 0
+  ansible.builtin.fail:
+    msg: >-
+      commit_state: missing artifact_id for {{ _acps_state_component }}.
+      Pass acps_state_artifact_id or run stage_artifact first (acps_image_meta.file).
+
+- name: 确保 state 父目录
+  ansible.builtin.file:
+    path: "{{ _acps_state_file | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: 检查 existing state for previous retention
+  ansible.builtin.stat:
+    path: "{{ _acps_state_file }}"
+  register: _acps_commit_stat
+
+- name: 加载 existing state JSON (optional)
+  when: _acps_commit_stat.stat.exists
+  ansible.builtin.slurp:
+    src: "{{ _acps_state_file }}"
+  register: _acps_commit_slurp
+
+- name: Assemble current state document (no secrets/keys)
+  ansible.builtin.set_fact:
+    _acps_commit_doc: >-
+      {{
+        {
+          'component': _acps_state_component | string,
+          'deploy_mode': _acps_state_deploy_mode | string,
+          'version': _acps_state_version | string,
+          'artifact_id': _acps_state_artifact_id | string,
+          'image_tag': (
+            (_acps_state_image_tag | string)
+            if (_acps_state_image_tag | default('') | string | length) > 0
+            else none
+          ),
+          'updated_at': _acps_state_updated_at | string,
+          'previous': (
+            none
+            if (acps_state_clear_previous | default(false) | bool)
+            else (
+              (
+                (_acps_commit_slurp.content | b64decode | from_json).previous
+                if (_acps_commit_stat.stat.exists | bool)
+                else none
+              )
+            )
+          ),
+        }
+        | combine(
+            {'layout': _acps_state_layout | string}
+            if (_acps_state_layout | default('') | string | length) > 0
+            else {}
+          )
+        | combine(
+            {'release_path': _acps_state_release_path | string}
+            if (_acps_state_release_path | default('') | string | length) > 0
+            else {}
+          )
+        | combine(
+            {'migrate_id': _acps_state_migrate_id | string}
+            if (_acps_state_migrate_id | default('') | string | length) > 0
+            else (
+              {'migrate_id': (_acps_commit_slurp.content | b64decode | from_json).migrate_id}
+              if (
+                (_acps_commit_stat.stat.exists | bool)
+                and (
+                  ((_acps_commit_slurp.content | b64decode | from_json).migrate_id | default('') | string | length) > 0
+                )
+                and not (acps_state_clear_previous | default(false) | bool)
+              )
+              else {}
+            )
+          )
+      }}
+
+- name: 写入 current state file
+  ansible.builtin.copy:
+    dest: "{{ _acps_state_file }}"
+    mode: "0644"
+    content: "{{ _acps_commit_doc | to_nice_json }}\n"

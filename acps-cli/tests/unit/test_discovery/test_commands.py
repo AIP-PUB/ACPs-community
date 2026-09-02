@@ -4,11 +4,19 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from click.testing import CliRunner
 
 from acps_cli.main import main
+
+REGISTRY_OIDC_CONFIG = (
+    '[registry]\nbase_url = "http://localhost:9001"\n\n'
+    '[registry.auth]\nmode = "oidc"\n'
+    'issuer = "https://issuer.example/realms/acps-registry"\n'
+    'client_id = "registry-cli"\n'
+)
 
 
 def test_query_supports_structured_request_options() -> None:
@@ -220,3 +228,50 @@ def test_dsp_register_webhook_uses_defaults() -> None:
         headers={"Authorization": "Bearer admin-token"},
     )
     assert json.loads(result.output)["id"] == "wh-001"
+
+
+def test_resolve_registry_admin_auth_headers_uses_oidc_session(tmp_path: Path) -> None:
+    config_path = tmp_path / "acps-cli.toml"
+    config_path.write_text(REGISTRY_OIDC_CONFIG, encoding="utf-8")
+    ctx_obj = {
+        "toml_data": {
+            "registry": {
+                "base_url": "http://localhost:9001",
+                "auth": {
+                    "mode": "oidc",
+                    "issuer": "https://issuer.example/realms/acps-registry",
+                    "client_id": "registry-cli",
+                },
+            }
+        },
+        "config_dir": tmp_path,
+    }
+
+    with patch(
+        "acps_cli.discovery.commands.OidcAuthSessionManager",
+        return_value=SimpleNamespace(get_access_token=lambda: "oidc-admin-token"),
+    ):
+        from acps_cli.discovery.commands import _resolve_registry_admin_auth_headers
+
+        headers = _resolve_registry_admin_auth_headers(ctx_obj)
+
+    assert headers == {"Authorization": "Bearer oidc-admin-token"}
+
+
+def test_resolve_registry_admin_auth_headers_uses_local_token_file(tmp_path: Path) -> None:
+    token_file = tmp_path / "tokens" / "admin.json"
+    token_file.parent.mkdir(parents=True)
+    token_file.write_text(json.dumps({"access_token": "local-admin-token", "token_type": "bearer"}), encoding="utf-8")
+    ctx_obj = {
+        "toml_data": {
+            "registry": {"base_url": "http://localhost:9001"},
+            "auth": {"admin_token_file": "tokens/admin.json"},
+        },
+        "config_dir": tmp_path,
+    }
+
+    from acps_cli.discovery.commands import _resolve_registry_admin_auth_headers
+
+    headers = _resolve_registry_admin_auth_headers(ctx_obj)
+
+    assert headers == {"Authorization": "Bearer local-admin-token"}

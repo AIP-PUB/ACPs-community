@@ -1,0 +1,293 @@
+# config/default.toml — 默认配置（所有环境共享的基础值）
+
+[api]
+v1_str = "/acps-amp-v1"
+title = "AMP Monitor Server API"
+
+[server]
+host = "0.0.0.0"
+port = 9009
+reload = false
+uvicorn_log_level = "info"
+
+[database]
+pool_size = 5
+max_overflow = 10
+pool_recycle = 1800                # 30 分钟
+pool_timeout = 30
+session_timezone = "Asia/Shanghai"
+
+[kafka]
+# 宿主机本地应用通过 localhost:19092 连接 Redpanda external listener（90xx 预留给应用）
+bootstrap_servers = "localhost:19092"
+security_protocol = "PLAINTEXT"
+auto_offset_reset = "earliest"
+max_poll_records = 100
+session_timeout_ms = 30000
+heartbeat_interval_ms = 10000
+
+[audit]
+topic = "amp.audit"
+dlq_topic = "amp.audit.dlq"
+consumer_group = "amp.audit.writer"
+logical_chain_count = 256            # 子链数，写入时 log_id 哈希取模路由
+anchor_interval_minutes = 60         # 链锚定频率（分钟）
+online_retention_months = 12         # 在线保留期（月）
+archive_retention_years = 7          # 归档保留期（年）
+max_event_lag_hours = 48             # committed_at 围栏谓词扩展窗口（小时）；正确性不变量：必须 ≥ 真实最大事件滞后（,）
+lagging_threshold_ms = 60000         # watermark 滞后告警阈值（ms）
+export_max_records = 1000            # 单次导出最大条数
+export_url_ttl_minutes = 10          # 导出 URL 有效期（分钟）
+verify_sync_max_records = 500        # 同步完整性校验批次大小
+query_timeout_seconds = 30           # Query API 超时（秒）
+
+[atr]
+ca_base_url = "http://localhost:9003"  # CA 服务地址（含公钥查询接口），用于验签时按证书序列号取公钥
+mock_mode = true                       # 开发/测试时 mock ATR 响应；false 时走真实 CA 服务
+key_cache_ttl_seconds = 300            # 验签公钥内存缓存 TTL（秒），按 (aic, kid) 绑定
+
+[cors]
+enabled = false
+origins = []
+allow_credentials = false
+allow_methods = ["*"]
+allow_headers = ["*"]
+expose_headers = ["X-Request-ID"]
+max_age = 600
+
+# OIDC / Authorization 常规参数属于非敏感运行配置，默认在 TOML 中维护
+# 仅当部署平台需要临时覆写时，再使用 MONITOR_OIDC_* 环境变量。
+[oidc]
+enabled = false
+issuer = ""
+audience = "monitor-api"
+client_id = "monitor-api"
+allowed_azp = ["monitor-web"]
+algorithms = ["EdDSA"]
+jwks_cache_ttl_seconds = 300
+discovery_cache_ttl_seconds = 300
+leeway_seconds = 60
+require_https = true
+role_source_client_id = "monitor-api"
+
+[authorization]
+global_admin_roles = ["admin"]
+global_operator_roles = ["operator", "admin"]
+global_auditor_roles = ["auditor", "admin"]
+default_read_roles = ["viewer", "auditor", "operator", "admin"]
+
+[logging]
+level = "INFO"
+format = "json"
+
+[otel]
+enabled = false
+endpoint = "http://localhost:4317"
+service_name = "monitor-server"
+
+[project]
+name = "monitor-server"
+version = "2.2.0"
+
+[redis]
+# Heartbeat 真相源（Redis >= 7.0，需支持 Redis Functions）
+url = "redis://localhost:6379/2"   # 可被环境变量 REDIS_URL 覆盖；逻辑库 2 = monitor-server 开发
+max_connections = 50
+socket_timeout_seconds = 5
+
+[heartbeat]
+# ---- Kafka 接入
+topic = "amp.heartbeat"
+dlq_topic = "amp.heartbeat.dlq"
+consumer_group = "monitor-server.heartbeat.writer.v1"
+delta_topic = "amp.heartbeat.alive-delta"
+# ---- Profile 开关
+sync_enabled = true                  # false 时 /sync/* 返回 404 AMP_HEARTBEAT_SYNC_DISABLED
+analytics_enabled = true             # false 时不注册 /silence/top
+# ---- 设计 配置表（键名与设计一致，amp.heartbeat. 前缀 → [heartbeat] 节）
+heartbeat_shard_count = 1            # 必须等于 delta topic 分区数，生命周期内不可变
+silence_threshold_seconds = 90
+evict_after_seconds = 3600
+refresh_emit_interval_seconds = 30
+silent_scan_interval_seconds = 5
+evict_scan_interval_seconds = 30
+scan_batch_size = 1000
+scan_lock_ttl_seconds = 60
+in_list_max = 1000
+silence_top_default_n = 50
+silence_top_max_n = 500
+silence_top_shard_fetch_size = 500
+summary_buckets_seconds = [30, 60, 120, 300, 900, 3600]
+summary_cache_ttl_seconds = 5
+silence_top_cache_ttl_seconds = 5
+delta_retention_hours = 168
+outbox_max_len = 1000000
+relay_max_publish_lag_seconds = 30
+relay_published_seq_batch_size = 100
+snapshot_max_alive_rows_per_s = 50000
+snapshot_chunk_size = 1000
+snapshot_max_enumeration_seconds = 60
+input_partition_count = 1            # 必须等于 amp.heartbeat 分区数
+read_model_max_lag_ms = 5000
+writer_watermark_flush_interval_ms = 1000
+writer_watermark_stale_after_ms = 5000
+# ---- 实现级补充配置（设计 之外）
+lagging_response_mode = "503"        # "503" | "partial"（§6.2.1 二选一，部署内一致）
+freshness_point_lookup_localized = true   # 点查新鲜度局部化（需保证 Producer 用默认 partitioner）
+liveness_query_shard_scan_budget = 2000   # cursor 模式单请求单 shard 扫描预算（第 3 条）
+snapshot_share_window_seconds = 5         # snapshot 物化共享窗口；100 万 alive × ~200B ≈ 200 MB 上限，参见 O-6
+writer_poll_timeout_ms = 1000             # writer getmany 超时
+metrics_log_interval_seconds = 60         # metrics_log_loop 输出周期
+
+[metrics]
+# ---- Kafka 接入
+topic = "amp.metrics"
+dlq_topic = "amp.metrics.dlq"
+consumer_group = "monitor-server.metrics.writer.v1"
+# ---- Writer 批处理
+writer_poll_timeout_ms = 1000
+remote_write_batch_interval_seconds = 5
+remote_write_batch_max_samples = 10000
+dedupe_ttl_seconds = 86400
+# ---- 快照缓存
+snapshot_ttl_seconds = 600
+snapshot_index_scan_batch_size = 500
+snapshot_fallback_lookback = "PT10M"
+# ---- 保留与降采样
+raw_retention_days = 30
+downsample_retention_days = 90
+# ---- 查询控制
+max_points_per_series = 10000
+ranking_max_top_n = 200
+slo_max_rules = 20
+capacity_default_lookback = "PT10M"
+capacity_default_active_ratio_threshold = 0.8
+capacity_default_queue_ratio_threshold = 0.8
+query_timeout_seconds = 30
+# ---- 新鲜度
+lagging_threshold_ms = 150000
+lagging_response_mode = "503"
+# ---- Profile 开关
+analytics_enabled = true
+governance_enabled = true
+# ---- 可观测性
+metrics_log_interval_seconds = 60
+
+[message]
+# ---- Kafka 接入
+topic = "amp.message"
+dlq_topic = "amp.message.dlq"
+consumer_group = "monitor-server.message.writer.v1"
+# ---- Writer 批处理
+writer_poll_timeout_ms = 1000
+insert_batch_interval_seconds = 5
+insert_batch_max_rows = 5000
+kafka_retention_seconds = 21600        # 6h，必须与 amp.message topic 的 retention.ms 对齐（运维职责）
+dedup_window_seconds = 21600           # 必须 >= kafka_retention_seconds（C-MESSAGE-WRITE-2）
+# ---- Compaction
+lifecycle_compact_interval_seconds = 60
+destination_stats_compact_interval_seconds = 60
+compaction_overlap_seconds = 300       # 两 compactor 共用 overlap（C-MESSAGE-MODEL-7）
+# ---- 存储保留
+raw_retention_days = 7
+raw_archive_retention_days = 30
+lifecycle_retention_days = 30
+destination_state_retention_days = 30
+destination_stats_retention_days = 30
+# ---- 采集
+state_collect_interval_seconds = 60
+state_collector_enabled = false        # 接好 broker 源后再开
+destination_source_kind = "null"
+# ---- 查询控制
+query_timeout_seconds = 30
+destination_query_max_groups = 200
+deadletter_query_max_n = 200
+# ---- 新鲜度
+lagging_threshold_ms = 300000
+lagging_response_mode = "partial"
+# ---- 功能开关
+raw_log_enabled = false
+correlation_id_stable_unique = false
+writer_enabled = true
+reliability_enabled = true
+destination_enabled = true
+archive_enabled = false
+archive_interval_seconds = 3600
+# ---- 可观测性
+metrics_log_interval_seconds = 60
+
+[access]
+# ---- Kafka 接入
+topic = "amp.access"
+dlq_topic = "amp.access.dlq"
+consumer_group = "monitor-server.access.writer.v1"
+# ---- Writer 批处理
+writer_poll_timeout_ms = 1000
+insert_batch_interval_seconds = 5
+insert_batch_max_rows = 5000
+dedup_window_hours = 24
+# ---- 存储保留
+raw_retention_days = 30
+archive_retention_days = 90
+topology_retention_days = 90
+# ---- 查询控制
+query_timeout_seconds = 30
+trace_max_spans = 10000
+trace_max_duration_hours = 1
+slow_top_max_n = 200
+error_attribution_max_n = 200
+error_status_threshold = 500
+# ---- 脱敏
+redacted_header_allowlist = "content-type,x-request-id"
+# ---- 新鲜度
+lagging_threshold_ms = 300000
+lagging_response_mode = "503"
+# ---- Profile 开关
+analytics_enabled = true
+apm_enabled = true
+# ---- 功能开关
+raw_log_enabled = false
+trace_seen_hint_enabled = false
+archive_enabled = false
+archive_interval_seconds = 3600
+# ---- MinIO 冷归档存储目标（archive_enabled=true 时生效）
+minio_endpoint = "http://localhost:19000"   # 可被环境变量 MINIO_ACCESS_KEY/MINIO_SECRET_KEY 覆盖凭据
+minio_bucket = "amp-access-archive"
+minio_secure = false
+# ---- 可观测性
+metrics_log_interval_seconds = 60
+
+[system]
+# ---- Kafka 接入
+topic = "amp.system"
+dlq_topic = "amp.system.dlq"
+consumer_group = "monitor-server.system.writer.v1"
+# ---- Writer 批处理
+writer_poll_timeout_ms = 1000
+bulk_index_batch_interval_seconds = 5
+bulk_index_batch_max_docs = 5000
+# ---- 存储保留
+event_hot_retention_days = 3
+event_warm_retention_days = 14
+archive_retention_days = 30
+# ---- 查询控制
+query_timeout_seconds = 30
+keyword_min_length = 3
+search_text_max_length = 8192
+keyword_only_max_window_seconds = 3600
+# ---- 新鲜度
+lagging_threshold_ms = 300000
+lagging_response_mode = "partial"
+freshness_reorder_margin_ms = 30000
+# ---- PIT / 分页
+pit_keep_alive = "5m"
+# ---- 索引
+index_number_of_shards = 3
+index_number_of_replicas = 1
+# ---- 功能开关
+writer_enabled = true
+query_enabled = true
+archive_enabled = false
+archive_interval_seconds = 3600
+# ---- 可观测性
+metrics_log_interval_seconds = 60

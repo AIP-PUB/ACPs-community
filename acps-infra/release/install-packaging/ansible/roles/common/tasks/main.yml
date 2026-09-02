@@ -1,0 +1,6 @@
+---
+# common role 入口 — 主要通过 tasks_from 引入
+- name: common role 已加载
+  ansible.builtin.debug:
+    msg: "acps common helpers available"
+    verbosity: 1

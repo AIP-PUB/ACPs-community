@@ -1,0 +1,65 @@
+---
+# ensure_os_packages.yml — OS 包安装统一入口。
+#
+# Rocky 8 + ansible-core ≥2.16：managed-node 须 Python ≥3.8，但 EL8 的
+# python3-dnf 仅绑定 platform-python 3.6，ansible.builtin.package/dnf 无法导入。
+# 因此 rocky8 一律走 `dnf` CLI；其它 OS 仍用 package/dnf 模块。
+#
+# 期望变量：
+#   acps_pkg_names              — 包名列表（或单个字符串）；也可为本地 .rpm 路径
+#   acps_pkg_state              — present | latest（默认 present）
+#   acps_pkg_disable_gpg_check  — bool（本地 RPM 等；默认 false）
+#
+# 产出：_acps_pkg_result（register 结果，供调用方 changed 判断）
+# 注意：include_tasks 不能带 become；本文件内任务自行 become。
+
+- name: 补齐 acps_os_id（防御：调用方跳过 preflight 时）
+  ansible.builtin.include_tasks: resolve_acps_os_facts.yml
+
+- name: 规范化包名列表
+  ansible.builtin.set_fact:
+    _acps_pkg_names_list: "{{ acps_pkg_names if (acps_pkg_names is sequence and acps_pkg_names is not string) else [acps_pkg_names] }}"
+
+- name: rocky8 — 经 dnf CLI 安装/升级包（无 python3-dnf for py3.8+）
+  when: (acps_os_id | default('')) == 'rocky8'
+  become: true
+  ansible.builtin.command:
+    argv: >-
+      {{
+        ['dnf', '-y']
+        + (['--nogpgcheck'] if (acps_pkg_disable_gpg_check | default(false) | bool) else [])
+        + (
+            ['upgrade'] if (acps_pkg_state | default('present')) == 'latest'
+            else ['install']
+          )
+        + _acps_pkg_names_list
+      }}
+  register: _acps_pkg_result
+  changed_when: >-
+    'Nothing to do' not in (_acps_pkg_result.stdout | default(''))
+    and 'already installed and latest' not in (_acps_pkg_result.stdout | default(''))
+
+- name: 非 rocky8 RedHat + disable_gpg_check — dnf 模块
+  when:
+    - (acps_os_id | default('')) != 'rocky8'
+    - ansible_os_family == 'RedHat'
+    - (acps_pkg_disable_gpg_check | default(false) | bool)
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ _acps_pkg_names_list }}"
+    state: "{{ acps_pkg_state | default('present') }}"
+    disable_gpg_check: true
+  register: _acps_pkg_result
+
+- name: 非 rocky8 — ansible.builtin.package
+  when:
+    - (acps_os_id | default('')) != 'rocky8'
+    - not (
+        ansible_os_family == 'RedHat'
+        and (acps_pkg_disable_gpg_check | default(false) | bool)
+      )
+  become: true
+  ansible.builtin.package:
+    name: "{{ _acps_pkg_names_list }}"
+    state: "{{ acps_pkg_state | default('present') }}"
+  register: _acps_pkg_result

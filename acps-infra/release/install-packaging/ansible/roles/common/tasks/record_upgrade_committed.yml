@@ -1,0 +1,31 @@
+---
+# record_upgrade_committed.yml — BP12：组件 commit 成功后追加摘要
+# 期望：acps_upgrade_component_key；acps_control_root
+
+- name: 读取既有 upgrade 摘要
+  ansible.builtin.slurp:
+    src: "{{ acps_control_root }}/work/.upgrade-run-summary.json"
+  register: _up_sum_slurp
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 追加 committed 组件并写回摘要
+  when: _up_sum_slurp.content is defined
+  ansible.builtin.copy:
+    dest: "{{ acps_control_root }}/work/.upgrade-run-summary.json"
+    mode: "0644"
+    content: |
+      {{
+        (
+          (_up_sum_slurp.content | b64decode | from_json)
+          | combine({
+              'committed': (
+                ((_up_sum_slurp.content | b64decode | from_json).committed | default([]))
+                + [acps_upgrade_component_key]
+              ) | unique | list
+            }, recursive=True)
+        ) | to_nice_json
+      }}
+  delegate_to: localhost
+  become: false

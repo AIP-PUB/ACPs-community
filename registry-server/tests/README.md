@@ -8,7 +8,8 @@
 
 ## 边界说明
 
-- 本仓 `tests/` 不承载真实跨服务联调 e2e。
+- 本仓 `tests/` 默认不承载需要同时拉起多个 sibling 业务服务的真实跨服务联调 e2e。
+- 对 `registry-server` 自身鉴权边界必需、且可由受管 dev-infra 稳定提供的基础设施依赖（如 Keycloak），允许在本仓补充黑盒联调用例。
 - 涉及 `registry-server` 与 `ca-server`、`discovery-server` 之间真实交互的联调链路，统一放在 `acps-cli/tests/e2e/` 中验证。
 - 如果某个场景需要同时拉起真实 sibling 服务、共享 sibling 仓库 `.env`、依赖跨仓拓扑协作，说明它不属于本仓 `integration` / `e2e`，而属于 `acps-cli` 的联调测试范围。
 
@@ -17,9 +18,10 @@
 - `just test unit`：纯单元层。
 - `just test integration`：本服务 + 测试数据库 + fake peer。
 - `just test e2e`：受管启动临时 `registry-server` 测试实例，并注入 `TEST_E2E_BASE_URL`、`TEST_E2E_MTLS_BASE_URL` 与 mTLS client 证书环境变量。
+- `just test e2e -- tests/e2e/test_oidc_keycloak_flow.py`：仅运行 OIDC 黑盒用例；共享入口会按 `local -> oidc` profile 编排，并受管启动 Keycloak 与临时 `registry-server` 测试实例。
 - `just test`：顺序执行 `unit -> integration -> e2e`。
 - 执行黑盒 e2e 前请先通过 `just prep certs` 或 `just test bootstrap` 准备本地 `certs/` 下的开发 PKI 产物。
-- 当前本仓黑盒 e2e 的目标是不依赖 sibling 仓库环境文件；如需真实跨服务联调，请切换到 `acps-cli`。
+- 当前本仓黑盒 e2e 的目标是不依赖 sibling 仓库环境文件；如需真实 sibling 业务服务联调，请切换到 `acps-cli`。
 
 ## skip 与 warning 约定
 

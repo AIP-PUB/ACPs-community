@@ -549,3 +549,36 @@ class CancelResponse(CommonResponse[CancelResult]):
     """
 
     pass
+
+
+# =============================================================================
+# /stream-token 端点
+# =============================================================================
+
+
+class StreamTokenResult(BaseModel):
+    """短期 stream token 响应。"""
+
+    session_id: SessionId = Field(
+        ...,
+        alias="sessionId",
+        description="绑定的会话 ID",
+    )
+    stream_token: str = Field(
+        ...,
+        alias="streamToken",
+        description="短期 stream token",
+    )
+    expires_at: IsoDateTimeString = Field(
+        ...,
+        alias="expiresAt",
+        description="失效时间",
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class StreamTokenResponse(CommonResponse[StreamTokenResult]):
+    """stream token 接口响应体。"""
+
+    pass

@@ -1,0 +1,48 @@
+---
+# Recover static leaf materials from target when control work/certs was wiped
+# (issuer rotate) but runtime still holds keys/PEMs for the same AIC.
+# Expect: _profile, _profile_outdir_name, _target_group, _marker_file
+
+- name: 解析首台目标机上的 certs 目录
+  ansible.builtin.set_fact:
+    _static_recover_host: "{{ groups[_target_group] | first }}"
+    _static_recover_remote: >-
+      {{ hostvars[groups[_target_group] | first].acps_runtime_root
+         | default(acps_runtime_root) }}/certs/{{ _target_group }}
+    _static_recover_local: "{{ acps_control_root }}/work/certs/{{ _profile_outdir_name }}"
+
+- name: 检查目标机是否有叶证可恢复
+  ansible.builtin.stat:
+    path: "{{ _static_recover_remote }}/{{ _marker_file }}"
+  register: _static_recover_marker
+  delegate_to: "{{ _static_recover_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_static_recover_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_static_recover_host].ansible_become | default(true)) | bool }}"
+
+- name: 无目标叶证时 fail-stop（禁止 silent bootstrap 换 AIC）
+  when: not (_static_recover_marker.stat.exists | default(false))
+  ansible.builtin.fail:
+    msg: >-
+      static reissue for {{ _profile }}: control materials missing and target
+      {{ _static_recover_remote }}/{{ _marker_file }} absent. Refuse bootstrap
+      (would mint a new AIC). Re-run site.yml for first install, or restore certs.
+
+- name: 从目标机拉回叶证到 control work/certs
+  ansible.builtin.shell: |
+    set -euo pipefail
+    DEST="{{ _static_recover_local }}"
+    mkdir -p "$DEST"
+    CONN="{{ hostvars[_static_recover_host].ansible_connection | default('ssh') }}"
+    REMOTE="{{ _static_recover_remote }}"
+    if [[ "$CONN" == "local" ]]; then
+      tar -C "$REMOTE" --exclude='._*' -cf - . | tar -C "$DEST" -xf -
+    else
+      HOST="{{ hostvars[_static_recover_host].ansible_user | default(lookup('env','USER')) }}@{{ hostvars[_static_recover_host].ansible_host | default(_static_recover_host) }}"
+      ssh "$HOST" "sudo tar -C '$REMOTE' --exclude='._*' -cf - ." | tar -C "$DEST" -xf -
+    fi
+    echo "recovered_ok dest=$DEST"
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  become: false

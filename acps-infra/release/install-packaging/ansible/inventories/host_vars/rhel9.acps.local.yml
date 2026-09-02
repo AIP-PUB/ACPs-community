@@ -1,0 +1,5 @@
+# 四 OS 混部 / 单机 Rocky9 共用：业务机广告名与 Ansible 连接。
+
+ansible_host: rhel9.acps.local
+acps_advertise_host: rhel9.acps.local
+ansible_user: huxiaofeng

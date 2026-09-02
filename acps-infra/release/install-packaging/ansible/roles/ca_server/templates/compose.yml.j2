@@ -1,0 +1,27 @@
+services:
+  ca_server:
+    image: {{ acps_effective_image_tag }}
+    working_dir: /opt/acps/app
+    env_file:
+      - {{ acps_runtime_root }}/config/ca_server/.env
+    ports:
+      - "{{ ca_server_port }}:9003"
+    volumes:
+      - {{ acps_runtime_root }}/config/ca_server:/opt/acps/app/config:ro,z
+      - {{ acps_runtime_root }}/certs/ca_server:/opt/acps/app/certs:ro,z
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9003/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+{% set _acps_extra_hosts = hostvars | acps_compose_extra_hosts(groups) %}
+{% if _acps_extra_hosts %}
+    extra_hosts:
+{% for _eh in _acps_extra_hosts %}
+      - "{{ _eh }}"
+{% endfor %}
+{% endif %}
+    networks:
+      - {{ acps_docker_network }}

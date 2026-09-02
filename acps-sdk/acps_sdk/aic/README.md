@@ -1,6 +1,6 @@
 # ACPs 智能体身份码 (AIC) 工具模块
 
-基于 **ACPs-spec-AIC-v02.01** 规范实现的 AIC 验证与解析工具。
+基于 **ACPs-spec-AIC-v02.02** 规范实现的 AIC 验证与解析工具。
 
 ## AIC 结构
 
@@ -187,4 +187,4 @@ print(base36_decode("73"))       # 255
 
 ## 参考
 
-- [ACPs-spec-AIC-v02.01](../../../acps-specs/02-ACPs-spec-AIC/ACPs-spec-AIC.md) - 智能体身份码规范
+- [ACPs-spec-AIC-v02.02](../../../acps-specs/02-ACPs-spec-AIC/ACPs-spec-AIC.md) - 智能体身份码规范

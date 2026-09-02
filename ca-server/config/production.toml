@@ -12,7 +12,13 @@ format = "json"
 docs_enabled = false
 
 [ca]
-# 生产环境必须显式替换为可被 ACME 客户端和证书使用者访问的公开地址。
-acme_directory_url = "https://ca.example.com/acps-atr-v2/acme"
-ocsp_responder_url = "https://ca.example.com/acps-atr-v2/ocsp"
-crl_distribution_point_url = "https://ca.example.com/acps-atr-v2/crl/current"
+# 证书发现地址（ACME 目录、OCSP、CRL）属于部署专用配置，取值取决于本次部署对外
+# 可达的主机名，无法在仓库里预置默认值，因此按分层约定改为通过环境变量注入：
+#
+#   ACME_DIRECTORY_URL=https://<对外可达主机名>/acps-atr-v2/acme
+#   OCSP_RESPONDER_URL=https://<对外可达主机名>/acps-atr-v2/ocsp
+#   CRL_DISTRIBUTION_POINT_URL=https://<对外可达主机名>/acps-atr-v2/crl/current
+#
+# 这里不写占位地址：OCSP / CRL 两个地址会被写进签发出去的每一张证书，事后变更
+# 需要全平面重签，所以宁可在启动时 fail-fast，也不要签出一批指向错误地址的证书。
+# 未注入时 production 会回落到 default.toml 的 localhost 默认值并被配置校验拒绝。

@@ -226,12 +226,24 @@ async def get_snapshot_api(
             )
 
         if id:
-            assert chunk is not None
+            if chunk is None:
+                raise SyncError(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    error_name=SyncErrorCode.INVALID_SNAPSHOT_PARAMS,
+                    error_msg="chunk parameter is required when id is provided",
+                    input_params={"id": id, "chunk": chunk},
+                )
             snapshot, envelopes = await get_snapshot_chunk_async(db, snapshot_id=id, chunk_index=chunk, limit=limit)
             await db.commit()
             _set_snapshot_headers(response, snapshot, str(chunk))
         else:
-            assert types is not None
+            if types is None:
+                raise SyncError(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    error_name=SyncErrorCode.INVALID_SNAPSHOT_PARAMS,
+                    error_msg="types parameter is required when creating a new snapshot",
+                    input_params={"types": types},
+                )
             type_list = [item.strip() for item in types.split(",") if item.strip()]
             if not type_list:
                 raise SyncError(

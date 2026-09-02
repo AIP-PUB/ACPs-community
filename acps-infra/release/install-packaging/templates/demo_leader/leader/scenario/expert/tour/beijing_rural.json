@@ -1,0 +1,160 @@
+{
+  "aic": "",
+  "active": false,
+  "lastModifiedTime": "2025-10-11T14:20:20.377187+08:00",
+  "protocolVersion": "02.02",
+  "name": "北京郊区旅游智能体",
+  "description": "北京郊区旅游智能体（Partner）。职责：针对北京郊区（密云/怀柔/延庆/昌平/门头沟/房山/大兴/顺义/平谷/通州）提供景点发现、郊游/多日行程规划、小众/低人流景点与户外活动编排。范围：仅限郊区行政区，不处理城六区（东/西/朝阳/海淀/丰台/石景山）内部景点或行程。交通支持：只在行程内部对郊区内点位顺序给出轻量交通衔接提示，不提供城区交通或进出北京交通方案。明确拒绝：① 城区景点与行程；② 北京美食/餐饮建议；③ 进出北京跨城交通；④ 纯商务/会议/购物请求。混合请求中保留郊区部分并标注拒绝内容。",
+  "version": "1.0.0",
+  "provider": {
+    "organization": "ACPs工作组",
+    "department": "",
+    "url": "https://ioa.pub",
+    "license": "京ICP备2025124884号-4"
+  },
+  "securitySchemes": {
+    "mtls": {
+      "type": "mutualTLS",
+      "description": "智能体间mTLS双向认证"
+    }
+  },
+  "endPoints": [
+    {
+      "url": "https://localhost:9022/rpc",
+      "transport": "JSONRPC",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    },
+    {
+      "url": "amqps://rabbitmq:5671/acps?inbox=inbox_{AIC}",
+      "transport": "AMQP",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    }
+  ],
+  "certificate": {
+    "altNames": {
+      "dns": [
+        "localhost"
+      ]
+    }
+  },
+  "capabilities": {
+    "streaming": false,
+    "notification": false,
+    "messageQueue": [
+      "rabbitmq:>=4.2"
+    ]
+  },
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "beijing_rural.natural-scenery-recommendation",
+      "name": "自然风光推荐",
+      "description": "推荐北京郊区的自然景观和风光点，包括山水景观、森林公园、湖泊等自然美景。拒绝城区景点请求。",
+      "version": "1.0.0",
+      "tags": [
+        "自然风光",
+        "山水景观",
+        "森林公园",
+        "生态体验"
+      ],
+      "examples": [
+        "我想找一些北京周边能够亲近大自然的地方，希望有山有水，适合周末一日游，开车从市区出发2小时内能到达",
+        "请推荐几个适合秋天观赏红叶的郊区景点，最好人不太多，可以安静地拍照和欣赏自然美景",
+        "我喜欢山水风光，想找一些北京郊区有湖泊或溪流的地方，可以在水边休息放松，环境要自然原生态"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "beijing_rural.rural-itinerary-planning",
+      "name": "郊区行程规划",
+      "description": "为用户规划个性化的北京郊区旅游行程，优化时间安排和路线设计。拒绝城区范围行程请求。",
+      "version": "1.0.0",
+      "tags": [
+        "行程规划",
+        "路线设计",
+        "时间优化",
+        "个性化定制"
+      ],
+      "examples": [
+        "请帮我规划一个两天一夜的北京郊区自然风光游，第一天看山景，第二天游湖泊，晚上想住民宿体验乡村生活",
+        "我想安排一个户外活动丰富的周末郊区行程，包括徒步、野餐和观鸟，请推荐合适的路线和时间安排",
+        "计划和朋友们去北京郊区度过一个轻松的一日游，想要远离城市喧嚣，体验田园风光，请设计一个悠闲的行程"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "beijing_rural.hidden-gems-discovery",
+      "name": "小众景点发现",
+      "description": "推荐北京郊区人流较少的小众景点和隐秘美景，提供独特的旅游体验。拒绝城区热门景点请求。",
+      "version": "1.0.0",
+      "tags": [
+        "小众景点",
+        "避开人群",
+        "隐秘美景",
+        "独特体验"
+      ],
+      "examples": [
+        "我不想去那些游客扎堆的热门景点，请推荐一些北京郊区人少景美的隐藏宝地，最好是当地人才知道的好地方",
+        "想找一些小众的郊区景点，可以安静地享受自然，不用排队拍照，有什么好的推荐吗？最好有具体的位置信息",
+        "请推荐几个北京周边相对冷门但风景很棒的地方，适合想要逃离人群、独享宁静时光的游客"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "beijing_rural.outdoor-activity-arrangement",
+      "name": "户外活动安排",
+      "description": "安排和推荐北京郊区的各种户外活动，包括徒步、露营、攀岩等体验项目。拒绝室内或非郊区活动请求。",
+      "version": "1.0.0",
+      "tags": [
+        "户外活动",
+        "徒步",
+        "露营",
+        "体验项目"
+      ],
+      "examples": [
+        "我想体验徒步登山的乐趣，请推荐北京郊区适合初级徒步者的登山路线，包括所需时间、难度等级和注意事项",
+        "想在北京周边找一个适合露营的地方，要求安全合法，环境优美，请推荐几个不错的露营地点和相关设施",
+        "我们是户外运动爱好者，想在北京郊区尝试攀岩、溯溪等刺激的户外活动，请推荐专业的户外体验地点和注意事项"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    }
+  ]
+}

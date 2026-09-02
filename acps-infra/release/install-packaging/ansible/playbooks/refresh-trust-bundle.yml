@@ -1,0 +1,24 @@
+---
+# refresh-trust-bundle.yml — 下载并分发 trust 材料
+#
+# 从 ca_server 拉取最新 trust-bundle → control/work/certs/trust-bundle/ →
+# 按 profile 文件名分发 → ownership → 单次并集 recreate（§9.5.4）→ digest 同步（§9.5.2）。
+# 不续期叶子证书。逻辑体：roles/cert_provision/tasks/refresh_trust_bundle_run.yml
+#
+# Usage:
+# ansible-playbook -i inventories/hosts.yml playbooks/refresh-trust-bundle.yml \
+# -e @inventories/secrets.yml
+# ansible-playbook... -e acps_force_trust_bundle_refresh=true
+# ansible-playbook... -e '{"acps_trust_bundle_profiles":["registry-9002","redis"]}'
+
+- name: "刷新 trust-bundle — 下载 / 分发 / 重载"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    acps_trust_bundle_run_probe: true
+  tasks:
+    - name: 执行 refresh-trust 完整路径
+      ansible.builtin.include_role:
+        name: cert_provision
+        tasks_from: refresh_trust_bundle_run.yml

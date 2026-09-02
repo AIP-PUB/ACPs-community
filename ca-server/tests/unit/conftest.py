@@ -5,7 +5,8 @@ from __future__ import annotations
 import base64
 
 import pytest
-from cryptography.hazmat.primitives.asymmetric import ec, rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 from faker import Faker
 
 
@@ -57,4 +58,28 @@ def ec_public_jwk(ec_private_key: ec.EllipticCurvePrivateKey) -> dict:
         "crv": "P-256",
         "x": _int_to_b64url(pub_numbers.x, coord_len),
         "y": _int_to_b64url(pub_numbers.y, coord_len),
+    }
+
+
+@pytest.fixture(scope="session")
+def ed25519_private_key() -> ed25519.Ed25519PrivateKey:
+    """生成 Ed25519 私钥供测试使用。"""
+    return ed25519.Ed25519PrivateKey.generate()
+
+
+@pytest.fixture(scope="session")
+def ed25519_public_jwk(ed25519_private_key: ed25519.Ed25519PrivateKey) -> dict:
+    """Ed25519 公钥 JWK（对应 ed25519_private_key）。"""
+    pub = ed25519_private_key.public_key()
+    return {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": base64.urlsafe_b64encode(
+            pub.public_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PublicFormat.Raw,
+            )
+        )
+        .decode("ascii")
+        .rstrip("="),
     }

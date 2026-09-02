@@ -8,7 +8,7 @@ import getpass
 import json
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Any
 
 from acps_cli.shared.config import load_toml_config
+from acps_cli.shared.runtime import RootCliRuntime
+from acps_cli.shared.unified_config import build_registry_auth_config
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 STATIC_ACS_DIR = SCRIPT_DIR / "acs"
@@ -86,6 +88,20 @@ class DemoLeaderRuntimeSpec:
     atr_dir: Path
     acs_path: Path
     name: str
+
+
+def build_runtime(original_data: dict[str, Any], original_path: Path) -> RootCliRuntime:
+    return RootCliRuntime(
+        config_path=str(original_path),
+        verbose=False,
+        toml_data=original_data,
+        resolved_config_path=original_path,
+        config_dir=original_path.parent,
+    )
+
+
+def registry_auth_mode(original_data: dict[str, Any], original_path: Path) -> str:
+    return build_registry_auth_config(build_runtime(original_data, original_path), admin=False).mode
 
 
 def resolve_optional_install_dir(path_value: str | None, label: str) -> Path | None:
@@ -331,7 +347,7 @@ def clear_generated_state(cleanup_paths: tuple[Path, ...]) -> None:
 
 
 def run_command(cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> str:
-    result = subprocess.run(  # noqa: S603
+    result = subprocess.run(  # noqa: S603  # nosec B603
         cmd,
         cwd=str(cwd) if cwd is not None else None,
         env=env,
@@ -346,7 +362,7 @@ def run_command(cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] 
 
 
 def run_cli(cmd: list[str], *, cwd: Path | None = None, env: dict[str, str] | None = None) -> tuple[bool, str]:
-    result = subprocess.run(  # noqa: S603
+    result = subprocess.run(  # noqa: S603  # nosec B603
         cmd,
         cwd=str(cwd) if cwd is not None else None,
         env=env,
@@ -619,6 +635,9 @@ def write_runtime_config(
     mq_ca_file: Path | None = None,
     registry_mtls_server_ca_file: Path | None = None,
 ) -> Path:
+    runtime = build_runtime(original_data, original_path)
+    registry_user_auth = build_registry_auth_config(runtime, admin=False)
+    registry_admin_auth = build_registry_auth_config(runtime, admin=True)
     registry_base_url = get_string_setting(
         original_data,
         "registry",
@@ -672,6 +691,13 @@ def write_runtime_config(
     for subdir in ("accounts", "private", "certs", "csr"):
         (keyfiles_dir / subdir).mkdir(parents=True, exist_ok=True)
 
+    user_token_file = (
+        registry_user_auth.token_file if registry_user_auth.mode == "oidc" else str(token_dir / "registry-user.json")
+    )
+    admin_token_file = (
+        registry_admin_auth.token_file if registry_admin_auth.mode == "oidc" else str(token_dir / "registry-admin.json")
+    )
+
     lines = [
         "[registry]",
         f"base_url = {quote_string(registry_base_url)}",
@@ -686,9 +712,25 @@ def write_runtime_config(
         [
             "",
             "[auth]",
-            f"user_token_file = {quote_string(str(token_dir / 'registry-user.json'))}",
-            f"admin_token_file = {quote_string(str(token_dir / 'registry-admin.json'))}",
+            f"user_token_file = {quote_string(user_token_file)}",
+            f"admin_token_file = {quote_string(admin_token_file)}",
             "",
+        ]
+    )
+    if registry_user_auth.mode == "oidc" and registry_user_auth.oidc is not None:
+        lines.extend(
+            [
+                "[registry.auth]",
+                'mode = "oidc"',
+                f"issuer = {quote_string(registry_user_auth.oidc.issuer)}",
+                f"client_id = {quote_string(registry_user_auth.oidc.client_id)}",
+                "scopes = [" + ", ".join(quote_string(scope) for scope in registry_user_auth.oidc.scopes) + "]",
+                f"require_https = {'true' if registry_user_auth.oidc.require_https else 'false'}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
             "[ca]",
             f"base_url = {quote_string(ca_base_url)}",
             f"account_keys_dir = {quote_string(str(keyfiles_dir / 'accounts'))}",
@@ -714,7 +756,27 @@ def write_runtime_config(
     return config_path
 
 
-def ensure_registry_logins(cli_bin: str, config_path: Path, credentials: BootstrapCredentials) -> None:
+def ensure_registry_logins(
+    cli_bin: str,
+    config_path: Path,
+    *,
+    auth_mode: str,
+    credentials: BootstrapCredentials | None,
+) -> None:
+    if auth_mode == "oidc":
+        user_status = load_json_output(run_command([cli_bin, "--config", str(config_path), "auth", "status", "--json"]))
+        admin_status = load_json_output(
+            run_command([cli_bin, "--config", str(config_path), "admin", "auth", "status", "--json"])
+        )
+        if not user_status.get("authenticated"):
+            raise BootstrapError("registry.auth.mode=oidc 时请先执行 acps-cli auth login 完成用户登录")
+        if not admin_status.get("authenticated"):
+            raise BootstrapError("registry.auth.mode=oidc 时请先执行 acps-cli admin auth login 完成管理员登录")
+        log("检测到现有 registry OIDC user/admin session，跳过用户名密码登录")
+        return
+
+    if credentials is None:
+        raise BootstrapError("local 模式缺少 Registry 用户/管理员凭据")
     run_command(
         [
             cli_bin,
@@ -1106,14 +1168,19 @@ def bootstrap_registry_profile(
     original_config_path: Path,
     output_root: Path,
     install_dir: Path | None,
-    credentials: BootstrapCredentials,
+    credentials: BootstrapCredentials | None,
     approval_comments: str,
 ) -> dict[str, Any]:
     profile_dir = output_root / "registry-server-9002"
     work_root = profile_dir / WORK_DIR_NAME
     profile_dir.mkdir(parents=True, exist_ok=True)
     config_path = write_runtime_config(original_data, original_config_path, work_root)
-    ensure_registry_logins(cli_bin, config_path, credentials)
+    ensure_registry_logins(
+        cli_bin,
+        config_path,
+        auth_mode=registry_auth_mode(original_data, original_config_path),
+        credentials=credentials,
+    )
 
     service_acs_path = profile_dir / REGISTRY_SERVICE_ACS_FILE_NAME
     probe_acs_path = profile_dir / REGISTRY_PROBE_ACS_FILE_NAME
@@ -1220,14 +1287,19 @@ def bootstrap_mq_profile(
     original_config_path: Path,
     output_root: Path,
     install_dir: Path | None,
-    credentials: BootstrapCredentials,
+    credentials: BootstrapCredentials | None,
     approval_comments: str,
 ) -> dict[str, Any]:
     profile_dir = output_root / "mq-auth-server"
     work_root = profile_dir / WORK_DIR_NAME
     profile_dir.mkdir(parents=True, exist_ok=True)
     config_path = write_runtime_config(original_data, original_config_path, work_root)
-    ensure_registry_logins(cli_bin, config_path, credentials)
+    ensure_registry_logins(
+        cli_bin,
+        config_path,
+        auth_mode=registry_auth_mode(original_data, original_config_path),
+        credentials=credentials,
+    )
 
     service_acs_path = profile_dir / MQ_SERVICE_ACS_FILE_NAME
     probe_acs_path = profile_dir / MQ_PROBE_ACS_FILE_NAME
@@ -1336,14 +1408,19 @@ def bootstrap_rabbitmq_profile(
     original_config_path: Path,
     output_root: Path,
     install_dir: Path | None,
-    credentials: BootstrapCredentials,
+    credentials: BootstrapCredentials | None,
     approval_comments: str,
 ) -> dict[str, Any]:
     profile_dir = output_root / "rabbitmq"
     work_root = profile_dir / WORK_DIR_NAME
     profile_dir.mkdir(parents=True, exist_ok=True)
     config_path = write_runtime_config(original_data, original_config_path, work_root)
-    ensure_registry_logins(cli_bin, config_path, credentials)
+    ensure_registry_logins(
+        cli_bin,
+        config_path,
+        auth_mode=registry_auth_mode(original_data, original_config_path),
+        credentials=credentials,
+    )
 
     acs_path = profile_dir / RABBITMQ_ACS_FILE_NAME
     acs_payload = copy_static_acs(RABBITMQ_ACS_FILE_NAME, acs_path)
@@ -1428,14 +1505,19 @@ def bootstrap_redis_profile(
     original_config_path: Path,
     output_root: Path,
     install_dir: Path | None,
-    credentials: BootstrapCredentials,
+    credentials: BootstrapCredentials | None,
     approval_comments: str,
 ) -> dict[str, Any]:
     profile_dir = output_root / "redis"
     work_root = profile_dir / WORK_DIR_NAME
     profile_dir.mkdir(parents=True, exist_ok=True)
     config_path = write_runtime_config(original_data, original_config_path, work_root)
-    ensure_registry_logins(cli_bin, config_path, credentials)
+    ensure_registry_logins(
+        cli_bin,
+        config_path,
+        auth_mode=registry_auth_mode(original_data, original_config_path),
+        credentials=credentials,
+    )
 
     acs_path = profile_dir / REDIS_ACS_FILE_NAME
     acs_payload = copy_static_acs(REDIS_ACS_FILE_NAME, acs_path)
@@ -1504,7 +1586,7 @@ def bootstrap_demo_partner_profile(
     original_config_path: Path,
     output_root: Path,
     install_dir: Path,
-    credentials: BootstrapCredentials,
+    credentials: BootstrapCredentials | None,
     approval_comments: str,
 ) -> dict[str, Any]:
     install_dir = install_dir.expanduser().resolve()
@@ -1512,7 +1594,12 @@ def bootstrap_demo_partner_profile(
     work_root = profile_dir / WORK_DIR_NAME
     profile_dir.mkdir(parents=True, exist_ok=True)
     config_path = write_runtime_config(original_data, original_config_path, work_root)
-    ensure_registry_logins(cli_bin, config_path, credentials)
+    ensure_registry_logins(
+        cli_bin,
+        config_path,
+        auth_mode=registry_auth_mode(original_data, original_config_path),
+        credentials=credentials,
+    )
 
     agent_results: list[dict[str, Any]] = []
     for agent in discover_demo_partner_agents(install_dir):
@@ -1595,7 +1682,7 @@ def bootstrap_demo_leader_profile(
     output_root: Path,
     install_dir: Path,
     demo_partner_install_dir: Path | None,
-    credentials: BootstrapCredentials,
+    credentials: BootstrapCredentials | None,
     approval_comments: str,
 ) -> dict[str, Any]:
     install_dir = install_dir.expanduser().resolve()
@@ -1604,14 +1691,21 @@ def bootstrap_demo_leader_profile(
     work_root = profile_dir / WORK_DIR_NAME
     profile_dir.mkdir(parents=True, exist_ok=True)
     config_path = write_runtime_config(original_data, original_config_path, work_root)
-    ensure_registry_logins(cli_bin, config_path, credentials)
+    ensure_registry_logins(
+        cli_bin,
+        config_path,
+        auth_mode=registry_auth_mode(original_data, original_config_path),
+        credentials=credentials,
+    )
 
+    # Agent ACME/EAB workdir only — never wipe work_root itself (holds runtime acps-cli.toml + tokens).
+    agent_work_root = work_root / "demo-leader"
     log(f"处理 demo-leader Agent: {runtime_spec.name}")
     registration = RegistrationSpec(
         name=runtime_spec.name,
         acs_path=runtime_spec.acs_path,
         cleanup_paths=(
-            work_root,
+            agent_work_root,
             runtime_spec.atr_dir / PROBE_CERT_FILE_NAME,
             runtime_spec.atr_dir / PROBE_KEY_FILE_NAME,
             runtime_spec.atr_dir / TRUST_BUNDLE_FILE_NAME,
@@ -1645,7 +1739,7 @@ def bootstrap_demo_leader_profile(
         cli_bin=cli_bin,
         config_path=config_path,
         trust_bundle_path=runtime_spec.atr_dir / TRUST_BUNDLE_FILE_NAME,
-        work_root=work_root,
+        work_root=agent_work_root,
     )
 
     result = build_demo_leader_result(profile_dir, runtime_spec, aic)
@@ -1818,7 +1912,7 @@ def run_selected_profiles(
     original_config_path: Path,
     output_root: Path,
     install_dir: Path | None,
-    credentials: BootstrapCredentials,
+    credentials: BootstrapCredentials | None,
     registry_install_dir: Path | None,
     mq_auth_install_dir: Path | None,
     rabbitmq_install_dir: Path | None,
@@ -1920,7 +2014,9 @@ def main() -> int:
     install_dir, output_root = resolve_runtime_output_root(args, runtime_dir)
     output_root.mkdir(parents=True, exist_ok=True)
     cli_bin = resolve_cli_bin(args.cli_bin, runtime_dir)
-    credentials = resolve_credentials(args)
+    credentials = (
+        resolve_credentials(args) if registry_auth_mode(original_data, original_config_path) == "local" else None
+    )
     registry_install_dir, mq_auth_install_dir = resolve_server_install_dirs(args)
     rabbitmq_install_dir, redis_install_dir = resolve_infra_install_dirs(args)
     demo_partner_install_dir = resolve_optional_install_dir(

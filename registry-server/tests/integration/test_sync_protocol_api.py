@@ -9,7 +9,7 @@ import pytest
 
 from app.sync import api_protocol
 from app.sync.model import ChangeLog
-from app.utils.aic import generate_aic
+from tests.support.aic import generate_aic
 from tests.support.constants import DEFAULT_LOGIN_VALUE
 from tests.support.database import create_agent_with_change_log, create_user
 

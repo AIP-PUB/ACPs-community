@@ -1,0 +1,21 @@
+---
+# Stage ACS rewrite/assert helpers onto the managed host.
+# acps_release_root is a control-node path; remote shell cannot open it directly.
+
+- name: 确保 staging 目录
+  ansible.builtin.file:
+    path: "{{ acps_runtime_root }}/staging"
+    state: directory
+    mode: "0755"
+
+- name: stage rewrite_acs_endpoints.py
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/scripts/rewrite_acs_endpoints.py"
+    dest: "{{ acps_runtime_root }}/staging/rewrite_acs_endpoints.py"
+    mode: "0755"
+
+- name: stage assert_acs_endpoints.py
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/scripts/assert_acs_endpoints.py"
+    dest: "{{ acps_runtime_root }}/staging/assert_acs_endpoints.py"
+    mode: "0755"

@@ -19,6 +19,17 @@ def _service_module() -> Any:
     return cast("Any", service)
 
 
+def _require_loaded_agent(agent: Agent | None, agent_id: uuid.UUID) -> Agent:
+    if agent is None:
+        raise AgentError(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_name=AgentErrorCode.AGENT_NOT_FOUND,
+            error_msg="Agent not found",
+            input_params={"agent_id": str(agent_id)},
+        )
+    return agent
+
+
 async def create_agent_async(session: AsyncSession, user_id: uuid.UUID, agent_data: dict[str, Any]) -> Agent:
     """创建新 Agent（异步请求路径）。"""
     service_module = _service_module()
@@ -175,7 +186,7 @@ async def update_agent_async(
         "Agent",
         await service_module.get_agent_async(session, agent_id, with_users=False, raise_exception=True),
     )
-    assert agent is not None
+    agent = _require_loaded_agent(agent, agent_id)
 
     service_module._ensure_agent_is_editable(agent, agent_id, user_id)
 
@@ -220,7 +231,7 @@ async def delete_agent_async(
     """删除 Agent（异步请求路径）。"""
     service_module = _service_module()
     agent = await service_module.get_agent_async(session, agent_id, with_users=False, raise_exception=True)
-    assert agent is not None
+    agent = _require_loaded_agent(agent, agent_id)
 
     if agent.created_by_id != user_id:
         raise AgentError(
@@ -263,7 +274,7 @@ async def submit_agent_for_approval_async(session: AsyncSession, agent_id: uuid.
         "Agent",
         await service_module.get_agent_async(session, agent_id, with_users=False, raise_exception=True),
     )
-    assert agent is not None
+    agent = _require_loaded_agent(agent, agent_id)
 
     service_module._ensure_agent_is_transitionable_for_approval(agent, agent_id, action="submitted for review")
     if agent.created_by_id != user_id:
@@ -295,7 +306,7 @@ async def cancel_agent_submission_async(session: AsyncSession, agent_id: uuid.UU
         "Agent",
         await service_module.get_agent_async(session, agent_id, with_users=False, raise_exception=True),
     )
-    assert agent is not None
+    agent = _require_loaded_agent(agent, agent_id)
 
     service_module._ensure_agent_is_transitionable_for_approval(agent, agent_id, action="canceled")
     if agent.created_by_id != user_id:
@@ -333,7 +344,7 @@ async def process_agent_approval_async(
         "Agent",
         await service_module.get_agent_async(session, agent_id, with_users=False, raise_exception=True),
     )
-    assert agent is not None
+    agent = _require_loaded_agent(agent, agent_id)
 
     service_module._ensure_agent_is_transitionable_for_approval(agent, agent_id, action="processed")
 
@@ -362,12 +373,18 @@ async def process_agent_approval_async(
             input_params={"agent_id": str(agent_id), "status": agent.approval_status},
         )
 
+    provider_updated = False
+    if approve:
+        provider_updated = await service_module.apply_verified_provider_snapshot_async(session, agent)
+
     service_module._mark_agent_processed(agent, processor_id=processor_id, approve=approve, comments=comments)
 
     session.add(agent)
     if approve and not agent.aic:
         await service_module.generate_aic_for_agent_async(session, agent)
     else:
+        if approve and provider_updated and agent.aic:
+            await service_module.update_agent_with_changelog_async(session, agent, {"acs": agent.acs})
         await session.flush()
 
     return agent
@@ -405,7 +422,7 @@ async def disable_agent_async(
         "Agent",
         await service_module.get_agent_async(session, agent_id, with_users=False, raise_exception=True),
     )
-    assert agent is not None
+    agent = _require_loaded_agent(agent, agent_id)
     staff_user = await service_module.get_user_async(session, staff_user_id, raise_exception=False)
 
     if not staff_user:
@@ -453,7 +470,7 @@ async def enable_agent_async(session: AsyncSession, agent_id: uuid.UUID, staff_u
         "Agent",
         await service_module.get_agent_async(session, agent_id, with_users=False, raise_exception=True),
     )
-    assert agent is not None
+    agent = _require_loaded_agent(agent, agent_id)
     staff_user = await service_module.get_user_async(session, staff_user_id, raise_exception=False)
 
     if not staff_user:
@@ -632,12 +649,18 @@ def process_agent_approval(
             input_params={"agent_id": str(agent_id), "status": agent.approval_status},
         )
 
+    provider_updated = False
+    if approve:
+        provider_updated = service_module.apply_verified_provider_snapshot(db, agent)
+
     service_module._mark_agent_processed(agent, processor_id=processor_id, approve=approve, comments=comments)
 
     db.add(agent)
     if approve and not agent.aic:
         service_module.generate_aic_for_agent(db, agent)
     else:
+        if approve and provider_updated and agent.aic:
+            service_module.update_agent_with_changelog(db, agent, {"acs": agent.acs})
         db.flush()
 
     return agent

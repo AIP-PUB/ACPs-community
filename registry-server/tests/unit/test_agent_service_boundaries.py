@@ -329,6 +329,86 @@ def test_process_agent_approval_reject_flushes_without_commit(monkeypatch: pytes
     assert db.committed is False
 
 
+def test_process_agent_approval_applies_provider_before_mark_processed(monkeypatch: pytest.MonkeyPatch) -> None:
+    agent_id = uuid.uuid4()
+    processor_id = uuid.uuid4()
+    processor = cast("Any", SimpleNamespace(id=processor_id, roles=[SimpleNamespace(name=RoleType.STAFF)]))
+    db = DummyDb(processor=processor)
+    agent = cast(
+        "Any",
+        SimpleNamespace(
+            id=agent_id,
+            is_active=True,
+            approval_status=ApprovalStatus.PENDING,
+            processed_by_id=None,
+            processed_at=None,
+            process_comments=None,
+            updated_at=None,
+            aic="existing-aic",
+            acs={"provider": {"name": "draft"}},
+        ),
+    )
+    events: list[str] = []
+
+    monkeypatch.setattr(agent_service, "get_agent", lambda *args, **kwargs: agent)
+
+    def fake_apply_verified_provider_snapshot(*args: object, **kwargs: object) -> bool:
+        del args, kwargs
+        events.append("provider")
+        return False
+
+    def fake_mark_agent_processed(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        events.append("mark")
+        agent.approval_status = ApprovalStatus.APPROVED
+        agent.processed_by_id = processor_id
+
+    monkeypatch.setattr(agent_service, "apply_verified_provider_snapshot", fake_apply_verified_provider_snapshot)
+    monkeypatch.setattr(agent_service, "_mark_agent_processed", fake_mark_agent_processed)
+
+    agent_service.process_agent_approval(_as_session(db), agent_id, processor_id, approve=True, comments="ok")
+
+    assert events == ["provider", "mark"]
+
+
+def test_process_agent_approval_existing_aic_updates_changelog_when_provider_changes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    agent_id = uuid.uuid4()
+    processor_id = uuid.uuid4()
+    processor = cast("Any", SimpleNamespace(id=processor_id, roles=[SimpleNamespace(name=RoleType.STAFF)]))
+    db = DummyDb(processor=processor)
+    agent = cast(
+        "Any",
+        SimpleNamespace(
+            id=agent_id,
+            is_active=True,
+            approval_status=ApprovalStatus.PENDING,
+            processed_by_id=None,
+            processed_at=None,
+            process_comments=None,
+            updated_at=None,
+            aic="existing-aic",
+            acs={"provider": {"name": "trusted"}},
+        ),
+    )
+    calls: list[dict[str, object]] = []
+
+    monkeypatch.setattr(agent_service, "get_agent", lambda *args, **kwargs: agent)
+    monkeypatch.setattr(agent_service, "apply_verified_provider_snapshot", lambda *args, **kwargs: True)
+    monkeypatch.setattr(
+        agent_service,
+        "update_agent_with_changelog",
+        lambda current_db, current_agent, payload: calls.append(payload),
+    )
+
+    result = agent_service.process_agent_approval(_as_session(db), agent_id, processor_id, approve=True, comments="ok")
+
+    assert result.approval_status == ApprovalStatus.APPROVED
+    assert calls == [{"acs": agent.acs}]
+    assert db.flushed is True
+
+
 def test_process_agent_approval_non_pending_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     agent_id = uuid.uuid4()
     processor_id = uuid.uuid4()
@@ -366,12 +446,17 @@ def test_generate_aic_for_agent_flushes_without_commit(monkeypatch: pytest.Monke
             approval_status=ApprovalStatus.APPROVED,
             aic=None,
             is_ontology=False,
+            created_by_id=uuid.uuid4(),
             updated_at=None,
             acs=None,
         ),
     )
 
-    monkeypatch.setattr(aic_module, "generate_aic", lambda: "aic-generated")
+    monkeypatch.setattr(aic_module, "generate_aic", lambda **_kwargs: "aic-generated")
+    monkeypatch.setattr(
+        "app.agent.service_acs.ensure_user_aic_provider_code",
+        lambda db, user_id: "ABC123",
+    )
 
     result = agent_service.generate_aic_for_agent(_as_session(db), agent)
 
@@ -487,7 +572,7 @@ def test_update_agent_flushes_without_commit(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_register_entity_flushes_without_commit(monkeypatch: pytest.MonkeyPatch) -> None:
-    ontology_aic = aic_module.generate_ontology_aic()
+    ontology_aic = aic_module.generate_ontology_aic(manager_code="1", provider_code="00001")
     entity_aic = aic_module.generate_entity_aic_from_ontology(ontology_aic)
     ontology_agent = cast(
         "Any",
@@ -965,7 +1050,7 @@ async def test_client_update_agent_route_uses_async_service_without_explicit_com
 async def test_register_entity_route_uses_async_service_without_explicit_commit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    ontology_aic = aic_module.generate_ontology_aic()
+    ontology_aic = aic_module.generate_ontology_aic(manager_code="1", provider_code="00001")
     db = AsyncRecordingDb()
     request = cast(
         "Any",
@@ -974,6 +1059,7 @@ async def test_register_entity_route_uses_async_service_without_explicit_commit(
             endPoints=None,
             entityMeta=None,
             entityUserId=None,
+            certificate=None,
         ),
     )
     current_user = cast("Any", SimpleNamespace(id=uuid.uuid4(), roles=[]))

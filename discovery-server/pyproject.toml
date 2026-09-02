@@ -1,7 +1,7 @@
 [project]
 # 定义包的基础元数据，供安装、分发和工具链识别项目身份。
 name = "discovery-server"
-version = "2.1.0"
+version = "2.2.0"
 description = "Agent Discovery Server"
 authors = [{ name = "Team", email = "team@ioa.pub" }]
 readme = "README.md"
@@ -11,18 +11,21 @@ license-files = ["LICENSE"]
 # 将运行时语法和依赖兼容范围固定在项目支持的 Python 版本内。
 requires-python = ">=3.14,<3.15"
 # 运行时依赖使用“最低已验证版本 + 兼容上限”表达支持窗口；精确安装结果由 uv.lock 固定。
+# base dependencies 是 CPU/API mode（DISCOVERY_MODE=cpu）runtime closure：只需要外部
+# Embedding/LLM API，不加载本地模型。GPU 本地模型推理栈见下方 [project.optional-dependencies].gpu，
+# 离线分析脚本依赖见 [dependency-groups].analysis；两者都不是 CPU/API mode 的运行期需求。
 dependencies = [
     # 第一类：服务框架、数据库与通用基础设施依赖。上限通常收敛到下一个 major，
     # 对兼容面更敏感的库按下一个已验证边界收口。
     "acps-sdk",
-    "aiohttp>=3.13.5,<4.0.0",
+    "aiohttp>=3.14.0,<4.0.0",
     "alembic>=1.18.4,<2.0.0",
     "alembic-postgresql-enum>=1.10.0,<2.0.0",
     "asyncpg>=0.31.0,<1.0.0",
     "beautifulsoup4>=4.14.3,<5.0.0",
     "cbor>=1.0.0,<2.0.0",
     "click>=8.3.3,<9.0.0",
-    "cryptography>=47.0.0,<48.0.0",
+    "cryptography>=48.0.1,<49.0.0",
     "defusedxml>=0.7.1,<1.0.0",
     "fastapi>=0.136.1,<1.0.0",
     "greenlet>=3.5.0,<4.0.0",
@@ -30,39 +33,35 @@ dependencies = [
     "ijson>=3.5.0,<4.0.0",
     "inscriptis>=2.6.0,<3.0.0",
     "lxml>=6.1.0,<7.0.0",
+    "numpy>=2.4.4,<3.0.0",
     "openai>=2.33.0,<3.0.0",
     "pgvector>=0.4.2,<1.0.0",
     "psutil>=7.2.2,<8.0.0",
     "psycopg2-binary>=2.9.12,<3.0.0",
     "pydantic>=2.12.0,<3.0.0",
-    "pydantic-settings>=2.14.0,<3.0.0",
+    "pydantic-settings>=2.14.2,<3.0.0",
     "python-dotenv>=1.2.2,<2.0.0",
-    "python-multipart>=0.0.27,<1.0.0",
+    "python-multipart>=0.0.31,<1.0.0",
     "pyyaml>=6.0.3,<7.0.0",
     "requests>=2.33.1,<3.0.0",
     "sqlalchemy>=2.0.49,<2.1.0",
     "sqlmodel>=0.0.38,<0.1.0",
-    "starlette>=1.0.0,<2.0.0",
+    "starlette>=1.0.1,<2.0.0",
     "structlog>=25.5.0,<26.0.0",
     "uvicorn>=0.46.0,<1.0.0",
+    "aiokafka>=0.13.0",
+]
 
-    # 第二类：科学计算、检索与数据处理依赖。上限收在下一个 feature 或 minor 边界，
-    # 避免数值栈、索引格式和数据解析行为在宽区间内漂移。
-    "dashscope>=1.25.17,<2.0.0",
-    "ir-datasets>=0.5.11,<0.6.0",
-    "numpy>=2.4.4,<3.0.0",
-    "pandas>=3.0.2,<4.0.0",
-    "scikit-learn>=1.8.0,<1.9.0",
-    "scipy>=1.17.1,<1.18.0",
-    "sentencepiece>=0.2.1,<0.3.0",
-
-    # 第三类：模型推理与 embedding 强耦合栈。上限固定到当前验证 minor，
-    # 保证 torch、transformers、peft 与 sentence-transformers 组合不被跨 minor 漂移打破。
+[project.optional-dependencies]
+# GPU 本地模型推理栈（DISCOVERY_MODE=gpu 才需要）：BGE-M3 embedding、可选 reranker 本地加载、
+# torch/transformers/peft/accelerate 训练与推理生态。CPU/API mode 不安装这组依赖。
+gpu = [
     "accelerate>=1.13.0,<1.14.0",
     "datasets>=4.8.5,<4.9.0",
     "flagembedding>=1.4.0,<1.5.0",
     "peft>=0.19.1,<0.20.0",
     "sentence-transformers>=5.4.1,<5.5.0",
+    "sentencepiece>=0.2.1,<0.3.0",
     "torch>=2.11.0,<2.12.0",
     "transformers>=5.7.0,<5.8.0",
 ]
@@ -70,6 +69,7 @@ dependencies = [
 [dependency-groups]
 # 开发依赖同样使用区间约束表达支持窗口，精确解析结果继续由 uv.lock 固定。
 dev = [
+    "aiosqlite>=0.22.1",
     "bandit>=1.8.0,<2.0.0",
     "commitizen>=4.4.0,<5.0.0",
     "mypy>=1.15.0,<2.0.0",
@@ -83,6 +83,10 @@ dev = [
     "types-defusedxml>=0.7.0,<1.0.0",
     "types-psycopg2>=2.9.0,<3.0.0",
 ]
+# 离线技能聚类分析脚本（scripts/analysis/cluster.py）专用依赖，不属于 CPU/API 或 GPU
+# 运行期 closure，也不进入发布 wheel/lockfile；只在需要跑该脚本时手动
+# `uv sync --group analysis` 安装。
+analysis = ["scikit-learn>=1.8.0,<1.9.0", "scipy>=1.17.1,<1.18.0"]
 
 [build-system]
 # 构建阶段只依赖 hatchling，统一 wheel 与源码分发的打包行为。
@@ -174,8 +178,18 @@ module = [
     "pgvector.sqlalchemy",   # SQLAlchemy 向量列类型与相似度查询扩展
     "sklearn.cluster",       # 聚类分析脚本使用的叶子模块
     "sklearn.preprocessing", # 特征预处理脚本使用的叶子模块
+    "aiokafka",              # Kafka 异步客户端，无官方类型存根
+    "aiokafka.*",            # 所有子模块（errors, structs 等）
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# alive-sync 测试辅助类（FakeStore / FakeClient 等）使用了 mock 和内部测试
+# 辅助函数，对严格类型要求做适当放宽，避免过度约束测试代码可读性。
+module = ["tests.unit.heartbeat_sync.*", "tests.e2e.alive_sync.*"]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
 
 [tool.bandit]
 # 测试与迁移脚本不纳入安全门禁，避免样例代码和一次性脚本稀释应用层问题。
@@ -187,6 +201,6 @@ skips = ["B608"]
 # 使用 Conventional Commits 作为版本与变更日志的来源。
 name = "cz_conventional_commits"
 # 与项目发布版本保持一致，便于本地校验和发布流程共享同一版本号。
-version = "2.1.0"
+version = "2.2.0"
 # 标签统一采用 v<version> 形式，便于发布脚本和历史检索。
 tag_format = "v$version"

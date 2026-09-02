@@ -1,6 +1,6 @@
 [project]
 name = "mq-auth-server"
-version = "2.1.0"
+version = "2.2.0"
 description = "RabbitMQ HTTP auth backend and ACL management service for ACPs"
 readme = "README.md"
 license = "MulanPSL-2.0"
@@ -8,7 +8,8 @@ license-files = ["LICENSE"]
 requires-python = ">=3.14"
 dependencies = [
     "cachetools>=5.5",
-    "fastapi>=0.115",
+    "fastapi>=0.136.1,<1.0.0",
+    "starlette>=1.0.1,<2.0.0",
     "httpx>=0.28",
     "opentelemetry-exporter-otlp-proto-http>=1.28",
     "opentelemetry-instrumentation-fastapi>=0.49b0",
@@ -26,10 +27,12 @@ mq-auth-server = "app.main:main"
 
 [dependency-groups]
 dev = [
+    "aio-pika>=9.5",
     "bandit[toml]>=1.8",
     "commitizen>=4.4",
     "mypy>=1.13",
     "pre-commit>=4.0",
+    "pip-audit>=2.10.0,<3.0.0",
     "pytest>=8.3",
     "pytest-asyncio>=0.25",
     "pytest-cov>=6.0",
@@ -103,9 +106,13 @@ asyncio_mode = "auto"
 markers = ["unit: 单元测试", "integration: 集成测试", "e2e: 端到端测试", "performance: 性能测试"]
 addopts = "--strict-markers -ra"
 
+[tool.bandit]
+# 测试不纳入安全门禁，避免 assert 等测试惯用法稀释应用层问题。
+exclude_dirs = ["tests"]
+
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "2.1.0"
+version = "2.2.0"
 tag_format = "v$version"
 version_files = ["pyproject.toml:^version"]
 update_changelog_on_bump = true

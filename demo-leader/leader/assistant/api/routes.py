@@ -11,13 +11,26 @@ Leader Agent Platform - API Routes
 异步执行模式：/submit 在任务编排之后就返回，后续的任务执行和结果返回是异步的。
 """
 
+import asyncio
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from acps_sdk.aip.aip_group_runtime import normalize_group_id
-from fastapi import APIRouter, HTTPException, Query, status
+from acps_sdk.amp import AuditAction, AuditActor, AuditBody, AuditResult, AuditTarget
+from acps_sdk.oidc import HumanPrincipal, audit_actor_from_principal
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import StreamingResponse
 
+from leader.assistant.amp_setup import LEADER_EMITTER
+
+from ..auth import (
+    get_request_principal,
+    issue_stream_token,
+    oidc_enabled,
+    require_leader_user,
+    validate_stream_token,
+)
 from ..core.task_execution_manager import (
     TaskExecutionManager,
     get_task_execution_manager,
@@ -34,6 +47,7 @@ from ..models.exceptions import (
     SessionExpiredError,
     SessionNotFoundError,
 )
+from ..security import bind_session_principal, can_manage_group, ensure_session_owner
 from .schemas import (
     CancelRequest,
     CancelResponse,
@@ -45,8 +59,11 @@ from .schemas import (
     GroupRuntimeView,
     LeaderResult,
     LogResponse,
+    LogResult,
     ResultResponse,
     ScenarioRuntimeView,
+    StreamTokenResponse,
+    StreamTokenResult,
     SubmitRequest,
     SubmitResponse,
 )
@@ -112,6 +129,57 @@ def _get_group_manager() -> Any:
             detail={"code": 503001, "message": "Group manager not available"},
         )
     return group_manager
+
+
+def _session_not_found(session_id: SessionId) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={
+            "code": "SESSION_NOT_FOUND",
+            "message": f"Session not found: {session_id}",
+        },
+    )
+
+
+def _get_session_or_404(session_id: SessionId) -> Any:
+    session = _get_session_manager().get_session(session_id)
+    if not session:
+        raise _session_not_found(session_id)
+    return session
+
+
+def _ensure_session_access(
+    session: Any,
+    principal: HumanPrincipal | None,
+    *,
+    allow_operator: bool = False,
+) -> None:
+    if not oidc_enabled():
+        return
+    if principal is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing bearer token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    ensure_session_owner(session, principal, allow_operator=allow_operator)
+
+
+def _ensure_group_action(session: Any, principal: HumanPrincipal | None) -> None:
+    if not oidc_enabled():
+        return
+    if principal is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing bearer token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if can_manage_group(principal) or getattr(session, "user_id", None) == principal.principal_id:
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You are not allowed to manage this group",
+    )
 
 
 def _derive_session_group_id(session: Any) -> str | None:
@@ -227,7 +295,10 @@ def _session_to_leader_result(session: Any) -> LeaderResult:
     summary="提交用户输入",
     description="提交用户输入到 Leader Agent，触发意图分析和任务处理。",
 )
-async def submit(request: SubmitRequest) -> SubmitResponse:
+async def submit(
+    request: SubmitRequest,
+    principal: HumanPrincipal | None = Depends(require_leader_user),
+) -> SubmitResponse:
     """
     提交用户输入。
 
@@ -239,7 +310,15 @@ async def submit(request: SubmitRequest) -> SubmitResponse:
     """
     try:
         orchestrator = _get_orchestrator()
-        response = await orchestrator.handle_submit(request)
+        if oidc_enabled() and principal is not None:
+            request.user_id = principal.principal_id
+            if request.session_id:
+                session = _get_session_manager().get_session(request.session_id)
+                if session is not None:
+                    _ensure_session_access(session, principal, allow_operator=False)
+                    bind_session_principal(session, principal)
+
+        response = await orchestrator.handle_submit(request, principal=principal)
         return response
 
     except SessionNotFoundError as e:
@@ -349,6 +428,7 @@ async def get_result(
         alias="taskId",
         description="可选的任务 ID，不指定则返回最新任务的状态",
     ),
+    principal: HumanPrincipal | None = Depends(get_request_principal),
 ) -> ResultResponse:
     """
     获取任务结果（支持异步执行模式）。
@@ -362,18 +442,8 @@ async def get_result(
     }
     """
     try:
-        session_manager = _get_session_manager()
-
-        session = session_manager.get_session(session_id)
-
-        if not session:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={
-                    "code": "SESSION_NOT_FOUND",
-                    "message": f"Session not found: {session_id}",
-                },
-            )
+        session = _get_session_or_404(session_id)
+        _ensure_session_access(session, principal, allow_operator=True)
 
         # 将 Session 转换为 LeaderResult 视图
         leader_result = _session_to_leader_result(session)
@@ -406,8 +476,13 @@ async def get_result(
     summary="获取群组运行态",
     description="返回当前 session 对应群组的成员连接状态、待确认邀请和运行态快照。",
 )
-async def get_group_runtime(session_id: SessionId) -> GroupRuntimeResponse:
+async def get_group_runtime(
+    session_id: SessionId,
+    principal: HumanPrincipal | None = Depends(get_request_principal),
+) -> GroupRuntimeResponse:
     try:
+        session = _get_session_or_404(session_id)
+        _ensure_session_access(session, principal, allow_operator=True)
         group_manager = _get_group_manager()
         runtime = group_manager.get_group_runtime(session_id)
         return GroupRuntimeResponse(result=GroupRuntimeView(**runtime))
@@ -440,8 +515,11 @@ async def get_group_runtime(session_id: SessionId) -> GroupRuntimeResponse:
 async def request_group_member_leave(
     session_id: SessionId,
     partner_aic: str,
+    principal: HumanPrincipal | None = Depends(get_request_principal),
 ) -> GroupMemberActionResponse:
     try:
+        session = _get_session_or_404(session_id)
+        _ensure_group_action(session, principal)
         group_manager = _get_group_manager()
         runtime = group_manager.get_group_runtime(session_id)
         await group_manager.request_partner_leave(session_id, partner_aic)
@@ -485,8 +563,11 @@ async def request_group_member_leave(
 async def force_remove_group_member(
     session_id: SessionId,
     partner_aic: str,
+    principal: HumanPrincipal | None = Depends(get_request_principal),
 ) -> GroupMemberActionResponse:
     try:
+        session = _get_session_or_404(session_id)
+        _ensure_group_action(session, principal)
         group_manager = _get_group_manager()
         result = await group_manager.force_remove_partner(session_id, partner_aic)
         return GroupMemberActionResponse(
@@ -534,6 +615,7 @@ async def force_remove_group_member(
 async def get_log(
     session_id: SessionId,
     limit: int = 100,
+    principal: HumanPrincipal | None = Depends(get_request_principal),
 ) -> LogResponse:
     """
     获取事件日志。
@@ -541,32 +623,20 @@ async def get_log(
     返回 Session 的事件日志列表。
     """
     try:
-        session_manager = _get_session_manager()
-        session = session_manager.get_session(session_id)
-
-        if not session:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={
-                    "code": "SESSION_NOT_FOUND",
-                    "message": f"Session not found: {session_id}",
-                },
-            )
+        session = _get_session_or_404(session_id)
+        _ensure_session_access(session, principal, allow_operator=True)
 
         # 获取事件日志
         events = session.event_log[-limit:] if limit > 0 else session.event_log
 
+        has_more = len(session.event_log) > len(events)
         return LogResponse(
-            session_id=session_id,
-            events=[
-                {
-                    "timestamp": e.timestamp,
-                    "event_type": e.event_type,
-                    "event_data": e.event_data,
-                }
-                for e in events
-            ],
-            total_count=len(session.event_log),
+            result=LogResult(
+                sessionId=session_id,
+                items=events,
+                nextCursor=None,
+                hasMore=has_more,
+            )
         )
 
     except HTTPException:
@@ -597,6 +667,7 @@ async def get_log(
 async def cancel_task(
     session_id: SessionId,
     request: CancelRequest | None = None,
+    principal: HumanPrincipal | None = Depends(get_request_principal),
 ) -> CancelResponse:
     """
     取消任务。
@@ -606,16 +677,8 @@ async def cancel_task(
     """
     try:
         session_manager = _get_session_manager()
-        session = session_manager.get_session(session_id)
-
-        if not session:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={
-                    "code": "SESSION_NOT_FOUND",
-                    "message": f"Session not found: {session_id}",
-                },
-            )
+        session = _get_session_or_404(session_id)
+        _ensure_session_access(session, principal, allow_operator=True)
 
         # 取消活跃任务并尝试通知 Partner
         cancelled_tasks = []
@@ -667,6 +730,28 @@ async def cancel_task(
         session.closed_at = now_iso_str
         session.closed_reason = SessionClosedReason.USER_CANCEL
 
+        # A3: 审计——用户取消任务
+        try:
+            actor = (
+                audit_actor_from_principal(principal)
+                if principal is not None
+                else AuditActor(
+                    id=getattr(request, "user_id", None) or "anonymous",
+                    type="human",
+                )
+            )
+            await LEADER_EMITTER.emit(
+                AuditBody(
+                    actor=actor,
+                    action=AuditAction(name="cancel_task", type="task_management"),
+                    target=AuditTarget(type="session", id=session_id),
+                    result=AuditResult(status="success"),
+                ),
+                trace_id=session_id,
+            )
+        except Exception:
+            logger.warning("Audit emit A3 failed", exc_info=True)
+
         # 如果请求删除 Session
         if request and request.delete_session:
             session_deleted = await session_manager.delete_session(session_id)
@@ -694,6 +779,129 @@ async def cancel_task(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "INTERNAL_ERROR", "message": "服务器内部错误"},
         )
+
+
+@router.post(
+    "/stream-token/{session_id}",
+    response_model=StreamTokenResponse,
+    responses={
+        404: {"model": CommonError, "description": "Session 不存在"},
+    },
+    summary="签发短期 stream token",
+    description="为浏览器流式订阅签发短期、仅绑定单个 session 的 stream token。",
+)
+async def create_stream_token(
+    session_id: SessionId,
+    principal: HumanPrincipal | None = Depends(get_request_principal),
+) -> StreamTokenResponse:
+    session = _get_session_or_404(session_id)
+    _ensure_session_access(session, principal, allow_operator=True)
+    if principal is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing bearer token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token, expires_at = issue_stream_token(
+        session_id=session_id,
+        principal=principal,
+        allow_elevated_access=can_manage_group(principal)
+        and getattr(session, "user_id", None) != principal.principal_id,
+    )
+    return StreamTokenResponse(
+        result=StreamTokenResult(
+            sessionId=session_id,
+            streamToken=token,
+            expiresAt=datetime.fromtimestamp(expires_at, tz=UTC).isoformat(),
+        )
+    )
+
+
+# =============================================================================
+# GET /stream/{session_id} - 流式事件推送（SSE）
+# =============================================================================
+
+_SSE_HEARTBEAT_INTERVAL = 25  # 秒，防止代理层超时断连
+
+
+@router.get(
+    "/stream/{session_id}",
+    response_class=StreamingResponse,
+    responses={
+        200: {"description": "SSE 流，每行格式 data: <json>\\n\\n"},
+        404: {"model": CommonError, "description": "Session 不存在"},
+    },
+    summary="获取流式执行事件",
+    description="""
+订阅指定 Session 的实时 SSE 事件流。
+
+适用于 Session 使用 **Streaming** 模式与 Partner 交互的场景：
+当 AipExecutor 从 Partner 接收 SSE 事件时，会通过 StreamEventBus 实时推送给此端点的消费方。
+
+**事件格式**：每条事件是 `data: <StreamResponse JSON>\\n\\n`
+**心跳**：每 25s 发送一次 `: heartbeat\\n\\n` 防止连接超时
+**结束信号**：`data: {"done": true}\\n\\n` 表示流已结束，客户端可主动断开
+""",
+)
+async def stream_session_events(
+    session_id: SessionId,
+    request: Request,
+    stream_token: str | None = Query(default=None, alias="streamToken"),
+    principal: HumanPrincipal | None = Depends(get_request_principal),
+) -> StreamingResponse:
+    """订阅 Session 的 Streaming 事件流（Server-Sent Events）。"""
+    session = _get_session_or_404(session_id)
+    if oidc_enabled():
+        if stream_token:
+            record = validate_stream_token(session_id=session_id, token=stream_token)
+            if record is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid stream token",
+                )
+            if getattr(session, "user_id", None) != record.principal_id and not record.allow_elevated_access:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Stream token owner mismatch",
+                )
+        else:
+            _ensure_session_access(session, principal, allow_operator=True)
+
+    from ..core.stream_event_bus import get_stream_event_bus
+
+    bus = get_stream_event_bus()
+    queue = bus.subscribe(session_id)
+
+    async def _generate():
+        try:
+            while True:
+                if await request.is_disconnected():
+                    break
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=_SSE_HEARTBEAT_INTERVAL)
+                except TimeoutError:
+                    # 发送心跳，保持连接
+                    yield ": heartbeat\n\n"
+                    continue
+
+                if event is None:
+                    # 流结束哨兵 → 通知客户端关闭
+                    yield 'data: {"done":true}\n\n'
+                    break
+
+                yield f"data: {event.model_dump_json(exclude_none=True)}\n\n"
+        finally:
+            bus.unsubscribe(session_id, queue)
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # =============================================================================

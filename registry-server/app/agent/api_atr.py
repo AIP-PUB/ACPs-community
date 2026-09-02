@@ -223,10 +223,11 @@ async def register_entity_endpoint(
     - ontologyAic: 本体 AIC（必填）
     - endPoints: 实体的服务端点列表（可选）
     - entityMeta: 实体的额外元数据（可选）
+    - certificate: 实体证书签发配置（可选，写入实体 ACS）
 
     响应体 (EntityRegistrationResponse):
     - status: "ok" | "error"
-    - result: { ontologyAic, entityAic, endPoints, entityMeta }
+    - result: { ontologyAic, entityAic, endPoints, entityMeta, certificate }
     - error: { code, message, data } (仅当 status 为 "error" 时)
 
     响应码:
@@ -301,6 +302,11 @@ async def register_entity_endpoint(
     if request.endPoints:
         end_points = [ep.model_dump() for ep in request.endPoints]
 
+    certificate = None
+    if request.certificate is not None:
+        dumped_certificate = request.certificate.model_dump(mode="json", exclude_none=True)
+        certificate = dumped_certificate or None
+
     # 调用服务层进行实体注册
     result = await register_entity_async(
         session=db,
@@ -308,6 +314,7 @@ async def register_entity_endpoint(
         end_points=end_points,
         entity_meta=request.entityMeta,
         entity_user_id=request.entityUserId,
+        certificate=certificate,
     )
 
     return JSONResponse(

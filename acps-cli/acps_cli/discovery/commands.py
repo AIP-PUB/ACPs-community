@@ -20,12 +20,13 @@ from acps_cli.discovery.client import (
     run_dsp_action,
     trigger_sync,
 )
-from acps_cli.registry.config import CliOverrides as RegistryCliOverrides
-from acps_cli.registry.config import Config as RegistryConfig
-from acps_cli.registry.config import ConfigError as RegistryConfigError
 from acps_cli.registry.storage import TokenStore
+from acps_cli.shared.auth_session import AuthSessionError, OidcAuthSessionManager
 from acps_cli.shared.cli_logging import setup_cli_logging
 from acps_cli.shared.config import load_toml_config
+from acps_cli.shared.flexible_group import FlexibleGroup
+from acps_cli.shared.runtime import RootCliRuntime
+from acps_cli.shared.unified_config import build_registry_auth_config
 
 LOGGER = logging.getLogger(__name__)
 
@@ -64,24 +65,28 @@ def _resolve_registry_admin_auth_headers(ctx_obj: dict[str, Any]) -> dict[str, s
     """从本地管理员 token 文件解析 Registry 管理认证头。"""
     toml_data = ctx_obj.get("toml_data") or {}
     config_dir = ctx_obj.get("config_dir")
-    try:
-        config = RegistryConfig(
-            toml_section=toml_data.get("registry", {}),
-            overrides=RegistryCliOverrides(),
-            credential_env_prefix="REGISTRY_ADMIN",
-            default_token_name="registry-admin.json",  # noqa: S106 - token file name, not credential
-            config_file_dir=config_dir,
-        )
-    except RegistryConfigError as exc:
-        raise click.ClickException(str(exc)) from exc
+    runtime = RootCliRuntime(
+        config_path=None,
+        verbose=False,
+        toml_data=toml_data,
+        resolved_config_path=None,
+        config_dir=config_dir,
+    )
+    auth_config = build_registry_auth_config(runtime, admin=True)
+    if auth_config.mode == "oidc":
+        try:
+            access_token = OidcAuthSessionManager(auth_config).get_access_token()
+        except AuthSessionError as exc:
+            raise click.ClickException(str(exc)) from exc
+        return {"Authorization": f"Bearer {access_token}"}
 
-    token_data = TokenStore(config.token_file).load()
-    access_token = token_data.get("access_token") if token_data else None
-    if not access_token:
+    token_data = TokenStore(Path(auth_config.token_file)).load()
+    access_token_value = token_data.get("access_token") if token_data else None
+    if not isinstance(access_token_value, str) or not access_token_value:
         raise click.ClickException(
             "Registry admin token is required for webhook registration. Run acps-cli admin auth login first"
         )
-    return {"Authorization": f"Bearer {access_token}"}
+    return {"Authorization": f"Bearer {access_token_value}"}
 
 
 def _echo_json(payload: dict[str, Any]) -> None:
@@ -166,7 +171,7 @@ def _build_query_payload(options: QueryPayloadOptions) -> dict[str, Any]:
     return payload
 
 
-@click.group()
+@click.group(cls=FlexibleGroup)
 @click.option("--config", "config_path", default=None, help="Path to acps-cli.toml config file.")
 @click.option("--server-url", default=None, help="Override discovery server base URL")
 @click.option("--verbose", is_flag=True, help="Enable verbose logging")

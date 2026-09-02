@@ -227,7 +227,7 @@ def create_semantic_matcher() -> Any | None:
     from app.core.config import settings
     from app.discovery.semantic_matcher import SemanticAgentMatcher
 
-    mode = (settings.DISCOVERY_MODE or "gpu").strip().lower()
+    mode = (settings.DISCOVERY_MODE or "cpu").strip().lower()
     if mode == "cpu":
         if not settings.EMBEDDING_BASE_URL.strip():
             click.echo("[WARN] 未配置 EMBEDDING_BASE_URL，seed 期间跳过语义索引初始化。")

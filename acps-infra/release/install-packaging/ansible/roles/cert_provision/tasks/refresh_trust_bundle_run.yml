@@ -1,0 +1,127 @@
+---
+# refresh_trust_bundle_run.yml — refresh-trust 完整路径（可被 playbook / upgrade follow 复用）
+#
+# 期望已在 localhost 上执行（connection: local）。不续叶子。
+# 调用方：playbooks/refresh-trust-bundle.yml；upgrade.yml follow（§9.5.9 / BP13）。
+
+- name: 检查 issuer force/pending（刷新前可观测告警）
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ acps_control_root }}/work/certs/.force-cert-renew"
+    - "{{ acps_control_root }}/work/certs/.issuer-material-sha256.pending"
+  register: _tb_issuer_flags
+
+- name: WARNING — issuer 旋转进行中，建议先收口叶证 / renew
+  when: (_tb_issuer_flags.results | selectattr('stat.exists') | list | length) > 0
+  ansible.builtin.debug:
+    msg: >-
+      refresh-trust-bundle: issuer force/pending 仍在
+      （{{ _tb_issuer_flags.results | selectattr('stat.exists') | map(attribute='item') | list | join(', ') }}）。
+      建议先完成 renew-certs / site 证书收口；本 play 不 clear force。
+
+- name: 从 ca_server 下载 trust-bundle
+  ansible.builtin.include_role:
+    name: cert_provision
+    tasks_from: refresh_trust_download.yml
+
+- name: 向 consumer 分发 trust（按 profile 文件名）
+  ansible.builtin.include_role:
+    name: cert_provision
+    tasks_from: refresh_trust_distribute.yml
+
+- name: 计算 refresh recreate 并集（含 broker 依赖，去重）
+  when:
+    - acps_trust_bundle_reload | default(true) | bool
+    - (acps_trust_bundle_changed_profiles | default([])) | length > 0
+  ansible.builtin.set_fact:
+    _tb_recreate_set: >-
+      {{
+        (
+          (acps_trust_bundle_changed_profiles | default([]))
+          + (
+              ['mq-auth-server', 'monitor-server']
+              if ('redis' in (acps_trust_bundle_changed_profiles | default([])))
+              else []
+            )
+          + (
+              ['demo-partner', 'demo-leader']
+              if ('rabbitmq' in (acps_trust_bundle_changed_profiles | default([])))
+              else []
+            )
+          + (
+              ['rabbitmq']
+              if ('mq-auth-server' in (acps_trust_bundle_changed_profiles | default([])))
+              else []
+            )
+        )
+        | unique
+        | list
+      }}
+
+- name: 摘要 refresh recreate 并集
+  when:
+    - acps_trust_bundle_reload | default(true) | bool
+    - (acps_trust_bundle_changed_profiles | default([])) | length > 0
+  ansible.builtin.debug:
+    msg: >-
+      refresh recreate_set={{ _tb_recreate_set | join(',') }}
+      (changed={{ acps_trust_bundle_changed_profiles | join(',') }}; 无二次 reload_dependents)
+
+- name: trust 变更后单次并集 recreate（§9.5.4）
+  when:
+    - acps_trust_bundle_reload | default(true) | bool
+    - (acps_trust_bundle_changed_profiles | default([])) | length > 0
+  ansible.builtin.include_role:
+    name: cert_provision
+    tasks_from: renew_recreate.yml
+  loop: "{{ _tb_recreate_set }}"
+  loop_control:
+    loop_var: _renew_profile
+
+- name: redis trust 变更后单次 bounce amp_forwarder（§9.5.4 并集补齐）
+  when:
+    - acps_trust_bundle_reload | default(true) | bool
+    - "'redis' in (acps_trust_bundle_changed_profiles | default([]))"
+  block:
+    - name: bounce amp on demo hosts
+      when: (_dep.enabled | default(true) | bool)
+      ansible.builtin.include_role:
+        name: cert_provision
+        tasks_from: reload_dependent_one.yml
+      loop:
+        - profile: amp-forwarder
+          target_group: demo_partner
+          compose_services: amp_forwarder
+          enabled: "{{ (demo_partner_enabled | default(true) | bool) and (amp_forwarder_enabled | default(true) | bool) }}"
+        - profile: amp-forwarder
+          target_group: demo_leader
+          compose_services: amp_forwarder
+          enabled: "{{ (demo_leader_enabled | default(true) | bool) and (amp_forwarder_enabled | default(true) | bool) }}"
+      loop_control:
+        loop_var: _dep
+
+- name: trust/recreate 后同步 TLS digest 侧车（§9.5.2）
+  when:
+    - acps_trust_bundle_reload | default(true) | bool
+    - (acps_trust_bundle_changed_profiles | default([])) | length > 0
+  ansible.builtin.include_role:
+    name: cert_provision
+    tasks_from: persist_profile_tls_digests.yml
+  vars:
+    _persist_digest_profiles: "{{ _tb_recreate_set | default(acps_trust_bundle_changed_profiles) }}"
+
+- name: 摘要已匹配时跳过重建
+  when: (acps_trust_bundle_changed_profiles | default([])) | length == 0
+  ansible.builtin.debug:
+    msg: "No trust consumer files changed — skip reload (force={{ acps_force_trust_bundle_refresh }})"
+
+- name: trust 刷新后基础 smoke（含 TLS 平面硬门禁）
+  when:
+    - acps_trust_bundle_run_probe | default(true) | bool
+    - (acps_trust_bundle_changed_profiles | default([])) | length > 0
+      or (acps_force_trust_bundle_refresh | default(false) | bool)
+  ansible.builtin.include_role:
+    name: smoke_basic
+  vars:
+    acps_smoke_include_demo: "{{ (demo_partner_enabled | bool) or (demo_leader_enabled | bool) }}"

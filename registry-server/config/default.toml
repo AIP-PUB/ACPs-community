@@ -28,6 +28,21 @@ algorithm = "HS256"
 access_token_expire_minutes = 60     # 1 小时
 refresh_token_expire_minutes = 10080 # 7 天
 
+# OIDC 常规参数属于非敏感运行配置，默认在 TOML 中维护；
+# 仅当部署平台需要临时覆写时，再使用 REGISTRY_OIDC_* 环境变量。
+[oidc]
+enabled = false
+issuer = ""
+audience = "registry-api"
+allowed_azp = ["registry-web"]
+client_id = "registry-api"
+algorithms = ["EdDSA"]
+jwks_cache_ttl_seconds = 300
+discovery_cache_ttl_seconds = 300
+leeway_seconds = 30
+require_https = true
+role_source_client_id = "registry-api"
+
 [cors]
 enabled = false                   # 各环境 TOML 可覆盖为 true
 origins = []                      # 各环境 TOML 覆盖为具体域名列表，"*" 表示全放行但会禁用 credentials
@@ -80,9 +95,21 @@ changes_max_limit = 10000
 changes_default_limit = 1000
 webhook_batch_window_seconds = 5
 
+[aic]
+# AIC 第5级版本号。Base36 单字符，取值 1～Z。缺省为 "1"。不提供环境变量覆盖。
+protocol_version = "1"
+# 本 Registry 作为 ARSP 的序号（AIC 第6级）。Base36，1～6 位，取值 1～ZZZZZZ。
+# 允许前导零；1 与 0001 是不同序号。不提供环境变量覆盖。
+arsp_code = "1"
+# AIC 第8级（本体序列号）自动生成长度。Base36，1～9 位。缺省为 6。不提供环境变量覆盖。
+ontology_serial_len = 6
+# AIC 第9级（实体序列号）自动生成长度。Base36，1～9 位。缺省为 6。
+# 仅用于实体 AIC；本体 AIC 的第9级固定为字符 0。不提供环境变量覆盖。
+instance_serial_len = 6
+
 [project]
 name = "agent-registry"
-version = "2.1.0"
+version = "2.2.0"
 
 [smtp]
 smtp_server = ""     # 建议通过 .env 中 SMTP_SERVER 覆盖

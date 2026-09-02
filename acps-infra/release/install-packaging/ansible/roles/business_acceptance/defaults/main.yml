@@ -1,0 +1,9 @@
+---
+# 与 common/defaults 对齐：inventory all.vars / host_vars / -e 可覆盖。
+acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control"
+
+# wait-discovery-alive.yml（D2-only）：day2 / force renew 后 aliveMap 可能滞后。
+# 单次超时默认 480s；失败后默认 settle 90s 再重试一次（不改 business.yml A–D）。
+acps_business_wait_alive_timeout_seconds: 480
+acps_business_wait_alive_retry: true
+acps_business_wait_alive_retry_settle_seconds: 90

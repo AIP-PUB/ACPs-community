@@ -63,6 +63,20 @@ def test_unified_admin_discovery_help_matches_golden_fragments() -> None:
     _assert_fragments_in_order(result.output, _load_fragments("admin-discovery.txt"))
 
 
+def test_unified_monitor_help_matches_golden_fragments() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(
+        main,
+        ["monitor", "--help"],
+        prog_name=PROGRAM_NAME,
+        terminal_width=100,
+    )
+
+    assert result.exit_code == 0
+    _assert_fragments_in_order(result.output, _load_fragments("monitor.txt"))
+
+
 def test_unified_registry_group_help_hides_timeout_override() -> None:
     runner = CliRunner()
 
@@ -89,6 +103,17 @@ def test_unified_entity_help_exposes_mtls_url_override() -> None:
     assert "--mtls-url" in result.output
 
 
+def test_unified_entity_derive_help_is_not_replaced_by_entity_help() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(main, ["entity", "derive", "--help"], prog_name=PROGRAM_NAME, terminal_width=100)
+
+    assert result.exit_code == 0
+    assert "--ontology-aic" in result.output
+    assert "--payload-file" in result.output
+    assert "Manage derived entities." not in result.output
+
+
 def test_unified_auth_help_exposes_change_password() -> None:
     runner = CliRunner()
 
@@ -99,3 +124,19 @@ def test_unified_auth_help_exposes_change_password() -> None:
     assert admin_result.exit_code == 0
     assert "change-password" in user_result.output
     assert "change-password" in admin_result.output
+    assert "logout" in user_result.output
+    assert "logout" in admin_result.output
+
+
+def test_unified_admin_registry_user_help_exposes_reset_password() -> None:
+    runner = CliRunner()
+
+    result = runner.invoke(
+        main,
+        ["admin", "registry", "user", "--help"],
+        prog_name=PROGRAM_NAME,
+        terminal_width=100,
+    )
+
+    assert result.exit_code == 0
+    assert "reset-password" in result.output

@@ -1,0 +1,118 @@
+---
+# persist_profile_tls_digest_one.yml — 单个 profile 的 digest persist（§9.5.2）
+# 期望：_dig_profile
+# 注意：
+# - 路径须在 localhost 上先算好。
+# - 委托任务须显式 ansible_connection（与 distribute_normalize 同构），否则会吃到
+#   renew/refresh play 的 connection: local，侧车落到控制节点 → site 假 recreate。
+# - task-level vars 在 delegated 主机上下文求值，故 connection/become 经
+#   hostvars['localhost']._dig_* 回指控制面 set_fact。
+
+- name: 映射 profile → digest 元数据与目标组
+  ansible.builtin.set_fact:
+    _dig_meta: >-
+      {{
+        {
+          'redis': {
+            'group': 'redis',
+            'dir_rel': 'certs/redis',
+            'files': ['redis-server.pem', 'redis-server.key', 'acps-root-ca.pem'],
+            'sidecar_rel': 'state/redis-tls-material.sha256',
+          },
+          'rabbitmq': {
+            'group': 'rabbitmq',
+            'dir_rel': 'certs/rabbitmq',
+            'files': [
+              'rabbitmq-server.pem', 'rabbitmq-server.key',
+              'rabbitmq-client.pem', 'rabbitmq-client.key',
+              'acps-root-ca.pem',
+            ],
+            'sidecar_rel': 'state/rabbitmq-tls-material.sha256',
+          },
+          'mq-auth-server': {
+            'group': 'mq_auth_server',
+            'dir_rel': 'certs/mq_auth_server',
+            'files': ['server.pem', 'server.key', 'acps-root-ca.pem'],
+            'sidecar_rel': 'state/mq-auth-tls-material.sha256',
+          },
+          'monitor-server': {
+            'group': 'monitor_server',
+            'dir_rel': 'certs/monitor_server',
+            'files': ['acps-root-ca.pem'],
+            'sidecar_rel': 'state/monitor-redis-ca.sha256',
+          },
+          'registry-9002': {
+            'group': 'registry_server',
+            'dir_rel': 'certs/registry_server',
+            'files': ['server.pem', 'server.key', 'trust-bundle.pem'],
+            'sidecar_rel': 'state/registry-tls-material.sha256',
+          },
+        }[_dig_profile] | default({})
+      }}
+
+- name: 无映射的 profile 跳过 digest 持久化
+  when: (_dig_meta | length) == 0
+  ansible.builtin.debug:
+    msg: "persist_tls_digest: skip unknown/non-PEM profile {{ _dig_profile }}"
+
+- name: 解析目标主机并持久化 digest
+  when:
+    - (_dig_meta | length) > 0
+    - (_dig_meta.group in groups)
+    - ((groups[_dig_meta.group] | default([])) | length) > 0
+  block:
+    - name: 在控制面解析目标与绝对路径
+      ansible.builtin.set_fact:
+        _dig_target: "{{ groups[_dig_meta.group] | first }}"
+        _dig_abs_dir: "{{ hostvars[groups[_dig_meta.group] | first].acps_runtime_root | default(acps_runtime_root) }}/{{ _dig_meta.dir_rel }}"
+        _dig_abs_sidecar: "{{ hostvars[groups[_dig_meta.group] | first].acps_runtime_root | default(acps_runtime_root) }}/{{ _dig_meta.sidecar_rel }}"
+        _dig_files: "{{ _dig_meta.files }}"
+        _dig_become: "{{ (hostvars[groups[_dig_meta.group] | first].ansible_become | default(true)) | bool }}"
+        _dig_conn: "{{ hostvars[groups[_dig_meta.group] | first].ansible_connection | default('ssh') }}"
+
+    - name: 确保 TLS digest 侧车父目录（目标机）
+      ansible.builtin.file:
+        path: "{{ hostvars['localhost']._dig_abs_sidecar | dirname }}"
+        state: directory
+        mode: "0755"
+      delegate_to: "{{ hostvars['localhost']._dig_target }}"
+      become: "{{ hostvars['localhost']._dig_become }}"
+      vars:
+        ansible_connection: "{{ hostvars['localhost']._dig_conn }}"
+
+    - name: 收集 TLS 材料单文件 checksum（目标机）
+      ansible.builtin.stat:
+        path: "{{ hostvars['localhost']._dig_abs_dir }}/{{ item }}"
+        checksum_algorithm: sha256
+        get_checksum: true
+      loop: "{{ hostvars['localhost']._dig_files }}"
+      register: _tls_digest_stats
+      delegate_to: "{{ hostvars['localhost']._dig_target }}"
+      become: "{{ hostvars['localhost']._dig_become }}"
+      vars:
+        ansible_connection: "{{ hostvars['localhost']._dig_conn }}"
+
+    - name: 聚合 TLS 材料 digest（控制面）
+      ansible.builtin.set_fact:
+        _tls_material_digest_sha256: >-
+          {{
+            (
+              _tls_digest_stats.results
+              | map(attribute='stat')
+              | map(attribute='checksum')
+              | select('defined')
+              | list
+              | join('|')
+            )
+            | hash('sha256')
+          }}
+
+    - name: 写入 TLS digest 侧车（目标机）
+      ansible.builtin.copy:
+        content: "{{ _tls_material_digest_sha256 }}\n"
+        dest: "{{ hostvars['localhost']._dig_abs_sidecar }}"
+        mode: "0644"
+      delegate_to: "{{ hostvars['localhost']._dig_target }}"
+      become: "{{ hostvars['localhost']._dig_become }}"
+      vars:
+        ansible_connection: "{{ hostvars['localhost']._dig_conn }}"

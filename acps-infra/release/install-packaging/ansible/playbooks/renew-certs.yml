@@ -1,0 +1,96 @@
+---
+# renew-certs.yml — 叶子证书续期 + 分发（**保持 AIC 不变**）
+#
+# 扫描 notAfter ≤ acps_cert_renew_before_days（默认 30）或 force →
+# 对每个 due profile 走 cert_provision：**同 AIC reissue**（acps-cli cert renew）。
+# 材料/AIC 缺失 → fail-stop（禁止 silent delete+recreate）。
+# advertise/SAN 变更例外可走身份 bootstrap（可能换 AIC；见 day2 文档）。
+#
+# 材料变更后 recreate + reload_dependents 仍由 cert_provision main 执行一次。
+#
+# Usage:
+# ansible-playbook -i inventories/hosts.yml playbooks/renew-certs.yml \
+# -e @inventories/secrets.yml
+# ansible-playbook... -e acps_force_cert_renew=true
+# ansible-playbook... -e '{"acps_cert_renew_profiles":["registry-9002"]}'
+
+- name: "续期叶子证书 — 扫描 / 续期 / 重建"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  vars:
+    acps_cert_renew_run_probe: true
+  tasks:
+    - name: 扫描到期 / 强制 profile
+      ansible.builtin.include_role:
+        name: cert_provision
+        tasks_from: renew_scan.yml
+
+    - name: 无到期项 — 跳过续期主体
+      when: (acps_cert_renew_due_profiles | default([])) | length == 0
+      ansible.builtin.debug:
+        msg: "No leaf certs due for renew (window={{ acps_cert_renew_before_days }}d, force={{ acps_force_cert_renew }})"
+
+    - name: 对每个到期 profile 同 AIC 重签叶子（缺材料 fail-stop，不 silent bootstrap）
+      when: (acps_cert_renew_due_profiles | default([])) | length > 0
+      ansible.builtin.include_role:
+        name: cert_provision
+      loop: "{{ acps_cert_renew_due_profiles }}"
+      loop_control:
+        loop_var: cert_provision_profile
+      vars:
+        # due 选中 → force renew → cert_provision 内 reissue；材料缺失 fail-stop。
+        # advertise/SAN 变更例外才 bootstrap（可能换 AIC）；首装请走 site.yml。
+        acps_force_cert_renew: true
+
+    - name: 摘要本轮 due profiles（recreate 权威在 cert_provision main；单次 ≤1）
+      when: (acps_cert_renew_due_profiles | default([])) | length > 0
+      ansible.builtin.debug:
+        msg: >-
+          renew-certs due={{ acps_cert_renew_due_profiles | join(',') }} —
+          same-AIC reissue (fail-stop if materials/AIC missing; advertise/SAN
+          change may bootstrap via documented identity exception);
+          recreate+TLS 闭包仅由 cert_provision main 执行（无 playbook 二次 bounce）。
+
+    - name: 续期后同步 TLS digest 侧车（§9.5.2）
+      when: (acps_cert_renew_due_profiles | default([])) | length > 0
+      ansible.builtin.include_role:
+        name: cert_provision
+        tasks_from: persist_profile_tls_digests.yml
+      vars:
+        _persist_digest_profiles: "{{ acps_cert_renew_due_profiles }}"
+
+    # B8：due=[] 且非显式跑完续期主体时，不得误清 issuer force/pending。
+    - name: 续期成功后提交 issuer pending / 清除 force
+      when: (acps_cert_renew_due_profiles | default([])) | length > 0
+      ansible.builtin.include_role:
+        name: cert_provision
+        tasks_from: clear_force_cert_renew.yml
+
+    - name: due=[] 时保留 issuer force/pending（可观测）
+      when:
+        - (acps_cert_renew_due_profiles | default([])) | length == 0
+        - not (acps_force_cert_renew | default(false) | bool)
+      ansible.builtin.debug:
+        msg: >-
+          renew-certs due=[] — 跳过 clear_force_cert_renew，
+          以免误清进行中的 .force-cert-renew / .issuer-material-sha256.pending。
+
+    - name: due=[] 轻量 TLS 平面硬门禁（§9.5.5 / BP5 必达）
+      when:
+        - acps_cert_renew_run_probe | default(true) | bool
+        - (acps_cert_renew_due_profiles | default([])) | length == 0
+      ansible.builtin.include_role:
+        name: smoke_basic
+      vars:
+        acps_smoke_tls_plane_only: true
+        acps_smoke_include_demo: false
+
+    - name: 续期后基础 smoke（含 TLS 平面硬门禁）
+      when:
+        - acps_cert_renew_run_probe | default(true) | bool
+        - (acps_cert_renew_due_profiles | default([])) | length > 0
+      ansible.builtin.include_role:
+        name: smoke_basic
+      vars:
+        acps_smoke_include_demo: "{{ (demo_partner_enabled | bool) or (demo_leader_enabled | bool) }}"

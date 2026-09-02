@@ -63,6 +63,30 @@ class TestRpcBasics:
         assert "id" in data["result"]
         assert "status" in data["result"]
 
+    def test_rpc_get_returns_started_task_snapshot(self, client, rpc_request_factory, online_agents):
+        """测试：Start 后 Get 能读取同一 runner 的任务快照。"""
+        if not online_agents:
+            pytest.skip("No online agents available")
+
+        start_request = rpc_request_factory("测试任务快照")
+        start_response = client.post("/rpc", json=start_request)
+        assert start_response.status_code == 200
+
+        command = start_request["params"]["command"]
+        get_request = rpc_request_factory(
+            "",
+            TaskCommandType.Get,
+            task_id=command["taskId"],
+            session_id=command["sessionId"],
+        )
+        get_response = client.post("/rpc", json=get_request)
+
+        assert get_response.status_code == 200
+        get_body = get_response.json()
+        assert get_body.get("result") is not None
+        assert get_body["result"]["taskId"] == command["taskId"]
+        assert get_body["result"]["sessionId"] == command["sessionId"]
+
     def test_rpc_get_nonexistent_task(self, client, rpc_request_factory, online_agents):
         """测试：Get 不存在的任务返回错误"""
         if not online_agents:

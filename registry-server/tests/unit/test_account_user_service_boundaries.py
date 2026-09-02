@@ -132,7 +132,11 @@ async def test_update_user_password_flushes_without_commit(monkeypatch: pytest.M
     user = User(username="user-1", hashed_password="old-hash")
 
     monkeypatch.setattr(service_account, "get_user", _async_return(user))
-    monkeypatch.setattr(service_account, "verify_password", lambda plain, hashed: plain == "old-pass")
+    monkeypatch.setattr(
+        service_account,
+        "verify_password",
+        lambda plain, hashed: (plain == "old-pass", False),
+    )
     monkeypatch.setattr(service_account, "get_password_hash", lambda password: f"hashed:{password}")
 
     from app.account import service_auth

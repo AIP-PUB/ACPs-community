@@ -1,0 +1,26 @@
+# 装配/校验镜像 digest 锁定表（Wheelhouse 发布包设计 ）
+#
+# 三类镜像共同决定最终应用发布包是否可发布：
+# - builder：按 platform 索引，用于 assemble.sh 在目标 libc 基线下装配第三方依赖。
+# - audit：按 platform 索引，只做静态符号检查，不需要匹配特定 Python 版本解释器。
+# - runtime_smoke：按 (platform, python_tag) 组合索引，需要真实匹配 wheelhouse ABI
+# 的 CPython 解释器去离线安装/import。
+#
+# 本文件只记录可跨机器 `docker pull` 复现的 registry digest，不能提交开发机本地
+# daemon 里的 `acps-audit:*`、`sha256:<local-image-id>` 等本地引用。
+
+[builder]
+"linux/amd64" = "quay.io/pypa/manylinux_2_28_x86_64@sha256:35795c40ab9eed587a0f51a752c7defeabcc8a2ccd434d3497be201cdd34cb63"
+"linux/arm64" = "quay.io/pypa/manylinux_2_28_aarch64@sha256:1aa721f140a4e88caf74e375992e4d79a1f991dc799a968de237752ce073a01b"
+
+[audit]
+# manylinux builder 镜像自身已经包含 auditwheel；audit 阶段直接复用同一组公开
+# registry digest，不再构建或推送项目自定义 audit 镜像。
+"linux/amd64" = "quay.io/pypa/manylinux_2_28_x86_64@sha256:35795c40ab9eed587a0f51a752c7defeabcc8a2ccd434d3497be201cdd34cb63"
+"linux/arm64" = "quay.io/pypa/manylinux_2_28_aarch64@sha256:1aa721f140a4e88caf74e375992e4d79a1f991dc799a968de237752ce073a01b"
+
+[runtime_smoke]
+# python:3.14-slim 是 Docker Hub 官方多架构镜像；同一个 manifest-list digest 覆盖
+# linux/amd64 与 linux/arm64，实际拉取哪个平台的内容由 --platform 决定。
+"linux/amd64,cp314" = "python:3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1"
+"linux/arm64,cp314" = "python:3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1"

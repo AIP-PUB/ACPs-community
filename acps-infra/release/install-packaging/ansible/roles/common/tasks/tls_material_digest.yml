@@ -1,0 +1,70 @@
+---
+# common/tasks/tls_material_digest.yml
+#
+# 聚合证书目录下关键 PEM 的 sha256，与侧车文件比较，产出：
+#   _tls_material_digest_changed (bool)
+#   _tls_material_digest_sha256 (str)
+#
+# 期望：
+#   acps_tls_digest_dir   — 证书目录（如 …/certs/redis）
+#   acps_tls_digest_files — 文件名列表
+#   acps_tls_digest_sidecar — 侧车路径（如 …/state/redis-tls-material.sha256）
+# 可选：
+#   acps_tls_digest_persist — true 时在调用方确认重启后写入侧车
+
+- name: 确保 TLS digest 侧车父目录
+  ansible.builtin.file:
+    path: "{{ acps_tls_digest_sidecar | dirname }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: 收集 TLS 材料单文件 checksum
+  ansible.builtin.stat:
+    path: "{{ acps_tls_digest_dir }}/{{ item }}"
+    checksum_algorithm: sha256
+    get_checksum: true
+  loop: "{{ acps_tls_digest_files }}"
+  register: _tls_digest_stats
+  become: true
+
+- name: 聚合 TLS 材料 digest
+  ansible.builtin.set_fact:
+    _tls_material_digest_sha256: >-
+      {{
+        (
+          _tls_digest_stats.results
+          | map(attribute='stat')
+          | map(attribute='checksum')
+          | select('defined')
+          | list
+          | join('|')
+        )
+        | hash('sha256')
+      }}
+
+- name: 读取既有 TLS digest 侧车
+  ansible.builtin.slurp:
+    src: "{{ acps_tls_digest_sidecar }}"
+  register: _tls_digest_slurp
+  failed_when: false
+  become: true
+
+- name: 判定 TLS 材料是否变更
+  ansible.builtin.set_fact:
+    _tls_material_digest_changed: >-
+      {{
+        (_tls_digest_slurp.content is not defined)
+        or (
+          (_tls_digest_slurp.content | b64decode | trim)
+          != (_tls_material_digest_sha256 | string)
+        )
+      }}
+
+- name: 写入 TLS digest 侧车（仅当调用方请求 persist）
+  when: (acps_tls_digest_persist | default(false) | bool)
+  ansible.builtin.copy:
+    content: "{{ _tls_material_digest_sha256 }}\n"
+    dest: "{{ acps_tls_digest_sidecar }}"
+    mode: "0644"
+  become: true

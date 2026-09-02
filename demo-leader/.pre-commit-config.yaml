@@ -1,10 +1,27 @@
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-toml
+      - id: check-yaml
+      - id: debug-statements
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.10
+    rev: v0.15.12
     hooks:
       - id: ruff-check
-        args: ["--fix"]
+        args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml]
+        additional_dependencies: ["bandit[toml]"]
 
   - repo: local
     hooks:
@@ -13,19 +30,11 @@ repos:
         entry: uv run mypy
         language: system
         types: [python]
-        args: ["leader/"]
+        args: [--config-file, pyproject.toml, leader/, web_app/]
         pass_filenames: false
 
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.6
-    hooks:
-      - id: bandit
-        args: ["-q", "-r", "leader"]
-
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.8.3
+    rev: v4.13.10
     hooks:
       - id: commitizen
         stages: [commit-msg]
-      - id: commitizen-branch
-        stages: [pre-push]

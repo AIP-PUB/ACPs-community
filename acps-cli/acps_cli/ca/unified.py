@@ -5,6 +5,7 @@ from __future__ import annotations
 import click
 
 from acps_cli.registry.unified import cert_eab_group
+from acps_cli.shared.flexible_group import FlexibleGroup
 from acps_cli.shared.runtime import get_root_runtime
 from acps_cli.shared.unified_config import build_ca_legacy_section
 
@@ -24,10 +25,10 @@ def _build_ca_context(ctx: click.Context, server_url: str | None) -> None:
 
 
 def _group(name: str, help_text: str) -> click.Group:
-    return click.Group(name=name, help=help_text)
+    return FlexibleGroup(name=name, help=help_text)
 
 
-@click.group(name="cert", help="Manage certificate lifecycle operations.")
+@click.group(cls=FlexibleGroup, name="cert", help="Manage certificate lifecycle operations.")
 @click.option("--server-url", default=None, help="Override CA server base URL.")
 @click.pass_context
 def cert_group(ctx: click.Context, server_url: str | None) -> None:
@@ -60,7 +61,7 @@ ocsp_group.add_command(commands.ocsp_cert_status, name="cert-status")
 cert_group.add_command(ocsp_group)
 
 
-@click.group(name="ca", help="CA administration commands.")
+@click.group(cls=FlexibleGroup, name="ca", help="CA administration commands.")
 @click.option("--server-url", default=None, help="Override CA server base URL.")
 @click.pass_context
 def admin_ca_group(ctx: click.Context, server_url: str | None) -> None:

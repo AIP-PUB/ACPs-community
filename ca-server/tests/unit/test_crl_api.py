@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from app.common import CRL, CRLStatus, RevokedCertificateEntry
 from app.common.crl_service import CRLService
 from app.core.base_exception import register_exception_handlers
+from app.core.config import get_settings
 from app.crl.api import get_crl_service, router
 from app.crl.exception import CRLGenerationFailedError, CRLNotFoundError
 
@@ -248,6 +249,8 @@ class TestRefreshCRL:
         mock_service.generate_new_crl.return_value = new_crl
         resp = client.post("/acps-atr-v2/crl/refresh")
         assert resp.status_code == 200
+        # 兜底分发点必须取自配置：写死的占位地址会被签进证书，事后变更要全平面重签。
+        assert resp.json()["distribution_point"] == get_settings().crl_distribution_point_url
 
     def test_runtime_error_wrapped(self, client: TestClient, mock_service: MagicMock) -> None:
         mock_service.generate_new_crl.side_effect = RuntimeError("signing error")

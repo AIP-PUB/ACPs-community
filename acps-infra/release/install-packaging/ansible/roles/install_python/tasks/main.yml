@@ -1,0 +1,346 @@
+---
+# install_python role
+# uv + 精确钉版本 CPython（本设计 §6.2 / E §3.1）；业务机 + 控制节点同法复用。
+# 产出 acps_python_bin（绝对路径，cacheable fact），供各组件 venv /
+# control_acps_cli 使用；不得依赖 PATH 上随便哪个 python3。
+#
+# uv 解析优先级（幂等，精确钉版本，禁 latest）：
+#   1) 安装包内 tools/uv（或 tools/uv-<pin>-*）——物理隔离网络优先路径
+#   2) 本 role 之前安装、版本已匹配的缓存 uv（{{ acps_uv_python_root }}/bin/uv）
+#   3) 目标机 PATH 上已有、版本恰好匹配钉版本的系统 uv
+#   4) 出网按 https://astral.sh/uv/<pin>/install.sh 安装钉版本（无网络且无 tools/ 则 fail-fast）
+#
+# CPython 解析优先级（S7 P1.1；tools/ 布局见 defaults/main.yml 顶部注释）：
+#   a) 安装包内 tools/python/（或 tools/cpython-<pin>-*）已解压好的解释器树 →
+#      直接复制进安装根，跳过 `uv python install`，完全离线。
+#   b) 安装包内 tools/python/ 为 python-build-standalone 官方镜像目录布局 →
+#      复制到目标机后设 UV_PYTHON_INSTALL_MIRROR=file://... 供 `uv python install`
+#      离线解析（uv 0.2.35+ 支持该 env；本项目钉版本 0.10.11 满足）。
+#   c) 未命中 a)/b)：维持既有在线安装路径；出网失败且无离线材料 → fail-fast，
+#      提示改用 --bundle-python-dir。
+#
+# 失败处置（S7 P2.1）：acps_install_python_strict=true（host 模式默认）失败即 fail，
+# 阻断后续阶段；=false（image 模式控制节点默认）失败仅告警+跳过，acps_python_bin
+# 保持留空，由 control_acps_cli 等依赖方浮动兜底（现状行为不变）。
+#
+# become（S7 P2.2）：仅远程业务机写 /opt 等特权路径时需要；control 节点
+# （hosts:localhost + connection:local，HOME 路径）保持 become:false，避免本机无
+# sudo 环境报错。
+
+- name: 未启用 install_python 时跳过（如仅承载 PG/Redis/RMQ 的主机）
+  when: not (acps_install_python | default(true) | bool)
+  ansible.builtin.meta: end_host
+
+- name: 解析本主机写 acps_uv_python_root 是否需要 become
+  ansible.builtin.set_fact:
+    _acps_install_python_become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+
+- name: uv + pinned CPython 安装与解析（失败处置按 acps_install_python_strict）
+  block:
+    - name: 确保 uv/CPython 安装根目录存在
+      ansible.builtin.file:
+        path: "{{ acps_uv_python_root }}/bin"
+        state: directory
+        mode: "0755"
+      become: "{{ _acps_install_python_become }}"
+
+    # uv 官方安装器与 CPython standalone 解包都依赖 tar/curl；精简 Rocky 镜像可能未预装。
+    # rocky8：走 dnf CLI（EL8 python3-dnf 仅绑 platform-python 3.6，见 ensure_os_packages.yml）。
+    - name: 确保 host 侧 uv/CPython 安装前置包（tar/curl）
+      when: (ansible_connection | default('ssh')) != 'local'
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/common/tasks/ensure_os_packages.yml"
+      vars:
+        acps_pkg_names: [tar, curl]
+        acps_pkg_state: present
+
+    # --- 1) 安装包内 tools/ 离线 uv（controller 侧文件系统；远程业务机需复制过去）---
+
+    - name: 在控制节点查找安装包内 tools/ 携带的 pinned uv
+      delegate_to: localhost
+      become: false
+      ansible.builtin.find:
+        paths: "{{ acps_release_root }}/tools"
+        patterns:
+          - uv
+          - "uv-{{ acps_uv_version }}-*"
+        file_type: file
+      register: _acps_tools_uv_find
+
+    - name: 记录包内 tools/ uv 在控制节点上的路径（若命中）
+      when: (_acps_tools_uv_find.files | default([]) | length) > 0
+      ansible.builtin.set_fact:
+        _acps_tools_uv_src: "{{ (_acps_tools_uv_find.files | sort(attribute='path') | last).path }}"
+
+    - name: control 节点自身：直接使用包内 tools/ uv（无需复制）
+      when:
+        - _acps_tools_uv_src is defined
+        - (ansible_connection | default('ssh')) == 'local'
+      ansible.builtin.set_fact:
+        _acps_uv_cmd: "{{ _acps_tools_uv_src }}"
+
+    - name: 远程业务机：把包内 tools/ uv 复制到本机安装根目录
+      when:
+        - _acps_tools_uv_src is defined
+        - (ansible_connection | default('ssh')) != 'local'
+      ansible.builtin.copy:
+        src: "{{ _acps_tools_uv_src }}"
+        dest: "{{ acps_uv_python_root }}/bin/uv"
+        mode: "0755"
+      become: "{{ _acps_install_python_become }}"
+
+    - name: 远程业务机：确认复制后的 uv 命令路径
+      when:
+        - _acps_tools_uv_src is defined
+        - (ansible_connection | default('ssh')) != 'local'
+      ansible.builtin.set_fact:
+        _acps_uv_cmd: "{{ acps_uv_python_root }}/bin/uv"
+
+    # --- 2)/3)/4) 未命中 tools/：目标机上解析缓存/系统 uv，否则按钉版本在线安装 ---
+
+    - name: 未命中 tools/ 时：目标机解析缓存/系统 uv，或按钉版本在线安装
+      when: _acps_uv_cmd is not defined
+      ansible.builtin.shell: |
+        set -euo pipefail
+        BIN_DIR="{{ acps_uv_python_root }}/bin"
+        UV_BIN="$BIN_DIR/uv"
+        UV_PIN="{{ acps_uv_version }}"
+
+        pinned_match() {
+          local v
+          v="$("$1" --version 2>/dev/null | awk '{print $2}')" || return 1
+          [[ "$v" == "$UV_PIN" ]]
+        }
+
+        # 2) 本 role 之前已安装、版本匹配 → 幂等跳过
+        if [[ -x "$UV_BIN" ]] && pinned_match "$UV_BIN"; then
+          echo "ACTION=cached"
+          echo "UV_CMD=$UV_BIN"
+          exit 0
+        fi
+
+        # 3) 目标机 PATH 上已有系统 uv，版本恰好匹配钉版本 → 复用，不重装
+        if command -v uv >/dev/null 2>&1 && pinned_match "$(command -v uv)"; then
+          echo "ACTION=system"
+          echo "UV_CMD=$(command -v uv)"
+          exit 0
+        fi
+
+        # 4) 出网按官方安装器拉取钉版本（物理隔离网络须提前把 uv 放进安装包 tools/）
+        echo "pinned uv ${UV_PIN} not found under ${BIN_DIR} or PATH; attempting online install via astral.sh" >&2
+        TMP_SH="$(mktemp)"
+        if ! curl -fsSL --connect-timeout {{ acps_uv_install_connect_timeout }} --max-time {{ acps_uv_install_max_time }} \
+            -o "$TMP_SH" "https://astral.sh/uv/${UV_PIN}/install.sh"; then
+          rm -f "$TMP_SH"
+          echo "ERROR: cannot reach https://astral.sh to install pinned uv ${UV_PIN}, and no packaged tools/uv found." >&2
+          echo "       Air-gapped hosts must ship pinned uv under <install-package>/tools/uv (design Sec 6.2 / Sec 2.1)." >&2
+          exit 2
+        fi
+        if ! env UV_UNMANAGED_INSTALL="$BIN_DIR" sh "$TMP_SH" >"$TMP_SH.log" 2>&1; then
+          cat "$TMP_SH.log" >&2
+          rm -f "$TMP_SH" "$TMP_SH.log"
+          exit 2
+        fi
+        rm -f "$TMP_SH" "$TMP_SH.log"
+
+        if ! pinned_match "$UV_BIN"; then
+          echo "ERROR: installed uv at $UV_BIN does not match pinned version $UV_PIN" >&2
+          exit 2
+        fi
+        echo "ACTION=installed"
+        echo "UV_CMD=$UV_BIN"
+      args:
+        executable: /bin/bash
+      register: _acps_uv_resolve
+      changed_when: "'ACTION=installed' in _acps_uv_resolve.stdout"
+      become: "{{ _acps_install_python_become }}"
+
+    - name: 记录目标机解析出的 uv 命令路径
+      when: _acps_uv_cmd is not defined
+      ansible.builtin.set_fact:
+        _acps_uv_cmd: "{{ (_acps_uv_resolve.stdout_lines | select('match', '^UV_CMD=') | list | first).split('=', 1)[1] }}"
+
+    # --- 离线 CPython：tools/ 携带 standalone 制品优先（S7 P1.1） ---
+
+    - name: 在控制节点探测 tools/ 下的离线 CPython 制品形态（已解压树 / 官方镜像目录 / 无）
+      delegate_to: localhost
+      become: false
+      ansible.builtin.shell: |
+        set -euo pipefail
+        TOOLS="{{ acps_release_root }}/tools"
+        PIN="{{ acps_python_version }}"
+
+        # a) 已解压好的解释器树：tools/python/ 或 tools/cpython-<pin>-*/，内含可执行 python3*
+        for cand in "$TOOLS/python" "$TOOLS"/cpython-"$PIN"-*; do
+          [[ -d "$cand" ]] || continue
+          if find "$cand" -maxdepth 4 -type f \( -name 'python3' -o -name 'python3.*' \) -perm -u+x 2>/dev/null | grep -q .; then
+            echo "KIND=tree"
+            echo "PATH=$cand"
+            exit 0
+          fi
+        done
+
+        # b) python-build-standalone 官方镜像目录布局：tools/python/<date>/cpython-*.tar.*
+        if [[ -d "$TOOLS/python" ]] && find "$TOOLS/python" -mindepth 2 -maxdepth 2 -type f -name 'cpython-*' 2>/dev/null | grep -q .; then
+          echo "KIND=mirror"
+          echo "PATH=$TOOLS/python"
+          exit 0
+        fi
+
+        echo "KIND=none"
+      args:
+        executable: /bin/bash
+      register: _acps_tools_python_probe
+      changed_when: false
+
+    - name: 解析 tools/ 离线 CPython 探测结果
+      ansible.builtin.set_fact:
+        _acps_tools_python_kind: "{{ (_acps_tools_python_probe.stdout_lines | select('match', '^KIND=') | list | first).split('=', 1)[1] }}"
+        _acps_tools_python_path: >-
+          {{
+            (_acps_tools_python_probe.stdout_lines | select('match', '^PATH=') | list | first).split('=', 1)[1]
+            if (_acps_tools_python_probe.stdout_lines | select('match', '^PATH=') | list | length) > 0
+            else ''
+          }}
+
+    - name: 命中已解压 CPython 树：复制到本机安装根（跳过 uv python install）
+      when: _acps_tools_python_kind == 'tree'
+      ansible.builtin.copy:
+        src: "{{ _acps_tools_python_path }}/"
+        dest: "{{ acps_uv_python_root }}/offline-cpython/"
+        mode: preserve
+      become: "{{ _acps_install_python_become }}"
+
+    - name: 命中已解压 CPython 树：解析本机安装根下的解释器绝对路径
+      when: _acps_tools_python_kind == 'tree'
+      ansible.builtin.shell: |
+        set -euo pipefail
+        found="$(find "{{ acps_uv_python_root }}/offline-cpython" -maxdepth 6 -type f \( -name 'python3' -o -name 'python3.*' \) -perm -u+x | sort | tail -n 1)"
+        [[ -n "$found" ]] || { echo "ERROR: offline-cpython 树内未找到可执行 python3" >&2; exit 2; }
+        echo "$found"
+      args:
+        executable: /bin/bash
+      register: _acps_tools_python_tree_bin
+      changed_when: false
+
+    - name: 记录已解压离线树解析出的解释器候选路径（跳过在线安装分支）
+      when: _acps_tools_python_kind == 'tree'
+      ansible.builtin.set_fact:
+        _acps_python_bin_candidate: "{{ _acps_tools_python_tree_bin.stdout | trim }}"
+
+    - name: 命中官方镜像目录布局：复制到本机安装根供 uv 离线解析
+      when: _acps_tools_python_kind == 'mirror'
+      ansible.builtin.copy:
+        src: "{{ _acps_tools_python_path }}/"
+        dest: "{{ acps_uv_python_root }}/offline-mirror/"
+        mode: preserve
+      become: "{{ _acps_install_python_become }}"
+
+    - name: 命中官方镜像目录布局：设置本机 UV_PYTHON_INSTALL_MIRROR（file://）
+      when: _acps_tools_python_kind == 'mirror'
+      ansible.builtin.set_fact:
+        _acps_uv_python_install_mirror_effective: "file://{{ acps_uv_python_root }}/offline-mirror"
+
+    # --- 用钉版本 uv 安装钉版本 CPython（未命中已解压离线树时）；
+    #     uv 自身幂等：已装同版本仅校验、不重下 ---
+
+    - name: 用 uv 安装钉版本 CPython（在线，或 tools/ 官方镜像目录离线解析）
+      when: _acps_python_bin_candidate is not defined
+      ansible.builtin.command:
+        argv:
+          - "{{ _acps_uv_cmd }}"
+          - python
+          - install
+          - "{{ acps_python_version }}"
+          - --install-dir
+          - "{{ acps_uv_python_root }}"
+          - --no-bin
+      register: _acps_python_install
+      # uv 把 "... is already installed" 打到 stderr（非 stdout），两者合并判断。
+      changed_when: >-
+        'already installed' not in
+        ((_acps_python_install.stdout ~ _acps_python_install.stderr) | lower)
+      environment:
+        UV_PYTHON_INSTALL_MIRROR: >-
+          {{ _acps_uv_python_install_mirror_effective | default(acps_uv_python_install_mirror | default('')) }}
+      become: "{{ _acps_install_python_become }}"
+
+    - name: 解析已安装 CPython 的绝对解释器路径（uv python find）
+      when: _acps_python_bin_candidate is not defined
+      ansible.builtin.command:
+        argv:
+          - "{{ _acps_uv_cmd }}"
+          - python
+          - find
+          - "{{ acps_python_version }}"
+      register: _acps_python_find
+      changed_when: false
+      environment:
+        UV_PYTHON_INSTALL_DIR: "{{ acps_uv_python_root }}"
+        UV_PYTHON_PREFERENCE: only-managed
+
+    - name: 记录解析出的解释器候选路径（uv 安装路径）
+      when: _acps_python_bin_candidate is not defined
+      ansible.builtin.set_fact:
+        _acps_python_bin_candidate: "{{ _acps_python_find.stdout | trim }}"
+
+    - name: 断言解析出的解释器位于安装根目录下（非 PATH 上随便哪个 python）
+      ansible.builtin.assert:
+        that:
+          - _acps_python_bin_candidate is match((acps_uv_python_root | regex_escape) ~ '/')
+        fail_msg: >-
+          `uv python find` resolved {{ _acps_python_bin_candidate }},
+          expected a path under {{ acps_uv_python_root }}.
+
+    - name: 校验解析出的解释器存在且可执行
+      ansible.builtin.stat:
+        path: "{{ _acps_python_bin_candidate }}"
+      register: _acps_python_bin_stat
+
+    - name: 断言解析出的解释器存在且可执行
+      ansible.builtin.assert:
+        that:
+          - _acps_python_bin_stat.stat.exists
+          - _acps_python_bin_stat.stat.executable
+        fail_msg: "Resolved python binary {{ _acps_python_bin_candidate }} missing or not executable."
+
+    - name: 校验解释器版本与钉版本精确一致
+      ansible.builtin.command:
+        argv:
+          - "{{ _acps_python_bin_candidate }}"
+          - --version
+      register: _acps_python_version_check
+      changed_when: false
+
+    - name: 断言版本精确匹配钉版本（禁浮动）
+      ansible.builtin.assert:
+        that:
+          - acps_python_version in _acps_python_version_check.stdout
+        fail_msg: >-
+          {{ _acps_python_bin_candidate }} --version = '{{ _acps_python_version_check.stdout }}',
+          expected exact pin {{ acps_python_version }}.
+
+    - name: 记录 acps_python_bin fact（绝对路径；其余角色/venv 均须使用它）
+      ansible.builtin.set_fact:
+        acps_python_bin: "{{ _acps_python_bin_candidate }}"
+        cacheable: true
+  rescue:
+    - name: strict 模式（host 部署默认）：重新抛出失败，钉版本 Python 就位是硬约束
+      when: acps_install_python_strict | default(acps_deploy_mode == 'host') | bool
+      ansible.builtin.fail:
+        msg: >-
+          install_python failed on {{ inventory_hostname }}
+          (acps_install_python_strict=true, acps_deploy_mode={{ acps_deploy_mode }}).
+          Host 部署要求钉版本 uv+CPython 就位；物理隔离网络请通过
+          --bundle-python-dir 打入 tools/uv 与 tools/python/
+          （见 roles/install_python/defaults/main.yml 顶部注释）。
+          原始失败：{{ ansible_failed_result.msg | default(ansible_failed_result.stderr | default('见上方任务输出')) }}
+
+    - name: 非 strict 模式（image 控制节点等默认）：仅告警+跳过，acps_python_bin 留空由依赖方浮动兜底
+      when: not (acps_install_python_strict | default(acps_deploy_mode == 'host') | bool)
+      ansible.builtin.debug:
+        msg: >-
+          WARNING: install_python failed on {{ inventory_hostname }} in non-strict mode
+          (acps_install_python_strict=false, acps_deploy_mode={{ acps_deploy_mode }})。
+          已跳过：acps_python_bin 保持留空，依赖方（如 control_acps_cli）须走浮动
+          uv/python3 兜底。原始失败：
+          {{ ansible_failed_result.msg | default(ansible_failed_result.stderr | default('见上方任务输出')) }}

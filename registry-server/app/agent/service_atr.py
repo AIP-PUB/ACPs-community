@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import QueryableAttribute
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.agent import service_provider
 from app.agent.exception import AtrError, AtrErrorCode
 from app.agent.model import Agent, ApprovalStatus
 from app.sync.exception import SyncError
@@ -111,6 +112,24 @@ def _build_not_ontology_error(ontology_aic: str, ontology_agent: OntologyAgentRe
         message="The specified AIC is not an ontology. Only ontologies can derive entities.",
         http_status=status.HTTP_400_BAD_REQUEST,
         data={"ontologyAic": ontology_aic, "isOntology": ontology_agent.is_ontology},
+    )
+
+
+def _build_ontology_acs_missing_error(ontology_aic: str) -> AtrError:
+    return AtrError(
+        code=AtrErrorCode.AGENT_ACS_MISSING,
+        message="Ontology ACS not found",
+        http_status=status.HTTP_404_NOT_FOUND,
+        data={"ontologyAic": ontology_aic},
+    )
+
+
+def _build_invalid_ontology_provider_error(ontology_aic: str, detail: str) -> AtrError:
+    return AtrError(
+        code=AtrErrorCode.INVALID_REQUEST,
+        message="Ontology provider is invalid",
+        http_status=status.HTTP_400_BAD_REQUEST,
+        data={"ontologyAic": ontology_aic, "detail": detail},
     )
 
 
@@ -256,6 +275,7 @@ def _build_derived_entity_name(base_name: str, entity_aic: str) -> str:
 
 
 def _build_entity_acs_data(
+    ontology_aic: str,
     ontology_agent: OntologyAgentRecord,
     *,
     entity_aic: str,
@@ -263,29 +283,29 @@ def _build_entity_acs_data(
     end_points: JsonObjectList | None,
     entity_meta: JsonObject | None,
     entity_user_id: str | None,
+    certificate: JsonObject | None = None,
 ) -> JsonObject:
     ontology_acs = _get_agent_acs_object(ontology_agent)
+    if ontology_acs is None:
+        raise _build_ontology_acs_missing_error(ontology_aic)
 
-    if ontology_acs:
-        entity_acs_data: JsonObject = {
-            "aic": entity_aic,
-            "active": True,
-            "name": ontology_acs.get("name", ontology_agent.name),
-            "version": ontology_acs.get("version", ontology_agent.version),
-            "provider": ontology_acs.get("provider"),
-            "securitySchemes": ontology_acs.get("securitySchemes", {}),
-            "capabilities": ontology_acs.get("capabilities", {}),
-            "skills": ontology_acs.get("skills", []),
-            "lastModifiedTime": current_time.isoformat(),
-        }
-    else:
-        entity_acs_data = {
-            "aic": entity_aic,
-            "active": True,
-            "name": ontology_agent.name,
-            "version": ontology_agent.version,
-            "lastModifiedTime": current_time.isoformat(),
-        }
+    try:
+        inherited_provider = service_provider.normalize_inherited_provider(ontology_acs.get("provider"))
+    except Exception as exc:
+        detail = str(exc) if isinstance(exc, Exception) else "invalid provider"
+        raise _build_invalid_ontology_provider_error(ontology_aic, detail) from None
+
+    entity_acs_data: JsonObject = {
+        "aic": entity_aic,
+        "active": True,
+        "name": ontology_acs.get("name", ontology_agent.name),
+        "version": ontology_acs.get("version", ontology_agent.version),
+        "provider": inherited_provider,
+        "securitySchemes": ontology_acs.get("securitySchemes", {}),
+        "capabilities": ontology_acs.get("capabilities", {}),
+        "skills": ontology_acs.get("skills", []),
+        "lastModifiedTime": current_time.isoformat(),
+    }
 
     base_name = _coerce_string(entity_acs_data.get("name"), ontology_agent.name or "Entity")
     entity_acs_data["name"] = _build_derived_entity_name(base_name, entity_aic)
@@ -300,6 +320,9 @@ def _build_entity_acs_data(
 
     if entity_user_id:
         entity_acs_data["entityUserId"] = entity_user_id
+
+    if certificate:
+        entity_acs_data["certificate"] = certificate
 
     return entity_acs_data
 
@@ -345,6 +368,7 @@ def _build_entity_registration_result(
     end_points: JsonObjectList | None,
     entity_meta: JsonObject | None,
     entity_user_id: str | None,
+    certificate: JsonObject | None = None,
 ) -> RegistrationResult:
     result: RegistrationResult = {"ontologyAic": ontology_aic, "entityAic": entity_aic}
     if end_points:
@@ -353,6 +377,8 @@ def _build_entity_registration_result(
         result["entityMeta"] = entity_meta
     if entity_user_id:
         result["entityUserId"] = entity_user_id
+    if certificate:
+        result["certificate"] = certificate
     return result
 
 
@@ -374,6 +400,18 @@ def _build_entity_registration_database_error(
     )
 
 
+def _require_entity_aic(new_agent: Agent, ontology_aic: str, *, include_error_detail: bool) -> str:
+    entity_aic = new_agent.aic
+    if isinstance(entity_aic, str) and entity_aic:
+        return entity_aic
+
+    raise _build_entity_registration_database_error(
+        ontology_aic,
+        error=RuntimeError("Entity AIC is missing before changelog creation"),
+        include_error_detail=include_error_detail,
+    )
+
+
 async def _persist_registered_entity_async(
     session: AsyncSession,
     *,
@@ -383,11 +421,11 @@ async def _persist_registered_entity_async(
 ) -> RegistrationResult:
     try:
         session.add(new_agent)
-        assert new_agent.aic is not None
+        entity_aic = _require_entity_aic(new_agent, ontology_aic, include_error_detail=False)
         change_log = await create_change_log_async(
             session=session,
             data_type="acs",
-            object_id=new_agent.aic,
+            object_id=entity_aic,
             version=new_agent.acs_version,
             payload=new_agent.acs,
         )
@@ -412,11 +450,11 @@ def _persist_registered_entity(
 ) -> RegistrationResult:
     try:
         db.add(new_agent)
-        assert new_agent.aic is not None
+        entity_aic = _require_entity_aic(new_agent, ontology_aic, include_error_detail=True)
         change_log = create_change_log(
             db=db,
             data_type="acs",
-            object_id=new_agent.aic,
+            object_id=entity_aic,
             version=new_agent.acs_version,
             payload=new_agent.acs,
         )
@@ -438,6 +476,7 @@ async def register_entity_async(
     end_points: JsonObjectList | None = None,
     entity_meta: JsonObject | None = None,
     entity_user_id: str | None = None,
+    certificate: JsonObject | None = None,
 ) -> RegistrationResult:
     """在 ATR 异步请求路径中注册实体。"""
     ontology_stmt = select(Agent).where(_as_agent_where_clause(ontology_aic == AGENT_AIC_COL)).limit(1)
@@ -450,12 +489,14 @@ async def register_entity_async(
     entity_aic = await _generate_unique_entity_aic_async(session, ontology_aic)
     current_time = get_beijing_time()
     entity_acs_data = _build_entity_acs_data(
+        ontology_aic,
         ontology_agent,
         entity_aic=entity_aic,
         current_time=current_time,
         end_points=end_points,
         entity_meta=entity_meta,
         entity_user_id=entity_user_id,
+        certificate=certificate,
     )
     new_agent = _build_registered_entity_agent(
         ontology_agent,
@@ -469,6 +510,7 @@ async def register_entity_async(
         end_points=end_points,
         entity_meta=entity_meta,
         entity_user_id=entity_user_id,
+        certificate=certificate,
     )
     return await _persist_registered_entity_async(
         session,
@@ -484,6 +526,7 @@ def register_entity(
     end_points: JsonObjectList | None = None,
     entity_meta: JsonObject | None = None,
     entity_user_id: str | None = None,
+    certificate: JsonObject | None = None,
 ) -> RegistrationResult:
     """基于 ontology AIC 在同步路径中注册新的实体 Agent。"""
     raw_ontology_agent = db.query(Agent).filter(_as_agent_where_clause(ontology_aic == AGENT_AIC_COL)).first()
@@ -494,12 +537,14 @@ def register_entity(
     entity_aic = _generate_unique_entity_aic(db, ontology_aic)
     current_time = get_beijing_time()
     entity_acs_data = _build_entity_acs_data(
+        ontology_aic,
         ontology_agent,
         entity_aic=entity_aic,
         current_time=current_time,
         end_points=end_points,
         entity_meta=entity_meta,
         entity_user_id=entity_user_id,
+        certificate=certificate,
     )
     new_agent = _build_registered_entity_agent(
         ontology_agent,
@@ -513,6 +558,7 @@ def register_entity(
         end_points=end_points,
         entity_meta=entity_meta,
         entity_user_id=entity_user_id,
+        certificate=certificate,
     )
     return _persist_registered_entity(
         db,

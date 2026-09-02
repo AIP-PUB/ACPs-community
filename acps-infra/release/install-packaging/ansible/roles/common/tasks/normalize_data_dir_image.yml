@@ -1,0 +1,57 @@
+---
+# normalize_data_dir_image.yml — 首次 up 前将 bind 数据目录 chown 到镜像 USER。
+# 期望： acps_data_dir, acps_cert_owner_uid, acps_cert_owner_gid
+# （复用 resolve_cert_owner.yml fact；命名为历史遗留）。
+# image 分支：内容与承载分派引入前字节级一致。
+
+- name: 断言 data-dir owner uid/gid resolved
+  ansible.builtin.assert:
+    that:
+      - acps_cert_owner_uid is defined
+      - acps_cert_owner_gid is defined
+      - acps_data_dir is defined
+      - (acps_data_dir | string) | length > 0
+    fail_msg: "normalize_data_dir requires acps_data_dir and resolved image uid/gid"
+
+- name: 确保 data directory exists
+  ansible.builtin.file:
+    path: "{{ acps_data_dir }}"
+    state: directory
+    mode: "{{ acps_data_dir_mode | default('0755') }}"
+  failed_when: false
+
+- name: Host-side chown data dir to container uid/gid
+  ansible.builtin.shell: |
+    set -euo pipefail
+    DIR="{{ acps_data_dir }}"
+    OWNER="{{ acps_cert_owner_uid }}:{{ acps_cert_owner_gid }}"
+    if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+      sudo chown -R "$OWNER" "$DIR"
+      echo "chown via sudo ok"
+      exit 0
+    fi
+    chown -R "$OWNER" "$DIR"
+  args:
+    executable: /bin/bash
+  register: _data_chown
+  failed_when: false
+  changed_when: _data_chown.rc == 0
+
+- name: Best-effort data-dir chown via image helper when host chown failed
+  when: _data_chown.rc | default(1) != 0
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - --entrypoint
+      - chown
+      - -v
+      - "{{ acps_data_dir }}:/data:z"
+      - "{{ acps_effective_image_tag }}"
+      - "-R"
+      - "{{ acps_cert_owner_uid }}:{{ acps_cert_owner_gid }}"
+      - /data
+  register: _data_chown_docker
+  failed_when: false
+  changed_when: _data_chown_docker.rc == 0

@@ -1,0 +1,202 @@
+---
+- name: End host when postgresql disabled
+  when: not (postgresql_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: External PG connectivity gate when unmanaged
+  when: not (postgresql_managed | bool)
+  block:
+    - name: 要求 external host
+      ansible.builtin.assert:
+        that:
+          - postgresql_external_host is defined
+          - postgresql_external_host | length > 0
+        fail_msg: "postgresql_managed=false requires postgresql_external_host"
+    - name: TCP check external PG
+      ansible.builtin.wait_for:
+        host: "{{ postgresql_external_host }}"
+        port: "{{ postgresql_external_port | default(postgresql_port) }}"
+        timeout: 30
+    - name: 跳过 install for unmanaged
+      ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 PostgreSQL（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: stage postgresql image
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: postgresql
+        acps_artifact_kind: os_package
+
+    - name: 准备 postgres init dir
+      ansible.builtin.file:
+        path: "{{ acps_runtime_root }}/config/postgresql/init"
+        state: directory
+        mode: "0755"
+
+    - name: 确保 postgres data dir exists (do not force mode; container may own after first start)
+      ansible.builtin.file:
+        path: "{{ acps_data_root }}/postgresql"
+        state: directory
+        mode: "0755"
+      register: _pg_data_dir
+      failed_when: false
+      # 若因先前 up 后目录属主为 postgres uid 导致 chmod 失败，则继续。
+
+    - name: Fail only when postgres data path is missing after ensure
+      ansible.builtin.stat:
+        path: "{{ acps_data_root }}/postgresql"
+      register: _pg_data_stat
+
+    - name: 要求 postgres data directory
+      ansible.builtin.assert:
+        that:
+          - _pg_data_stat.stat.exists
+          - _pg_data_stat.stat.isdir
+        fail_msg: "Cannot create/access {{ acps_data_root }}/postgresql"
+
+    - name: 安装 init SQL script
+      ansible.builtin.copy:
+        src: "{{ acps_release_root }}/templates/postgres/01-create-app-databases.sh"
+        dest: "{{ acps_runtime_root }}/config/postgresql/init/01-create-app-databases.sh"
+        mode: "0755"
+
+    - name: 渲染 postgresql compose fragment
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/postgresql.yml"
+        mode: "0644"
+
+    - name: 部署 postgresql
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: postgresql
+
+    - name: 等待 PG port
+      ansible.builtin.wait_for:
+        host: "127.0.0.1"
+        port: "{{ postgresql_port }}"
+        timeout: 120
+
+    # 官方 Postgres 镜像首启：临时库跑 initdb.d → 关停 → 再起正式库。
+    # 单次 pg_isready 可在临时库窗口成功；须等 health=healthy 且连续探活通过，
+    # 再配合下方 ensure 重试，越过关停闪断。
+    - name: 等待 postgresql 健康且连接稳定（越过 entrypoint 临时库窗口）
+      ansible.builtin.shell: |
+        set -euo pipefail
+        c={{ acps_compose_project_prefix }}-postgresql-1
+        for i in 1 2 3 4 5; do
+          st=$(docker inspect --format '{% raw %}{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}{% endraw %}' "$c")
+          [[ "$st" == "healthy" ]]
+          docker exec "$c" pg_isready -U "{{ postgresql_superuser }}"
+          if [[ "$i" -lt 5 ]]; then
+            sleep 2
+          fi
+        done
+      args:
+        executable: /bin/bash
+      register: _pg_stable
+      retries: 45
+      delay: 2
+      until: _pg_stable.rc == 0
+      changed_when: false
+
+    - name: 将 acps_psql.sh stage 到目标
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_acps_psql.yml
+
+    - name: 确保 DBs/users（含首启竞态重试）
+      block:
+        - name: 确保 DBs/users idempotently (covers volume re-use after first boot)
+          ansible.builtin.shell: |
+            set -euo pipefail
+            export PGPASSWORD='{{ postgresql_superuser_password }}'
+            PSQL="{{ acps_runtime_root }}/staging/acps_psql.sh"
+            c={{ acps_compose_project_prefix }}-postgresql-1
+            run() { "$PSQL" --mode image --container "$c" --user {{ postgresql_superuser }} --db {{ postgresql_superuser_db }} --sql "$1"; }
+            ensure_user() {
+              local u="$1" p="$2"
+              # 角色已存在时仍须对齐口令：清场不彻底 / 换 secrets 重装时，仅 IF NOT EXISTS
+              # 会导致 Keycloak 等组件 JDBC 口令与库内角色不一致并闪退。
+              run "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='${u}') THEN CREATE USER \"${u}\" WITH PASSWORD '${p}'; ELSE ALTER USER \"${u}\" WITH PASSWORD '${p}'; END IF; END \$\$;"
+            }
+            ensure_db() {
+              local db="$1" owner="$2"
+              exists=$("$PSQL" --mode image --container "$c" --user {{ postgresql_superuser }} --db {{ postgresql_superuser_db }} --tuples-only --no-align --sql "SELECT 1 FROM pg_database WHERE datname='${db}'" | tr -d '[:space:]')
+              if [[ "$exists" != "1" ]]; then
+                run "CREATE DATABASE \"${db}\" OWNER \"${owner}\""
+              fi
+            }
+            ensure_user '{{ registry_db_user }}' '{{ registry_db_password }}'
+            ensure_db '{{ registry_db_name }}' '{{ registry_db_user }}'
+            ensure_user '{{ ca_db_user }}' '{{ ca_db_password }}'
+            ensure_db '{{ ca_db_name }}' '{{ ca_db_user }}'
+            ensure_user '{{ discovery_db_user }}' '{{ discovery_db_password }}'
+            ensure_db '{{ discovery_db_name }}' '{{ discovery_db_user }}'
+            ensure_user '{{ monitor_db_user }}' '{{ monitor_db_password }}'
+            ensure_db '{{ monitor_db_name }}' '{{ monitor_db_user }}'
+            if [[ '{{ keycloak_enabled | bool }}' == 'True' ]]; then
+              ensure_user '{{ keycloak_db_user }}' '{{ keycloak_db_password }}'
+              ensure_db '{{ keycloak_db_name }}' '{{ keycloak_db_user }}'
+            fi
+            "$PSQL" --mode image --container "$c" --user {{ postgresql_superuser }} --db {{ discovery_db_name }} \
+              --sql 'CREATE EXTENSION IF NOT EXISTS vector'
+          args:
+            executable: /bin/bash
+          register: _pg_ensure
+          retries: 15
+          delay: 2
+          until: _pg_ensure.rc == 0
+          no_log: true
+      rescue:
+        # PG 可能把失败 STATEMENT（含 WITH PASSWORD '…'）写入容器日志；必须脱敏后再回显。
+        - name: 收集 PG ensure 失败诊断（脱敏）
+          ansible.builtin.shell: |
+            set -euo pipefail
+            c={{ acps_compose_project_prefix }}-postgresql-1
+            redact() {
+              sed -E \
+                -e "s/[Ww][Ii][Tt][Hh][[:space:]]+[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][[:space:]]+'[^']*'/WITH PASSWORD '***'/g" \
+                -e "s/(PGPASSWORD=)[^[:space:]]+/\\1***/g" \
+                -e "s/([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd][=:][[:space:]]*)[^[:space:]]+/\\1***/g"
+            }
+            echo "=== container status/health ==="
+            docker inspect --format '{% raw %}Status={{.State.Status}} Health={{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}} OOM={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}{% endraw %}' "$c" 2>&1 | redact || true
+            echo "=== docker logs (tail 100, secrets redacted) ==="
+            docker logs --tail 100 "$c" 2>&1 | redact || true
+          args:
+            executable: /bin/bash
+          register: _pg_ensure_diag
+          changed_when: false
+          failed_when: false
+
+        - name: 重新抛出 postgresql ensure 失败
+          ansible.builtin.fail:
+            msg: |
+              postgresql ensure DBs/users failed after retries
+              (likely first-boot entrypoint race or SQL error).
+              Diagnostic:
+              {{ _pg_ensure_diag.stdout | default('(unavailable)') }}
+
+    - name: 开放 postgresql 广告端口（firewalld/ufw；与 host 同构）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: open_advertise_ports.yml
+      vars:
+        acps_open_ports:
+          - "{{ postgresql_port }}"
+
+- name: host 分支：OS 包承载 PostgreSQL(+pgvector)（本设计 §5.5 / §6.4）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

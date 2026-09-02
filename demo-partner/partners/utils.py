@@ -19,6 +19,9 @@ logger = structlog.get_logger()
 ONLINE_DIR = Path(__file__).parent / "online"
 CONFIG_FILENAME = "config.toml"
 
+_TRUE_VALUES = {"1", "true", "yes", "on"}
+_FALSE_VALUES = {"0", "false", "no", "off"}
+
 
 def get_online_dir() -> Path:
     """返回 Partner online 配置目录，支持测试态通过环境变量覆写。"""
@@ -31,6 +34,27 @@ def get_online_dir() -> Path:
         return cwd_online_dir
 
     return ONLINE_DIR
+
+
+def resolve_identity_binding_enabled(config: dict[str, Any]) -> bool:
+    """解析 demo 全局身份绑定开关。
+
+    测试和本地开发可通过环境变量临时覆写，生产默认从 config.toml 读取，
+    缺省值为开启。
+    """
+    override = os.getenv("AIP_IDENTITY_BINDING_ENABLED", "").strip().lower()
+    if override:
+        if override in _TRUE_VALUES:
+            return True
+        if override in _FALSE_VALUES:
+            return False
+        logger.warning(
+            "Invalid AIP_IDENTITY_BINDING_ENABLED override, falling back to config",
+            value=override,
+        )
+
+    app_cfg = config.get("app", {})
+    return bool(app_cfg.get("identity_binding_enabled", True))
 
 
 # ---------------------------------------------------------------------------
@@ -86,6 +110,9 @@ def build_client_ssl_context(agent_path: str, server_cfg: dict[str, Any]) -> ssl
     """
     根据 config.toml 中 [server.mtls] 的配置构建客户端 SSL 上下文。
 
+    用于 Partner 作为 HTTP 客户端访问外部 mTLS 服务（如 notification callback）。
+    此场景应保留 agent 自身的身份证书，不应被 RabbitMQ 专用证书覆盖。
+
     返回 None 表示不启用 mTLS 客户端连接。
     """
     mtls_cfg = server_cfg.get("mtls", {})
@@ -102,12 +129,59 @@ def build_client_ssl_context(agent_path: str, server_cfg: dict[str, Any]) -> ssl
     cert_file = resolve(mtls_cfg["cert_file"])
     key_file = resolve(mtls_cfg["key_file"])
     ca_file = resolve(mtls_cfg["ca_file"])
-    mq_cert_file = Path(agent_path) / "client.pem"
-    mq_key_file = Path(agent_path) / "client.key"
+    client_cert_file = Path(agent_path) / "client.pem"
+    client_key_file = Path(agent_path) / "client.key"
+
+    if client_cert_file.is_file() and client_key_file.is_file():
+        cert_file = client_cert_file
+        key_file = client_key_file
+
+    for f, desc in [
+        (cert_file, "cert_file"),
+        (key_file, "key_file"),
+        (ca_file, "ca_file"),
+    ]:
+        if not f.is_file():
+            raise FileNotFoundError(f"mTLS {desc} not found: {f}")
+
+    ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=str(ca_file))
+    ctx.load_cert_chain(certfile=str(cert_file), keyfile=str(key_file))
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_3
+    return ctx
+
+
+def build_rabbitmq_ssl_context(agent_path: str, server_cfg: dict[str, Any]) -> ssl.SSLContext | None:
+    """
+    构建 RabbitMQ 连接使用的客户端 SSL 上下文。
+
+    若目录内存在 client.pem/client.key，则优先使用它们，便于为 MQ 单独配置
+    与 HTTP callback 不同的客户端证书；否则回退到 server.mtls 的证书配置。
+    """
+    mtls_cfg = server_cfg.get("mtls", {})
+    tls_enabled = mtls_cfg.get("tls_enabled", False)
+    if not tls_enabled:
+        return None
+
+    def resolve(p: str) -> Path:
+        path = Path(p)
+        if path.is_absolute():
+            return path
+        return Path(agent_path) / p
+
+    cert_file = resolve(mtls_cfg["cert_file"])
+    key_file = resolve(mtls_cfg["key_file"])
+    ca_file = resolve(mtls_cfg["ca_file"])
+    mq_cert_file = Path(agent_path) / "rabbitmq-client.pem"
+    mq_key_file = Path(agent_path) / "rabbitmq-client.key"
+    fallback_client_cert_file = Path(agent_path) / "client.pem"
+    fallback_client_key_file = Path(agent_path) / "client.key"
 
     if mq_cert_file.is_file() and mq_key_file.is_file():
         cert_file = mq_cert_file
         key_file = mq_key_file
+    elif fallback_client_cert_file.is_file() and fallback_client_key_file.is_file():
+        cert_file = fallback_client_cert_file
+        key_file = fallback_client_key_file
 
     for f, desc in [
         (cert_file, "cert_file"),

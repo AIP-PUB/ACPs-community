@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import signal
-import subprocess
+import subprocess  # nosec B404 - supervisor launches fixed internal listener entrypoints
 import sys
 import time
 from collections.abc import Iterable
@@ -58,7 +58,7 @@ def _build_mtls_command() -> list[str]:
 
 def _start_process(command: list[str]) -> subprocess.Popen[bytes]:
     """启动子进程并复用容器标准输出。"""
-    return subprocess.Popen(command)  # noqa: S603 - command is built from internal entrypoints without shell expansion
+    return subprocess.Popen(command)  # noqa: S603  # nosec B603 - command is built from internal entrypoints without shell expansion
 
 
 def _start_processes() -> ManagedProcesses:

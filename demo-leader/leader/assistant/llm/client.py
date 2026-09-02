@@ -11,6 +11,8 @@ Leader Agent Platform - LLM Client
 import json
 import logging
 import re
+import urllib.error
+import urllib.request
 from typing import Any, TypeVar
 
 from openai import OpenAI
@@ -65,6 +67,9 @@ class LLMClient:
                 api_key=profile_data.get("api_key", ""),
                 base_url=profile_data.get("base_url"),
                 timeout=timeout,
+                # Avoid nested SDK retries stacking with LLM_MAX_RETRIES
+                # (each retry waits the full request timeout).
+                max_retries=0,
             )
 
             logger.info(f"Initialized LLM profile: {full_name} -> {profile_data.get('model')} (timeout={timeout}s)")
@@ -145,11 +150,30 @@ class LLMClient:
                     "messages": messages,
                     "temperature": temp,
                 }
-                if max_tokens:
-                    kwargs["max_tokens"] = max_tokens
+                # Reasoning models (e.g. deepseek-v4-pro-guan) need headroom so
+                # content is not starved by reasoning_content.
+                effective_max = max_tokens
+                if effective_max is None and profile_name in {"llm.default", "llm.pro"}:
+                    effective_max = 4096
+                if effective_max:
+                    kwargs["max_tokens"] = effective_max
 
-                response = client.chat.completions.create(**kwargs)
-                content = response.choices[0].message.content
+                # Gateways (deepseek/doubao) may enable thinking by default and hang
+                # on medium+ prompts; always disable so content returns promptly.
+                model_l = (model or "").lower()
+                kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+
+                # OpenAI SDK/httpx can hang inside the long-lived demo_leader process;
+                # urllib is reliable for all models here.
+                content = self._call_via_urllib(
+                    profile=profile,
+                    model=model,
+                    messages=messages,
+                    temperature=temp,
+                    max_tokens=effective_max,
+                    timeout=float(LLM_CALL_TIMEOUT_SECONDS),
+                    extra_body=kwargs.get("extra_body"),
+                )
 
                 logger.debug(f"LLM response received: {len(content)} chars")
                 return content
@@ -160,6 +184,53 @@ class LLMClient:
 
         raise LLMCallError(f"LLM call failed after {LLM_MAX_RETRIES} retries: {last_error}")
 
+    def _call_via_urllib(
+        self,
+        profile: dict[str, Any],
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float,
+        max_tokens: int | None,
+        timeout: float,
+        extra_body: dict[str, Any] | None = None,
+    ) -> str:
+        """Direct HTTPS chat.completions call (avoids SDK/httpx hangs on some gateways)."""
+        base_url = (profile.get("base_url") or "").rstrip("/") + "/"
+        api_key = profile.get("api_key", "")
+        body: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+        }
+        if max_tokens:
+            body["max_tokens"] = max_tokens
+        if extra_body:
+            body.update(extra_body)
+
+        req = urllib.request.Request(  # noqa: S310
+            base_url + "chat/completions",
+            data=json.dumps(body).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310  # nosec B310
+                payload = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf-8", errors="replace")[:500]
+            raise LLMCallError(f"urllib HTTP {e.code}: {detail}") from e
+        except Exception as e:
+            raise LLMCallError(f"urllib request failed: {e}") from e
+
+        message = (payload.get("choices") or [{}])[0].get("message") or {}
+        content = message.get("content") or ""
+        if not content:
+            content = message.get("reasoning_content") or ""
+        return content
+
     def call_structured(
         self,
         profile_name: str,
@@ -168,6 +239,7 @@ class LLMClient:
         response_model: type[T],
         temperature: float | None = None,
         parse_retry_count: int = 0,
+        max_tokens: int | None = None,
     ) -> T:
         """
         调用 LLM 并解析为结构化输出。
@@ -198,6 +270,7 @@ class LLMClient:
                 system_prompt=system_prompt,
                 user_message=current_user_message,
                 temperature=temperature,
+                max_tokens=max_tokens,
             )
 
             try:

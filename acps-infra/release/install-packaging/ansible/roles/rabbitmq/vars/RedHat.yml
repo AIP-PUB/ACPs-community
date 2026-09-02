@@ -1,0 +1,6 @@
+---
+# Rocky/RHEL 9 — Team RabbitMQ RPM 仓库 + erlang（本设计 §5.2/§6.4）。
+rabbitmq_os_service_name: rabbitmq-server
+rabbitmq_os_config_dir: /etc/rabbitmq
+rabbitmq_os_data_dir: /var/lib/rabbitmq
+rabbitmq_os_run_user: rabbitmq

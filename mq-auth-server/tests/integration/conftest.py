@@ -29,7 +29,7 @@ def reset_lru_cache() -> None:
 
 @pytest.fixture(scope="session")
 def redis_url() -> str:
-    return os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    return os.environ.get("REDIS_URL", "redis://localhost:6379/1")
 
 
 @pytest.fixture(scope="session")

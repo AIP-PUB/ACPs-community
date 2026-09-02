@@ -25,7 +25,7 @@ LEADER_API_PORT="${LEADER_API_PORT:-$(extract_toml_section_integer_value "uvicor
 UVICORN_RELOAD_VALUE="${UVICORN_RELOAD:-$(extract_toml_section_boolean_value "uvicorn" "reload" "${CONFIG_FILE}")}"
 
 LEADER_API_HOST="${LEADER_API_HOST:-0.0.0.0}"
-LEADER_API_PORT="${LEADER_API_PORT:-9011}"
+LEADER_API_PORT="${LEADER_API_PORT:-9031}"
 
 leader_package_dir="$(${PYTHON_BIN} -c 'import pathlib; import leader; print(pathlib.Path(leader.__file__).resolve().parent)')"
 if [[ -z "${leader_package_dir}" ]]; then
@@ -38,13 +38,13 @@ export LEADER_SCENARIO_ROOT
 export PYTHONPATH="${leader_package_dir}${PYTHONPATH:+:${PYTHONPATH}}"
 
 uvicorn_args=(
-    -m uvicorn leader.main:app
-    --host "${LEADER_API_HOST}"
-    --port "${LEADER_API_PORT}"
+    -m leader.main
 )
 
 if [[ "${UVICORN_RELOAD_VALUE:-false}" == "true" ]]; then
-    uvicorn_args+=(--reload)
+    export UVICORN_RELOAD="true"
 fi
 
+export LEADER_API_HOST
+export LEADER_API_PORT
 exec "${PYTHON_BIN}" "${uvicorn_args[@]}"

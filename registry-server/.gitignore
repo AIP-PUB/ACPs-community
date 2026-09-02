@@ -10,6 +10,7 @@ build/
 
 # Virtual environments
 .venv/
+.package-build-venv/
 venv/
 env/
 ENV/

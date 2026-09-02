@@ -8,6 +8,7 @@ build/
 
 # 虚拟环境
 .venv/
+.package-build-venv/
 
 # 环境变量（敏感数据）
 .env

@@ -1,0 +1,283 @@
+---
+# 将控制节点证书材料分发到一台目标机，随后规范化。
+# 期望： _cert_target_host, _target_group, _profile_outdir_name,
+# acps_component_key, acps_cert_owner_user
+#
+# 属主规范化按 acps_deploy_mode 分派（本设计 §4.4 / §6.3）：
+# image → 从镜像解析 uid:gid（resolve_image_uid.py + docker run chown 回退，
+#         逻辑与承载分派引入前字节级一致）。
+# host  → 只用 acps_systemd_user 或发行版服务用户（getent 本地账号）+ chown；
+#         禁止 resolve_image_uid.py、禁止 docker（任何形式）。
+
+- name: 解析 target runtime root for certs
+  ansible.builtin.set_fact:
+    _target_runtime_root: "{{ hostvars[_cert_target_host].acps_runtime_root | default(acps_runtime_root) }}"
+    _target_certs_dir: "{{ (hostvars[_cert_target_host].acps_runtime_root | default(acps_runtime_root)) }}/certs/{{ _target_group }}"
+
+- name: 确保 remote certs directory
+  ansible.builtin.file:
+    path: "{{ _target_certs_dir }}"
+    state: directory
+    mode: "0755"
+  delegate_to: "{{ _cert_target_host }}"
+  vars:
+    # 继承目标 inventory 的 connection（远程 ssh；同机 local）。
+    # 不要继承控制面 play 的 connection: local。
+    ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+- name: 复制 cert materials to target
+  ansible.builtin.copy:
+    src: "{{ acps_control_root }}/work/certs/{{ _profile_outdir_name }}/"
+    dest: "{{ _target_certs_dir }}/"
+    mode: preserve
+  register: _cert_materials_copy
+  delegate_to: "{{ _cert_target_host }}"
+  vars:
+    # 继承目标 inventory 的 connection（远程 ssh；同机 local）。
+    # 不要继承控制面 play 的 connection: local。
+    ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+- name: 累计本 profile 是否发生证书 copy 变更
+  ansible.builtin.set_fact:
+    _cert_profile_copy_changed: >-
+      {{
+        (_cert_profile_copy_changed | default(false) | bool)
+        or (_cert_materials_copy is changed)
+      }}
+
+# ---------------------------------------------------------------------------
+# 属主解析 — image 分支：从镜像 USER 解析 uid:gid（不回归）
+# ---------------------------------------------------------------------------
+- name: image 分支：属主解析（镜像 uid:gid）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 解析 image mapping (control)
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_tools_python | default('python3') }}"
+          - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+          - "--manifest"
+          - "{{ acps_manifest_path }}"
+          - "--component"
+          - "{{ acps_component_key }}"
+      register: _cert_manifest
+      changed_when: false
+      delegate_to: localhost
+      become: false
+
+    - name: 设置 image facts for cert target
+      ansible.builtin.set_fact:
+        acps_image_meta: "{{ _cert_manifest.stdout | from_json }}"
+        acps_effective_image_tag: "{{ (_cert_manifest.stdout | from_json).tag }}"
+        acps_image_archive_control: "{{ acps_artifacts_images }}/{{ (_cert_manifest.stdout | from_json).file }}"
+        acps_image_staging_dir: "{{ _target_runtime_root }}/staging/images"
+        acps_image_archive_remote: "{{ _target_runtime_root }}/staging/images/{{ (_cert_manifest.stdout | from_json).file }}"
+
+    - name: 检查 image on target
+      ansible.builtin.command:
+        argv: [docker, image, inspect, "{{ acps_effective_image_tag }}"]
+      register: _cert_img
+      changed_when: false
+      failed_when: false
+      delegate_to: "{{ _cert_target_host }}"
+      vars:
+        # 继承目标 inventory 的 connection（远程 ssh；同机 local）。
+        # 不要继承控制面 play 的 connection: local。
+        ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: 加载 image on target if missing (for chown helper)
+      when: _cert_img.rc != 0
+      block:
+        - name: 确保 staging on target
+          ansible.builtin.file:
+            path: "{{ acps_image_staging_dir }}"
+            state: directory
+            mode: "0755"
+          delegate_to: "{{ _cert_target_host }}"
+          vars:
+            ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+          become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+        - name: 复制 archive to target
+          ansible.builtin.copy:
+            src: "{{ acps_image_archive_control }}"
+            dest: "{{ acps_image_archive_remote }}"
+            mode: "0644"
+          delegate_to: "{{ _cert_target_host }}"
+          vars:
+            ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+          become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+        - name: docker load on target
+          ansible.builtin.command:
+            argv: [docker, load, -i, "{{ acps_image_archive_remote }}"]
+          delegate_to: "{{ _cert_target_host }}"
+          vars:
+            ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+          become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+        - name: Cleanup staged archive
+          ansible.builtin.file:
+            path: "{{ acps_image_archive_remote }}"
+            state: absent
+          delegate_to: "{{ _cert_target_host }}"
+          vars:
+            ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+          become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+    # 镜像已在本地时上面的 block 会跳过；清掉 /opt/acps 后 staging 仍须存在（G9）。
+    - name: 确保 staging 根目录（无条件；供 resolve_image_uid 等脚本落地）
+      ansible.builtin.file:
+        path: "{{ _target_runtime_root }}/staging"
+        state: directory
+        mode: "0755"
+      delegate_to: "{{ _cert_target_host }}"
+      vars:
+        ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: stage resolve_image_uid.py on target
+      ansible.builtin.copy:
+        src: "{{ acps_release_root }}/scripts/resolve_image_uid.py"
+        dest: "{{ _target_runtime_root }}/staging/resolve_image_uid.py"
+        mode: "0755"
+      delegate_to: "{{ _cert_target_host }}"
+      vars:
+        # 继承目标 inventory 的 connection（远程 ssh；同机 local）。
+        # 不要继承控制面 play 的 connection: local。
+        ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: 解析 uid/gid on target
+      ansible.builtin.command:
+        argv:
+          - "{{ hostvars[_cert_target_host].ansible_python_interpreter | default('python3') }}"
+          - "{{ _target_runtime_root }}/staging/resolve_image_uid.py"
+          - "--image"
+          - "{{ acps_effective_image_tag }}"
+          - "--user"
+          - "{{ acps_cert_owner_user }}"
+      register: _cert_uid
+      changed_when: false
+      delegate_to: "{{ _cert_target_host }}"
+      vars:
+        # 继承目标 inventory 的 connection（远程 ssh；同机 local）。
+        # 不要继承控制面 play 的 connection: local。
+        ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: 设置 owner facts (image)
+      ansible.builtin.set_fact:
+        acps_cert_owner_uid: "{{ (_cert_uid.stdout | from_json).uid }}"
+        acps_cert_owner_gid: "{{ (_cert_uid.stdout | from_json).gid }}"
+
+# ---------------------------------------------------------------------------
+# 属主解析 — host 分支：只用 acps_systemd_user 或发行版服务用户（本地账号）
+# 禁止 resolve_image_uid.py、禁止 docker（本设计 §4.4 / §6.3）
+# ---------------------------------------------------------------------------
+- name: host 分支：属主解析（本地系统账号）
+  when: acps_deploy_mode == 'host'
+  block:
+    - name: 解析 host cert owner 用户名（默认 acps_systemd_user）
+      ansible.builtin.set_fact:
+        _cert_owner_user_name: "{{ (acps_cert_owner_user | default('') | trim) or acps_systemd_user }}"
+
+    - name: getent 查询 owner 用户 on target（本地账号，非镜像 USER）
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ _cert_owner_user_name }}"
+        fail_key: false
+      register: _cert_owner_getent
+      delegate_to: "{{ _cert_target_host }}"
+      vars:
+        ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: 断言 owner 用户已存在于目标机
+      ansible.builtin.assert:
+        that:
+          - (_cert_owner_getent.ansible_facts.getent_passwd[_cert_owner_user_name] | default(None)) is not none
+        fail_msg: >-
+          host cert owner user '{{ _cert_owner_user_name }}' 在目标机
+          {{ _cert_target_host }} 不存在（getent passwd 未命中）。host 模式属主
+          须来自目标机本地系统账号（acps_systemd_user 或发行版服务用户），须由
+          对应安装步骤先创建；禁止回退 resolve_image_uid.py / docker run chown
+          （本设计 §4.4 / §6.3）。
+
+    - name: 设置 owner facts (host，数字 uid/gid 取自目标机账号)
+      ansible.builtin.set_fact:
+        acps_cert_owner_uid: "{{ _cert_owner_getent.ansible_facts.getent_passwd[_cert_owner_user_name][1] }}"
+        acps_cert_owner_gid: "{{ _cert_owner_getent.ansible_facts.getent_passwd[_cert_owner_user_name][2] }}"
+
+- name: Host-side mode tighten on target
+  ansible.builtin.shell: |
+    set -euo pipefail
+    CERTS="{{ _target_certs_dir }}"
+    find "$CERTS" -type d -exec chmod 0755 {} +
+    find "$CERTS" \( -name '*.key' -o -name '*-key.pem' \) -exec chmod 0600 {} +
+    find "$CERTS" \( -name '*.pem' -o -name '*.crt' -o -name '*.cer' \) ! -name '*.key' ! -name '*-key.pem' -exec chmod 0644 {} +
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ _cert_target_host }}"
+  vars:
+    # 继承目标 inventory 的 connection（远程 ssh；同机 local）。
+    # 不要继承控制面 play 的 connection: local。
+    ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+- name: image 分支：chown via image helper on target
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - --user
+      - "0:0"
+      - --entrypoint
+      - chown
+      - -v
+      - "{{ _target_certs_dir }}:/certs:z"
+      - "{{ acps_effective_image_tag }}"
+      - "-R"
+      - "{{ acps_cert_owner_uid }}:{{ acps_cert_owner_gid }}"
+      - /certs
+  register: _chown
+  # B6：image cert chown 按 rc 失败即停；禁止 failed_when: false 静默。
+  # 必须以 root 进容器：镜像默认 USER=acps 时无法 chown 宿主 root 落地的材料。
+  failed_when: (_chown.rc | default(1) | int) != 0
+  changed_when: _chown.rc == 0
+  delegate_to: "{{ _cert_target_host }}"
+  vars:
+    # 继承目标 inventory 的 connection（远程 ssh；同机 local）。
+    # 不要继承控制面 play 的 connection: local。
+    ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+- name: host 分支：chown 属主到 acps_cert_owner_uid/gid（禁止 docker 回退）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.file:
+    path: "{{ _target_certs_dir }}"
+    state: directory
+    recurse: true
+    owner: "{{ acps_cert_owner_uid }}"
+    group: "{{ acps_cert_owner_gid }}"
+  delegate_to: "{{ _cert_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_cert_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_cert_target_host].ansible_become | default(true)) | bool }}"
+
+# 证书文件落地后进程不会自动 reload TLS；仅在本轮重签 / issuer 变更时重启。
+# 禁止用目录 copy 的 changed：mtime/mode 噪声会在 PEM 未变时误重启 broker。
+# 首装时尚无 systemd/compose 单元 → renew_recreate_host 内跳过。
+- name: 证书材料变更后重启 TLS 消费方
+  when: (_cert_restart_after_copy | default(false) | bool)
+  ansible.builtin.include_tasks: renew_recreate_host.yml
+  vars:
+    _renew_target_host: "{{ _cert_target_host }}"
+    _rr:
+      profile: "{{ _profile }}"
+      compose_services: "{{ _cert_restart_compose_services }}"

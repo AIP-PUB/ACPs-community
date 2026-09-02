@@ -46,7 +46,7 @@ async def test_identity_then_org_verification_flow(client, e2e_run_id: str) -> N
     org_before_identity = await client.post(
         "/api/v1/verification/org",
         headers=headers,
-        json={"org_name": "ACPS Org", "usci": "91310000123456789X"},
+        json={"org_name": "ACPs Org", "usci": "91310000123456789X"},
     )
     assert org_before_identity.status_code == 403
     assert org_before_identity.json()["error_name"] == "IDENTITY_NOT_VERIFIED"
@@ -85,7 +85,7 @@ async def test_identity_then_org_verification_flow(client, e2e_run_id: str) -> N
         "/api/v1/verification/org",
         headers=headers,
         json={
-            "org_name": "ACPS Org",
+            "org_name": "ACPs Org",
             "usci": "91310000123456789X",
             "legal_rep_name": "Bob Li",
             "legal_rep_id_number": "310101199201019999",

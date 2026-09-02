@@ -1,0 +1,372 @@
+---
+# migrate_flat_to_releases.yml — 扁平布局 → releases/<ver>/ + current（本设计 §2.4）
+#
+# 检测（app 或 vendor）：组件根下存在 venv / .venv / .installed_app_release /
+# .installed_vendor_bundle / vendor bin 标记，且无 current→releases/。
+# 迁移：把扁平树迁入 releases/<version_old>/，创建相对 symlink current。
+# 不移动 runtime 共享路径 config/{component}/、certs/{component}/（它们本就不在组件根下）。
+# 不移动 acps_data_root 下的厂商数据目录。
+# 组件根内指向共享路径的 config/certs 软链随版本树一起迁移。
+#
+# 失败必须 fail，调用方不得继续切新版本。
+# image-mode 不跑本逻辑（由 upgrade_one_component_host 调用）。
+#
+# 期望：acps_component_key
+# 可选：acps_host_component_root（默认 {{ acps_runtime_root }}/{{ acps_component_key }}；
+#       vendor 可传 vendor_bundle_install_roots 值）
+
+- name: migrate_flat_to_releases 要求组件 key
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - (acps_component_key | string | length) > 0
+    fail_msg: "migrate_flat_to_releases.yml requires acps_component_key"
+
+- name: 解析组件根路径
+  ansible.builtin.set_fact:
+    # default(..., true)：升级/回滚复位可能把 acps_host_component_root 置为 ""，
+    # 空串仍是 defined，无 true 时不会回落到 runtime/component。
+    _acps_mig_root: >-
+      {{
+        acps_host_component_root
+        | default(acps_runtime_root ~ '/' ~ acps_component_key, true)
+      }}
+
+- name: 解析 vendor bin 标记（可选）
+  ansible.builtin.set_fact:
+    _acps_mig_vendor_bin_rel: "{{ (_vendor_bundle_bin_markers | default({})).get(acps_component_key, '') | string }}"
+
+- name: 探测组件根与扁平/版本布局标记
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ _acps_mig_root }}"
+    - "{{ _acps_mig_root }}/venv"
+    - "{{ _acps_mig_root }}/.venv"
+    - "{{ _acps_mig_root }}/.installed_app_release"
+    - "{{ _acps_mig_root }}/.installed_vendor_bundle"
+    - "{{ _acps_mig_root }}/current"
+    - "{{ _acps_mig_root }}/releases"
+    - "{{ _acps_mig_root }}/{{ _acps_mig_vendor_bin_rel if (_acps_mig_vendor_bin_rel | length) > 0 else '.acps_mig_no_vendor_bin' }}"
+  register: _acps_mig_stats
+
+- name: 汇总布局探测结果
+  ansible.builtin.set_fact:
+    _acps_mig_root_exists: "{{ _acps_mig_stats.results[0].stat.exists | default(false) | bool }}"
+    _acps_mig_has_venv: >-
+      {{
+        (_acps_mig_stats.results[1].stat.exists | default(false) | bool)
+        or (_acps_mig_stats.results[2].stat.exists | default(false) | bool)
+      }}
+    _acps_mig_has_marker: "{{ _acps_mig_stats.results[3].stat.exists | default(false) | bool }}"
+    _acps_mig_has_vendor_marker: "{{ _acps_mig_stats.results[4].stat.exists | default(false) | bool }}"
+    _acps_mig_current_is_link: >-
+      {{
+        (_acps_mig_stats.results[5].stat.exists | default(false) | bool)
+        and (_acps_mig_stats.results[5].stat.islnk | default(false) | bool)
+      }}
+    _acps_mig_current_link: "{{ _acps_mig_stats.results[5].stat.lnk_target | default('') | string }}"
+    _acps_mig_has_vendor_bin: >-
+      {{
+        (_acps_mig_vendor_bin_rel | length) > 0
+        and (_acps_mig_stats.results[7].stat.exists | default(false) | bool)
+      }}
+
+- name: 判定是否已是 releases+current 布局
+  ansible.builtin.set_fact:
+    _acps_mig_already_releases: >-
+      {{
+        (_acps_mig_current_is_link | bool)
+        and (
+          (_acps_mig_current_link | regex_search('(^|/)releases/')) is not none
+        )
+      }}
+    _acps_mig_is_flat: >-
+      {{
+        (_acps_mig_root_exists | bool)
+        and (
+          (_acps_mig_has_venv | bool)
+          or (_acps_mig_has_marker | bool)
+          or (_acps_mig_has_vendor_marker | bool)
+          or (_acps_mig_has_vendor_bin | bool)
+        )
+        and not (
+          (_acps_mig_current_is_link | bool)
+          and (
+            (_acps_mig_current_link | regex_search('(^|/)releases/')) is not none
+          )
+        )
+      }}
+
+- name: 已是版本布局 — 跳过扁平迁移
+  when: _acps_mig_already_releases | bool
+  ansible.builtin.debug:
+    msg: >-
+      migrate_flat_to_releases: {{ acps_component_key }} already has
+      current → {{ _acps_mig_current_link }}; skip migration.
+
+- name: 非扁平且无版本布局 — 跳过（首装未落地或空目录）
+  when:
+    - not (_acps_mig_already_releases | bool)
+    - not (_acps_mig_is_flat | bool)
+  ansible.builtin.debug:
+    msg: >-
+      migrate_flat_to_releases: {{ acps_component_key }} at {{ _acps_mig_root }}
+      is neither flat nor releases+current; skip (nothing to migrate).
+
+- name: 执行扁平 → releases 迁移
+  when: _acps_mig_is_flat | bool
+  block:
+    - name: 读取 state 以解析 version_old
+      ansible.builtin.stat:
+        path: >-
+          {{
+            (acps_state_root | default(acps_runtime_root ~ '/state'))
+            ~ (
+              '/control/acps_cli.json'
+              if (acps_state_scope | default('component')) == 'control'
+              else ('/components/' ~ acps_component_key ~ '.json')
+            )
+          }}
+      register: _acps_mig_state_stat
+
+    - name: 加载组件 state（可选）
+      when: _acps_mig_state_stat.stat.exists | default(false) | bool
+      ansible.builtin.slurp:
+        src: >-
+          {{
+            (acps_state_root | default(acps_runtime_root ~ '/state'))
+            ~ (
+              '/control/acps_cli.json'
+              if (acps_state_scope | default('component')) == 'control'
+              else ('/components/' ~ acps_component_key ~ '.json')
+            )
+          }}
+      register: _acps_mig_state_slurp
+
+    - name: 读取扁平 app marker（可选）
+      when: _acps_mig_has_marker | bool
+      ansible.builtin.slurp:
+        src: "{{ _acps_mig_root }}/.installed_app_release"
+      register: _acps_mig_marker_slurp
+      failed_when: false
+
+    - name: 读取扁平 vendor marker（可选）
+      when: _acps_mig_has_vendor_marker | bool
+      ansible.builtin.slurp:
+        src: "{{ _acps_mig_root }}/.installed_vendor_bundle"
+      register: _acps_mig_vendor_marker_slurp
+      failed_when: false
+
+    - name: 解析 version_old 候选（state → app/vendor marker → acps_version）
+      ansible.builtin.set_fact:
+        _acps_mig_state_doc: >-
+          {{
+            (_acps_mig_state_slurp.content | b64decode | from_json)
+            if (
+              (_acps_mig_state_stat.stat.exists | default(false) | bool)
+              and (_acps_mig_state_slurp is defined)
+              and (_acps_mig_state_slurp.content is defined)
+            )
+            else {}
+          }}
+        _acps_mig_marker_text: >-
+          {{
+            (_acps_mig_marker_slurp.content | b64decode | trim)
+            if (
+              (_acps_mig_has_marker | bool)
+              and (_acps_mig_marker_slurp is defined)
+              and (_acps_mig_marker_slurp.content is defined)
+              and ((_acps_mig_marker_slurp.content | length) > 0)
+            )
+            else (
+              (_acps_mig_vendor_marker_slurp.content | b64decode | trim)
+              if (
+                (_acps_mig_has_vendor_marker | bool)
+                and (_acps_mig_vendor_marker_slurp is defined)
+                and (_acps_mig_vendor_marker_slurp.content is defined)
+                and ((_acps_mig_vendor_marker_slurp.content | length) > 0)
+              )
+              else ''
+            )
+          }}
+
+    - name: 选定 version_old 原始字符串
+      ansible.builtin.set_fact:
+        _acps_mig_version_raw: >-
+          {{
+            (_acps_mig_state_doc.version | default('') | string)
+            if ((_acps_mig_state_doc.version | default('') | string | length) > 0)
+            else (
+              (_acps_mig_state_doc.artifact_id | default('') | string)
+              if ((_acps_mig_state_doc.artifact_id | default('') | string | length) > 0)
+              else (
+                _acps_mig_marker_text
+                if ((_acps_mig_marker_text | length) > 0)
+                else (acps_version | default('unknown-flat') | string)
+              )
+            )
+          }}
+
+    - name: 规范化 version 目录名（去归档后缀；替换不安全字符）
+      ansible.builtin.set_fact:
+        _acps_mig_version: >-
+          {{
+            _acps_mig_version_raw
+            | regex_replace('\\.(tar\\.gz|tgz|zip)$', '')
+            | regex_replace('[^A-Za-z0-9._+-]+', '_')
+            | trim('_')
+          }}
+
+    - name: version 目录名不得为空
+      ansible.builtin.assert:
+        that:
+          - (_acps_mig_version | length) > 0
+        fail_msg: >-
+          migrate_flat_to_releases: cannot derive version_old for
+          {{ acps_component_key }} at {{ _acps_mig_root }}. Refuse cutover.
+
+    - name: 目标 releases 目录不得已存在（避免覆盖）
+      ansible.builtin.stat:
+        path: "{{ _acps_mig_root }}/releases/{{ _acps_mig_version }}"
+      register: _acps_mig_dest_stat
+
+    - name: 拒绝覆盖已有 releases/<version>
+      when: _acps_mig_dest_stat.stat.exists | default(false) | bool
+      ansible.builtin.fail:
+        msg: >-
+          migrate_flat_to_releases: {{ _acps_mig_root }}/releases/{{ _acps_mig_version }}
+          already exists while flat layout is still present. Refuse to continue;
+          resolve manually before upgrade.
+
+    - name: 扁平树迁入 releases/{{ _acps_mig_version }} 并创建 current
+      ansible.builtin.shell: |
+        set -euo pipefail
+        ROOT="{{ _acps_mig_root }}"
+        VER="{{ _acps_mig_version }}"
+        DEST="${ROOT}/releases/${VER}"
+        BIN_REL="{{ _acps_mig_vendor_bin_rel }}"
+        mkdir -p "${ROOT}/releases"
+        mkdir -p "${DEST}"
+        # 移动扁平内容；不碰 releases/、current；不碰 runtime 共享 config/certs
+        #（它们在 {{ acps_runtime_root }}/{config,certs}/ 下，不在组件根内）。
+        # 亦不碰 acps_data_root（厂商 data 不在组件根内）。
+        shopt -s dotglob nullglob
+        for item in "${ROOT}"/*; do
+          base="$(basename "${item}")"
+          case "${base}" in
+            releases|current) continue ;;
+          esac
+          mv "${item}" "${DEST}/"
+        done
+        # 相对 symlink：current -> releases/<ver>
+        ln -sfn "releases/${VER}" "${ROOT}/current"
+        # venv console script shebang 在创建时写死绝对路径；迁入 releases 后
+        # 必须改写为经 current，否则回滚/切版本后 ExecStart 会 exit 126。
+        # 覆盖：扁平 ROOT/venv、以及已写死 ROOT/releases/<any>/venv 的历史树。
+        if [[ -d "${DEST}/venv/bin" ]]; then
+          for f in "${DEST}/venv/bin"/*; do
+            [[ -f "${f}" && -x "${f}" ]] || continue
+            hdr="$(head -1 "${f}" 2>/dev/null || true)"
+            case "${hdr}" in
+              "#!${ROOT}/venv/"*|"#!${ROOT}/releases/"*)
+                sed -i "1s|^#!${ROOT}/.*/venv/|#!${ROOT}/current/venv/|" "${f}" || true
+                ;;
+            esac
+          done
+        fi
+        # 扁平兼容软链（旧 PATH / 误用绝对 venv 时兜底）
+        ln -sfn current/venv "${ROOT}/venv" || true
+        # 校验
+        test -L "${ROOT}/current"
+        test -d "${DEST}"
+        if [[ -e "${DEST}/venv/bin/python" || -e "${DEST}/.venv/bin/python" || -f "${DEST}/.installed_app_release" ]]; then
+          :
+        elif [[ -f "${DEST}/.installed_vendor_bundle" ]]; then
+          :
+        elif [[ -n "${BIN_REL}" && -e "${DEST}/${BIN_REL}" ]]; then
+          :
+        else
+          echo "migration incomplete: neither app venv/marker nor vendor marker/bin under ${DEST}" >&2
+          exit 2
+        fi
+      args:
+        executable: /bin/bash
+      # 远程业务机必须提权（组件根属 acps）；localhost control CLI 不提权。
+      become: "{{ (ansible_connection | default('ssh')) != 'local' }}"
+      register: _acps_mig_shell
+
+    - name: 迁移后重写经 current 的 unit WorkingDirectory / ExecStart / app.env PATH
+      ansible.builtin.shell: |
+        set -euo pipefail
+        ROOT="{{ _acps_mig_root }}"
+        CUR="${ROOT}/current"
+        COMP="{{ acps_component_key }}"
+        # 单元：WorkingDirectory=扁平根 → current；ExecStart 等绝对路径 ROOT/ → CUR/
+        for unit in /etc/systemd/system/acps-*.service; do
+          [[ -f "${unit}" ]] || continue
+          touched=0
+          if grep -q "^WorkingDirectory=${ROOT}$" "${unit}" 2>/dev/null; then
+            sed -i.bak "s|^WorkingDirectory=${ROOT}$|WorkingDirectory=${CUR}|" "${unit}"
+            rm -f "${unit}.bak"
+            touched=1
+          fi
+          if grep -qF "${ROOT}/" "${unit}" 2>/dev/null; then
+            # 将仍指向扁平根的绝对路径改写为经 current（vendor ExecStart 常见）
+            sed -i.bak "s|${ROOT}/|${CUR}/|g" "${unit}"
+            rm -f "${unit}.bak"
+            touched=1
+          fi
+          if [[ "${touched}" -eq 1 ]]; then
+            :
+          fi
+        done
+        # app.env PATH：扁平 venv → current/venv（若存在）
+        ENV_FILE="{{ acps_runtime_root }}/config/${COMP}/app.env"
+        if [[ -f "${ENV_FILE}" ]]; then
+          if grep -q "^PATH=${ROOT}/venv/bin:" "${ENV_FILE}" 2>/dev/null; then
+            sed -i.bak "s|^PATH=${ROOT}/venv/bin:|PATH=${CUR}/venv/bin:|" "${ENV_FILE}"
+            rm -f "${ENV_FILE}.bak"
+          elif grep -q "^PATH=${ROOT}/.venv/bin:" "${ENV_FILE}" 2>/dev/null; then
+            sed -i.bak "s|^PATH=${ROOT}/.venv/bin:|PATH=${CUR}/venv/bin:|" "${ENV_FILE}"
+            rm -f "${ENV_FILE}.bak"
+          fi
+        fi
+        systemctl daemon-reload || true
+        # try-restart 已启用的本组件相关单元（失败不掩盖迁移成功；由后续 health 暴露）
+        for unit in /etc/systemd/system/acps-*.service; do
+          [[ -f "${unit}" ]] || continue
+          if grep -q "^WorkingDirectory=${CUR}$" "${unit}" 2>/dev/null; then
+            name="$(basename "${unit}")"
+            systemctl try-restart "${name}" || true
+          fi
+        done
+      args:
+        executable: /bin/bash
+      become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+      register: _acps_mig_unit_rewrite
+
+    - name: 记录迁移后 facts（供后续 stage/render/commit）
+      ansible.builtin.set_fact:
+        acps_host_layout: releases
+        acps_host_release_path: "{{ _acps_mig_root }}/releases/{{ _acps_mig_version }}"
+        acps_host_app_install_dest: "{{ _acps_mig_root }}/current"
+        acps_app_install_venv: "{{ _acps_mig_root }}/current/venv"
+        acps_app_install_python: "{{ _acps_mig_root }}/current/venv/bin/python"
+        acps_vendor_unit_root: "{{ _acps_mig_root }}/current"
+        acps_vendor_install_dest: "{{ _acps_mig_root }}/current"
+        acps_host_migrated_flat: true
+
+    - name: 宣告扁平迁移完成
+      ansible.builtin.debug:
+        msg: >-
+          migrate_flat_to_releases: {{ acps_component_key }}
+          flat → releases/{{ _acps_mig_version }} + current; unit via current.
+  rescue:
+    - name: 扁平迁移失败 — 停止（不得切新版本）
+      ansible.builtin.fail:
+        msg: >-
+          migrate_flat_to_releases FAILED for {{ acps_component_key }} at
+          {{ _acps_mig_root }}. Refuse to stage/cutover new release.
+          Inspect the component tree and systemd units before retrying.
+          ansible_failed_result={{ ansible_failed_result | default({}) | to_json }}

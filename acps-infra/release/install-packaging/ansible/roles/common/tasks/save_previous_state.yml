@@ -1,0 +1,109 @@
+---
+# save_previous_state.yml —
+# 快照 current → previous（V1：仅保留最新 previous）。升级切换前调用。
+#
+# 期望：
+# acps_component_key — 组件 id（如 registry_server），或
+# acps_state_scope: control — 改为写入 control CLI state
+# 可选：
+# acps_state_root — 默认 {{ acps_runtime_root }}/state
+
+- name: 解析组件 state 文件路径
+  when: (acps_state_scope | default('component')) != 'control'
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - (acps_component_key | string | length) > 0
+    fail_msg: "save_previous_state requires acps_component_key (or acps_state_scope=control)"
+
+- name: 设置 state 文件路径
+  ansible.builtin.set_fact:
+    _acps_state_root: "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}"
+    _acps_state_file: >-
+      {{
+        (acps_state_root | default(acps_runtime_root ~ '/state'))
+        ~ (
+          '/control/acps_cli.json'
+          if (acps_state_scope | default('component')) == 'control'
+          else ('/components/' ~ acps_component_key ~ '.json')
+        )
+      }}
+
+- name: 确保 state 父目录
+  ansible.builtin.file:
+    path: "{{ _acps_state_file | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: 检查现有 state 文件
+  ansible.builtin.stat:
+    path: "{{ _acps_state_file }}"
+  register: _acps_state_stat
+
+- name: 无 current state — 跳过 save_previous（首装）
+  when: not _acps_state_stat.stat.exists
+  ansible.builtin.debug:
+    msg: "save_previous_state: no state at {{ _acps_state_file }}; skip (first install)"
+
+- name: 加载并将 current 快照到 previous
+  when: _acps_state_stat.stat.exists
+  block:
+    - name: 读取 state 文件
+      ansible.builtin.slurp:
+        src: "{{ _acps_state_file }}"
+      register: _acps_state_slurp
+
+    - name: 解析 state JSON
+      ansible.builtin.set_fact:
+        _acps_state_doc: "{{ _acps_state_slurp.content | b64decode | from_json }}"
+
+    - name: 构建 previous 快照（剥离嵌套 previous；V1 单代；可选 layout/release_path）
+      ansible.builtin.set_fact:
+        _acps_prev_layout: >-
+          {{
+            _acps_state_doc.layout
+            | default(acps_host_layout | default('', true), true)
+          }}
+        _acps_prev_release_path: >-
+          {{
+            _acps_state_doc.release_path
+            | default(acps_host_release_path | default('', true), true)
+          }}
+
+    - name: 写入 previous 对象到 state 文档
+      ansible.builtin.set_fact:
+        _acps_state_doc: >-
+          {{
+            _acps_state_doc
+            | combine({
+                'previous': (
+                  {
+                    'version': _acps_state_doc.version | default(''),
+                    'artifact_id': _acps_state_doc.artifact_id | default(''),
+                    'image_tag': _acps_state_doc.image_tag | default(none),
+                    'updated_at': _acps_state_doc.updated_at | default(''),
+                  }
+                  | combine(
+                      {'layout': _acps_prev_layout | string}
+                      if (_acps_prev_layout | default('') | string | length) > 0
+                      else {}
+                    )
+                  | combine(
+                      {'release_path': _acps_prev_release_path | string}
+                      if (_acps_prev_release_path | default('') | string | length) > 0
+                      else {}
+                    )
+                  | combine(
+                      {'migrate_id': (_acps_state_doc.migrate_id | default('') | string)}
+                      if ((_acps_state_doc.migrate_id | default('') | string | length) > 0)
+                      else {}
+                    )
+                )
+              }, recursive=True)
+          }}
+
+    - name: 写入 state 并填充 previous（current 不变）
+      ansible.builtin.copy:
+        dest: "{{ _acps_state_file }}"
+        mode: "0644"
+        content: "{{ _acps_state_doc | to_nice_json }}\n"

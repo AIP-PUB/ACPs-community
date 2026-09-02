@@ -2,7 +2,7 @@
   "aic": "1.2.156.3088.1.1.8UDX9U.NNVB61.1.13WT",
   "active": true,
   "lastModifiedTime": "2025-10-11T14:21:56.426665+08:00",
-  "protocolVersion": "02.01",
+  "protocolVersion": "02.02",
   "name": "全国交通规划智能体",
   "description": "全国城际交通规划智能体（Partner）。职责：围绕用户旅游或差旅日程，提供中国境内城市与城市之间的交通规划与对比（高铁/火车/航班/长途客运/轮渡/自驾概述），支持多段组合与时间-费用权衡。范围限定：仅处理中国大陆境内的城际交通，不提供城市内部出行（如地铁/公交/出租/网约车/步行等）与境外或跨国交通。明确拒绝：① 城市内通勤/导航/接驳细节；② 景点/酒店/餐饮等非交通内容；③ 境外或跨国交通；④ 货运/物流请求。混合请求中仅抽取并处理城际交通段，城市内部分予以拒绝并说明。全局必要输入：出发城市与到达城市（或有序的城市序列，≥2）以及出行日期或天数。全局可选输入：人数、预算区间、偏好（时间优先/费用优先/舒适度）、行李与特殊需求、票务限制（直达/最少换乘/避夜行）。",
   "version": "1.0.0",
@@ -29,6 +29,24 @@
       ]
     },
     {
+      "url": "https://localhost:9025/stream",
+      "transport": "SSE",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    },
+    {
+      "url": "https://localhost:9025/notification",
+      "transport": "JSONRPC",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    },
+    {
       "url": "amqps://localhost:5671/acps?inbox=inbox_{AIC}",
       "transport": "AMQP",
       "security": [
@@ -44,8 +62,8 @@
     }
   },
   "capabilities": {
-    "streaming": false,
-    "notification": false,
+    "streaming": true,
+    "notification": true,
     "messageQueue": ["rabbitmq:>=4.2"]
   },
   "defaultInputModes": ["text/plain"],

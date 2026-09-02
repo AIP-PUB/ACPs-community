@@ -1,0 +1,37 @@
+---
+# db_migrate.yml
+# 承载分派层（mode 无关中性入口）：按 acps_deploy_mode include 对应实现。
+# image → db_migrate_image.yml（= 现 run_alembic.yml，经 compose_ctl run-alembic，逻辑字节不变）。
+# host  → db_migrate_host.yml（组件 venv 内 `alembic upgrade head`，见本设计 §5.3）。
+# 调用方（ca_server/registry_server/discovery_server/monitor_server 等）统一
+# include 本文件，取代直接 include run_alembic.yml；后者保留为向后兼容别名。
+#
+# host 回滚 / skip-stage：统一 short-circuit（H4 S2 P1）。
+# 回滚已切 current→previous，禁止再跑 alembic upgrade head（schema 可能新于
+# previous 代码；失败会导致 cutover 后无法 commit_state，磁盘与 state 不一致）。
+
+- name: host 回滚/skip-stage — 跳过 db_migrate（统一闸门）
+  when: >-
+    (acps_host_skip_migrate | default(false) | bool)
+    or (
+      (acps_deploy_mode | default('image')) == 'host'
+      and (acps_skip_stage_artifact | default(false) | bool)
+    )
+  ansible.builtin.debug:
+    msg: >-
+      db_migrate skipped for {{ acps_component_key | default('?') }}
+      (acps_host_skip_migrate={{ acps_host_skip_migrate | default(false) | bool }},
+      acps_skip_stage_artifact={{ acps_skip_stage_artifact | default(false) | bool }},
+      mode={{ acps_deploy_mode | default('?') }}).
+      Rollback/no-op must not run alembic upgrade head.
+
+- name: 按 mode 分派 db_migrate 实现
+  when: >-
+    not (
+      (acps_host_skip_migrate | default(false) | bool)
+      or (
+        (acps_deploy_mode | default('image')) == 'host'
+        and (acps_skip_stage_artifact | default(false) | bool)
+      )
+    )
+  ansible.builtin.include_tasks: "db_migrate_{{ acps_deploy_mode }}.yml"

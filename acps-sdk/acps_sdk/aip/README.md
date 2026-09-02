@@ -1,6 +1,6 @@
 # AIP SDK — 智能体交互协议 (Agent Interaction Protocol) v2
 
-AIP SDK 提供 AIP v2 协议的 Python 实现，覆盖任务命令/结果模型、JSON-RPC 交互、群组模式的 RabbitMQ 协作、流式事件模型和 mTLS 配置工具。
+AIP SDK 提供 AIP v2 协议的 Python 实现，覆盖任务命令/结果模型、JSON-RPC 交互、群组模式的 RabbitMQ 协作，以及流式与 mTLS 场景下的客户端/服务端辅助能力。
 
 ## 目录结构
 
@@ -17,7 +17,6 @@ acps_sdk/aip/
 ├── aip_group_partner.py    # 群组模式 Partner 端实现
 ├── aip_group_auth.py       # 群组 ACL 服务客户端
 ├── aip_group_runtime.py    # 群组运行时命名、邀请和 AMQP URL 工具
-├── mtls_config.py          # mTLS 双向认证配置
 └── README.md               # 本文件
 ```
 
@@ -141,22 +140,31 @@ await partner.fail_task(task_id, session_id, "处理失败原因")
 
 ### mTLS 配置
 
-`MTLSConfig` 未从根模块导出，请从子模块导入：
-
 ```python
-from acps_sdk.aip.mtls_config import MTLSConfig
+import ssl
 
-mtls = MTLSConfig(
-    cert_dir="./certs",
-    aic="1.2.156.3088.1.1.LDR001.ONT001.000001.0000",
+client_ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+client_ssl_context.load_cert_chain(
+    certfile="./certs/client.pem",
+    keyfile="./certs/client.key",
 )
+client_ssl_context.load_verify_locations(cafile="./certs/trust-bundle.pem")
+client_ssl_context.check_hostname = False  # 本地联调无 SAN/域名时可关闭
+client_ssl_context.verify_mode = ssl.CERT_REQUIRED
+client_ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
 
-client_ssl_context = mtls.create_client_ssl_context()
-server_ssl_context = mtls.create_server_ssl_context()
+server_ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+server_ssl_context.load_cert_chain(
+    certfile="./certs/server.pem",
+    keyfile="./certs/server.key",
+)
+server_ssl_context.load_verify_locations(cafile="./certs/trust-bundle.pem")
+server_ssl_context.verify_mode = ssl.CERT_REQUIRED
+server_ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
 ```
 
-`AipRpcClient` 可接收 `ssl_context` 用于 HTTPS + mTLS；群组客户端在未配置 RabbitMQ 用户名/密码时会使用 AMQPS EXTERNAL 认证，并要求传入 `ssl_context`。
+`AipRpcClient`、`AipNotificationClient`、`AipStreamClient` 以及群组模式相关客户端都可接收 `ssl_context`，用于 HTTPS + mTLS 或 AMQPS EXTERNAL 认证场景。若你要暴露自己的 HTTPS / mTLS 回调或 RPC 入口，`server_ssl_context` 需要交给实际承载 TLS 的 HTTP/ASGI 服务器或反向代理，而不是传给 SDK 的路由辅助函数本身。
 
 ## 参考
 
-- [ACPs-spec-AIP-v02.01](../../../acps-specs/07-ACPs-spec-AIP/ACPs-spec-AIP.md) - 智能体交互协议
+- [ACPs-spec-AIP-v02.02](../../../acps-specs/07-ACPs-spec-AIP/ACPs-spec-AIP.md) - 智能体交互协议

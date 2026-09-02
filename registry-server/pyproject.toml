@@ -1,6 +1,6 @@
 [project]
 name = "registry-server"
-version = "2.1.0"
+version = "2.2.0"
 description = "Agent Registry Server"
 authors = [{ name = "Team", email = "team@ioa.pub" }]
 readme = "README.md"
@@ -8,6 +8,7 @@ license = "MulanPSL-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.14,<4.0"
 dependencies = [
+    "acps-sdk[oidc]",
     "fastapi>=0.136.1,<1.0.0",
     "uvicorn[standard]>=0.46.0,<1.0.0",
     "sqlalchemy>=2.0.49,<3.0.0",
@@ -15,15 +16,15 @@ dependencies = [
     "alembic>=1.18.4,<2.0.0",
     "asyncpg>=0.31.0,<1.0.0",
     "psycopg[binary]>=3.3.3,<4.0.0",
-    "pydantic-settings>=2.14.0,<3.0.0",
+    "pydantic-settings>=2.14.2,<3.0.0",
     "httpx>=0.28.1,<1.0.0",
     "tenacity>=9.1.4,<10.0.0",
     "typer>=0.25.1,<1.0.0",
-    "PyJWT[crypto]>=2.12.1,<3.0.0",
+    "PyJWT[crypto]>=2.13.0,<3.0.0",
     "argon2-cffi>=25.1.0,<26.0.0",
     "passlib[bcrypt]>=1.7.4,<2.0.0",
     "bcrypt>=4.0.1,<4.1.0",
-    "python-multipart>=0.0.27,<1.0.0",
+    "python-multipart>=0.0.31,<1.0.0",
     "qdrant-client>=1.17.1,<2.0.0",
     "openai>=2.33.0,<3.0.0",
     "email-validator>=2.3.0,<3.0.0",
@@ -35,6 +36,7 @@ dependencies = [
     "structlog>=25.5.0",
     "prometheus-fastapi-instrumentator>=7.1.0",
     "slowapi>=0.1.9,<1.0.0",
+    "starlette>=1.0.1,<2.0.0",
     "opentelemetry-sdk>=1.41.1,<2.0.0",
     "opentelemetry-exporter-otlp>=1.41.1,<2.0.0",
     "opentelemetry-instrumentation-fastapi>=0.62b1,<1.0.0",
@@ -63,6 +65,9 @@ dev = [
 requires = ["hatchling>=1.27.0,<2.0.0"]
 build-backend = "hatchling.build"
 
+[tool.uv.sources]
+acps-sdk = { path = "../acps-sdk", editable = true }
+
 [tool.hatch.build.targets.wheel]
 # wheel 只打包应用代码目录，避免把测试与运维文件带入发布产物。
 packages = ["app"]
@@ -75,7 +80,12 @@ asyncio_mode = "auto"
 # 严格校验自定义 marker，并在结果摘要中保留跳过与失败原因。
 addopts = "--strict-markers -ra"
 # 统一测试分层标记，便于按层执行与区分质量门禁。
-markers = ["unit: 单元测试", "integration: 集成测试", "e2e: 端到端测试"]
+markers = [
+    "unit: 单元测试",
+    "integration: 集成测试",
+    "e2e: 端到端测试",
+    "oidc: 依赖 Keycloak 的 OIDC 联调用例",
+]
 
 [tool.coverage.run]
 # 只统计应用代码覆盖率，避免测试与虚拟环境文件稀释结果。
@@ -209,6 +219,6 @@ exclude_dirs = ["tests", "alembic"]
 # 使用 Conventional Commits 生成版本标签与变更日志。
 name = "cz_conventional_commits"
 # 与项目发布版本保持一致，便于本地校验和发布流程共享同一版本号。
-version = "2.1.0"
+version = "2.2.0"
 # 标签统一采用 v<version> 形式，便于发布脚本和历史检索。
 tag_format = "v$version"

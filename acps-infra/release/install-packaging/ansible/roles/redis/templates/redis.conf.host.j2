@@ -1,0 +1,24 @@
+# 由 ACPs install-packaging 生成（host 模式）— 请勿手改，重跑 site.yml 会覆盖。
+# 与 image/host 合同对齐（Redis-Native-Deployment.md / 本设计 §5.5）：
+# TLS-only（port 0 + tls-port）、requirepass、appendonly、allkeys-lru。
+# host 无 Compose 服务名，监听全部接口，靠防火墙 + TLS + 密码收敛暴露面
+# （本设计 §1「无统一网关，端口直接暴露」）。
+
+bind 0.0.0.0 -::1
+protected-mode yes
+supervised systemd
+
+port 0
+tls-port {{ redis_port }}
+tls-cert-file {{ acps_runtime_root }}/certs/redis/redis-server.pem
+tls-key-file {{ acps_runtime_root }}/certs/redis/redis-server.key
+tls-ca-cert-file {{ acps_runtime_root }}/certs/redis/acps-root-ca.pem
+tls-auth-clients optional
+
+appendonly yes
+maxmemory 256mb
+maxmemory-policy allkeys-lru
+requirepass {{ redis_password }}
+
+dir {{ redis_os_data_dir }}
+logfile ""

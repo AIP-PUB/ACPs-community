@@ -1,0 +1,14 @@
+---
+# Recreate Compose service(s) on target hosts after a leaf cert renew.
+# 期望： _renew_profile (string), acps_cert_renew_meta_by_profile
+
+- name: 解析 recreate metadata for profile
+  ansible.builtin.set_fact:
+    _rr: "{{ acps_cert_renew_meta_by_profile[_renew_profile] }}"
+
+- name: Recreate compose services on each target host
+  ansible.builtin.include_tasks: renew_recreate_host.yml
+  loop: "{{ groups[_rr.target_group] | default([]) }}"
+  loop_control:
+    loop_var: _renew_target_host
+  when: (groups[_rr.target_group] | default([])) | length > 0

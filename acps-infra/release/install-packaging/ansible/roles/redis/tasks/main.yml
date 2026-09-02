@@ -1,0 +1,132 @@
+---
+- name: redis 禁用时结束
+  when: not (redis_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 Redis（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: stage redis image
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: redis
+        acps_artifact_kind: os_package
+
+    - name: 准备 data/certs dirs
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ acps_data_root }}/redis"
+        - "{{ acps_runtime_root }}/certs/redis"
+
+    - name: 解析 cert owner
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: resolve_cert_owner.yml
+      vars:
+        acps_cert_owner_user: redis
+
+    - name: 规范化 redis certs
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: normalize_certs.yml
+      vars:
+        acps_certs_dir: "{{ acps_runtime_root }}/certs/redis"
+
+    - name: 规范化 redis data dir ownership
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: normalize_data_dir.yml
+      vars:
+        acps_data_dir: "{{ acps_data_root }}/redis"
+
+    - name: 渲染 compose
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/redis.yml"
+        mode: "0644"
+      register: _redis_compose_render
+
+    - name: 计算 redis TLS 材料 digest（image）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: tls_material_digest.yml
+      vars:
+        acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/redis"
+        acps_tls_digest_files:
+          - redis-server.pem
+          - redis-server.key
+          - acps-root-ca.pem
+        acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/redis-tls-material.sha256"
+        acps_tls_digest_persist: false
+
+    - name: 判定 redis 是否 force recreate
+      ansible.builtin.set_fact:
+        _redis_force_recreate: >-
+          {{
+            (_redis_compose_render is changed)
+            or (_tls_material_digest_changed | default(true) | bool)
+            or (acps_force_redis_restart | default(false) | bool)
+          }}
+
+    - name: 部署 redis
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: redis
+        acps_compose_force_recreate: "{{ _redis_force_recreate | bool }}"
+
+    - name: 标记本轮 redis 已真 recreate（供下游依赖 role 跟随）
+      when: _redis_force_recreate | bool
+      ansible.builtin.set_fact:
+        acps_tls_upstream_bounced_redis: true
+
+    - name: 持久化 redis TLS digest（本轮 recreate 后）
+      when: _redis_force_recreate | bool
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: tls_material_digest.yml
+      vars:
+        acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/redis"
+        acps_tls_digest_files:
+          - redis-server.pem
+          - redis-server.key
+          - acps-root-ca.pem
+        acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/redis-tls-material.sha256"
+        acps_tls_digest_persist: true
+
+    - name: redis recreate 后触发依赖闭包
+      when: _redis_force_recreate | bool
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: reload_tls_dependents.yml
+      vars:
+        acps_tls_upstream: redis
+
+    - name: 等待 redis port
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ redis_port }}"
+        timeout: 60
+
+    - name: 开放 redis 广告端口（firewalld/ufw；与 host 同构）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: open_advertise_ports.yml
+      vars:
+        acps_open_ports:
+          - "{{ redis_port }}"
+
+- name: host 分支：OS 包承载 Redis(≥7) + TLS-only（本设计 §5.5 / §6.4）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

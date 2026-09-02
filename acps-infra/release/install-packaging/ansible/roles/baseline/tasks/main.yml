@@ -1,0 +1,37 @@
+---
+- name: 无已启用组件的主机跳过 baseline
+  ansible.builtin.debug:
+    msg: "baseline checks for {{ inventory_hostname }}"
+    verbosity: 1
+
+- name: 要求 docker CLI
+  ansible.builtin.command:
+    argv: [docker, info]
+  changed_when: false
+  when: acps_deploy_mode == 'image'
+
+- name: 要求 docker compose v2 插件
+  ansible.builtin.command:
+    argv: [docker, compose, version]
+  register: _compose_ver
+  changed_when: false
+  when: acps_deploy_mode == 'image'
+
+- name: 确保运行时根目录可写
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  become: true
+  loop:
+    - "{{ acps_runtime_root }}"
+    - "{{ acps_data_root }}"
+    - "{{ acps_log_root }}"
+
+# host 模式各业务应用以 acps 系统账号运行 systemd 单元（本设计 §5.2）；image 模式
+# 容器内身份与本机账号无关，不需要。
+- name: 确保 acps 系统用户/组（host-mode systemd 运行身份）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_acps_user.yml

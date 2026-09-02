@@ -210,7 +210,7 @@ async def test_submit_org_verification_requires_identity_verified() -> None:
         await verification_service.submit_org_verification(
             _as_async_session(db),
             user,
-            OrgVerificationRequest(org_name="ACPS Org", usci="91310000123456789X"),
+            OrgVerificationRequest(org_name="ACPs Org", usci="91310000123456789X"),
         )
 
     assert exc_info.value.error_name == VerificationErrorCode.IDENTITY_NOT_VERIFIED
@@ -231,7 +231,7 @@ async def test_submit_org_verification_auto_approves(monkeypatch: pytest.MonkeyP
         _as_async_session(db),
         user,
         OrgVerificationRequest(
-            org_name="ACPS Org",
+            org_name="ACPs Org",
             usci="91310000123456789X",
             legal_rep_name="Bob Li",
             legal_rep_id_number="310101199201019999",
@@ -257,7 +257,7 @@ async def test_submit_org_verification_rejects_already_verified_user() -> None:
         await verification_service.submit_org_verification(
             _as_async_session(db),
             user,
-            OrgVerificationRequest(org_name="ACPS Org", usci="91310000123456789X"),
+            OrgVerificationRequest(org_name="ACPs Org", usci="91310000123456789X"),
         )
 
     assert exc_info.value.error_name == VerificationErrorCode.ORG_ALREADY_VERIFIED
@@ -270,7 +270,7 @@ async def test_submit_org_verification_rejects_latest_approved_record_with_stale
     db.org_records.append(
         OrgVerification(
             user_id=user.id,
-            org_name="ACPS Org",
+            org_name="ACPs Org",
             usci="91310000123456789X",
             status=VerificationStatus.APPROVED,
         )
@@ -280,7 +280,7 @@ async def test_submit_org_verification_rejects_latest_approved_record_with_stale
         await verification_service.submit_org_verification(
             _as_async_session(db),
             user,
-            OrgVerificationRequest(org_name="ACPS Org", usci="91310000123456789X"),
+            OrgVerificationRequest(org_name="ACPs Org", usci="91310000123456789X"),
         )
 
     assert exc_info.value.error_name == VerificationErrorCode.ORG_ALREADY_VERIFIED
@@ -293,7 +293,7 @@ async def test_submit_org_verification_rejects_existing_pending(monkeypatch: pyt
     db.org_records.append(
         OrgVerification(
             user_id=user.id,
-            org_name="ACPS Org",
+            org_name="ACPs Org",
             usci="91310000123456789X",
             status=VerificationStatus.PENDING,
         )
@@ -308,7 +308,7 @@ async def test_submit_org_verification_rejects_existing_pending(monkeypatch: pyt
         await verification_service.submit_org_verification(
             _as_async_session(db),
             user,
-            OrgVerificationRequest(org_name="ACPS Org", usci="91310000123456789X"),
+            OrgVerificationRequest(org_name="ACPs Org", usci="91310000123456789X"),
         )
 
     assert exc_info.value.error_name == VerificationErrorCode.ORG_PENDING
@@ -341,14 +341,14 @@ def test_identity_verification_request_rejects_whitespace_only_required_fields()
 
 def test_org_verification_request_normalizes_blank_optional_fields() -> None:
     request = OrgVerificationRequest(
-        org_name="  ACPS Org  ",
+        org_name="  ACPs Org  ",
         usci="   ",
         org_registration_number="  REG-001  ",
         legal_rep_name="   ",
         legal_rep_id_number="  310101199201019999  ",
     )
 
-    assert request.org_name == "ACPS Org"
+    assert request.org_name == "ACPs Org"
     assert request.usci is None
     assert request.org_registration_number == "REG-001"
     assert request.legal_rep_name is None

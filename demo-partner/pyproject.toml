@@ -1,20 +1,21 @@
 [project]
 name = "demo-partner"
-version = "2.1.0"
+version = "2.2.0"
 description = "ACPs Partner Agent 示例应用"
 readme = "README.md"
 license = "MulanPSL-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.14,<3.15"
 dependencies = [
-    "fastapi>=0.115",
+    "fastapi>=0.136.1,<1.0.0",
+    "starlette>=1.0.1,<2.0.0",
     "uvicorn[standard]>=0.34",
     "openai>=1.0",
     "httpx>=0.28",
     "aio-pika>=9.0",
     "python-dotenv>=1.0",
     "structlog>=24.4",
-    "acps-sdk",
+    "acps-sdk[amp-sign]",
     "acps-cli",
 ]
 
@@ -87,6 +88,10 @@ ignore = [
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.bandit]
+# pytest 断言和测试夹具不属于 Partner 运行时代码，不纳入生产安全扫描。
+exclude_dirs = ["tests"]
 
 [tool.mypy]
 python_version = "3.14"

@@ -1,5 +1,0 @@
-nginx:1.27-alpine
-acps-stage-postgres:pg17-pgvector
-redis:7-alpine
-rabbitmq:4.2-management-alpine
-python:3.14-slim

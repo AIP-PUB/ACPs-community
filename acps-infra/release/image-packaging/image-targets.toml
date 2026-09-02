@@ -1,0 +1,256 @@
+# image-mode 镜像打包目标清单示例。
+#
+# 只声明"这次要构建哪些镜像目标"；具体基础镜像 digest 一律从 image-inputs.lock 解析，
+# 不在这里重复维护。platform 字段使用 Docker platform 形式（如 "linux/amd64"），
+# 文件名/标签用到的 platform slug 由工具（lib/common.py）统一派生。
+#
+# 本文件覆盖 的正式应用镜像矩阵与 的基础设施镜像候选集合，
+# 可直接用于 `--targets` 参数做整体矩阵构建，也可以复制后按需要精简。
+
+# ---------------------------------------------------------------------------
+# 应用镜像矩阵
+# ---------------------------------------------------------------------------
+
+[[app_targets]]
+app = "registry-server"
+platform = "linux/amd64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "registry-server"
+platform = "linux/arm64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "ca-server"
+platform = "linux/amd64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "ca-server"
+platform = "linux/arm64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "mq-auth-server"
+platform = "linux/amd64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "mq-auth-server"
+platform = "linux/arm64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "monitor-server"
+platform = "linux/amd64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "monitor-server"
+platform = "linux/arm64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "demo-leader"
+platform = "linux/amd64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "demo-leader"
+platform = "linux/arm64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "demo-partner"
+platform = "linux/amd64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "demo-partner"
+platform = "linux/arm64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "acps-cli"
+platform = "linux/amd64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "acps-cli"
+platform = "linux/arm64"
+python_tag = "cp314"
+
+[[app_targets]]
+app = "discovery-server"
+platform = "linux/amd64"
+python_tag = "cp314"
+variant = "cpu"
+
+[[app_targets]]
+app = "discovery-server"
+platform = "linux/arm64"
+python_tag = "cp314"
+variant = "cpu"
+
+# discovery-server GPU 见 image-targets.with-gpu.toml（须先有 GPU 应用发布包）。
+# discovery-server / linux/amd64 / gpu 暂不进入正式矩阵。
+
+# ---------------------------------------------------------------------------
+# 基础设施镜像候选集合
+# ---------------------------------------------------------------------------
+
+[[infra_targets]]
+id = "redis"
+kind = "wrapper"
+upstream_version = "7-alpine"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "redis"
+kind = "wrapper"
+upstream_version = "7-alpine"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+[[infra_targets]]
+id = "postgres-pgvector"
+kind = "derived"
+upstream_version = "17-bookworm"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "postgres-pgvector"
+kind = "derived"
+upstream_version = "17-bookworm"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+[[infra_targets]]
+id = "rabbitmq"
+kind = "derived"
+upstream_version = "4.2-management-alpine"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "rabbitmq"
+kind = "derived"
+upstream_version = "4.2-management-alpine"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+[[infra_targets]]
+id = "gateway-nginx"
+kind = "derived"
+upstream_version = "1.27-alpine"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "gateway-nginx"
+kind = "derived"
+upstream_version = "1.27-alpine"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+[[infra_targets]]
+id = "keycloak"
+kind = "derived"
+upstream_version = "26.6.3"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "keycloak"
+kind = "derived"
+upstream_version = "26.6.3"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+[[infra_targets]]
+id = "redpanda"
+kind = "wrapper"
+upstream_version = "26.1.9"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "redpanda"
+kind = "wrapper"
+upstream_version = "26.1.9"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+[[infra_targets]]
+id = "victoria-metrics"
+kind = "wrapper"
+upstream_version = "1.111.0"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "victoria-metrics"
+kind = "wrapper"
+upstream_version = "1.111.0"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+[[infra_targets]]
+id = "clickhouse"
+kind = "wrapper"
+upstream_version = "25.5-alpine"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "clickhouse"
+kind = "wrapper"
+upstream_version = "25.5-alpine"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+[[infra_targets]]
+id = "minio"
+kind = "wrapper"
+upstream_version = "2025-04-22T22-12-26Z"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "minio"
+kind = "wrapper"
+upstream_version = "2025-04-22T22-12-26Z"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+[[infra_targets]]
+id = "opensearch"
+kind = "wrapper"
+upstream_version = "2.19.2"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "opensearch"
+kind = "wrapper"
+upstream_version = "2.19.2"
+acps_version = "2.2.0"
+platform = "linux/arm64"
+
+# AMP Forwarder（demo Web 已用 demo-leader-web，无 demo-nginx）
+[[infra_targets]]
+id = "fluent-bit"
+kind = "wrapper"
+upstream_version = "3.2"
+acps_version = "2.2.0"
+platform = "linux/amd64"
+
+[[infra_targets]]
+id = "fluent-bit"
+kind = "wrapper"
+upstream_version = "3.2"
+acps_version = "2.2.0"
+platform = "linux/arm64"

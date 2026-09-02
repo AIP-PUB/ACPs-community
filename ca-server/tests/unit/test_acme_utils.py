@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 
 import pytest
-from cryptography.hazmat.primitives.asymmetric import ec, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
 from app.acme.exception import AcmeError, AcmeException
+from app.acme.jwk import public_jwk_projection
 from app.acme.utils import (
     base64url_decode,
     base64url_encode,
@@ -86,10 +88,14 @@ class TestJWKToPublicKey:
         key = jwk_to_public_key(jwk)
         assert isinstance(key, ec.EllipticCurvePublicKey)
 
+    def test_okp_ed25519_key_conversion(self, ed25519_public_jwk: dict) -> None:
+        key = jwk_to_public_key(ed25519_public_jwk)
+        assert isinstance(key, ed25519.Ed25519PublicKey)
+
     def test_unsupported_kty_raises(self) -> None:
         with pytest.raises(AcmeException) as exc_info:
-            jwk_to_public_key({"kty": "OKP", "x": "abc"})
-        assert exc_info.value.error_name == AcmeError.BAD_SIGNATURE
+            jwk_to_public_key({"kty": "oct", "k": "abc"})
+        assert exc_info.value.error_name == AcmeError.UNSUPPORTED_ALGORITHM
 
     def test_ec_unsupported_curve_raises(self) -> None:
         with pytest.raises(AcmeException) as exc_info:
@@ -101,7 +107,7 @@ class TestJWKToPublicKey:
                     "y": base64url_encode(b"\x01" * 32),
                 }
             )
-        assert exc_info.value.error_name == AcmeError.BAD_SIGNATURE
+        assert exc_info.value.error_name == AcmeError.UNSUPPORTED_ALGORITHM
 
 
 # ---------- compute_jwk_thumbprint ----------
@@ -123,11 +129,25 @@ class TestComputeJWKThumbprint:
         thumbprint = compute_jwk_thumbprint(rsa_public_jwk)
         assert len(thumbprint) > 0
 
-    def test_ec_kty_raises(self, ec_public_jwk: dict) -> None:
-        # utils 版本的 compute_jwk_thumbprint 只支持 RSA
+    def test_ec_thumbprint_supported(self, ec_public_jwk: dict) -> None:
+        thumbprint = compute_jwk_thumbprint(ec_public_jwk)
+        assert len(thumbprint) > 0
+
+    def test_okp_thumbprint_supported(self, ed25519_public_jwk: dict) -> None:
+        thumbprint = compute_jwk_thumbprint(ed25519_public_jwk)
+        assert len(thumbprint) > 0
+
+
+class TestPublicJWKProjection:
+    def test_rsa_private_fields_rejected(self, rsa_public_jwk: dict) -> None:
         with pytest.raises(AcmeException) as exc_info:
-            compute_jwk_thumbprint(ec_public_jwk)
-        assert exc_info.value.error_name == AcmeError.BAD_SIGNATURE
+            public_jwk_projection({**rsa_public_jwk, "d": "secret"})
+        assert exc_info.value.error_name == AcmeError.MALFORMED
+
+    def test_ec_private_fields_rejected(self, ec_public_jwk: dict) -> None:
+        with pytest.raises(AcmeException) as exc_info:
+            public_jwk_projection({**ec_public_jwk, "d": "secret"})
+        assert exc_info.value.error_name == AcmeError.MALFORMED
 
 
 # ---------- parse_protected_header ----------
@@ -188,7 +208,6 @@ class TestVerifyJWSSignature:
     ) -> None:
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.asymmetric import ec as ec_module
-        from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
         protected_b64 = base64url_encode(json.dumps({"alg": "ES256"}).encode())
         payload_b64 = base64url_encode(json.dumps({"y": 2}).encode())
@@ -199,4 +218,16 @@ class TestVerifyJWSSignature:
         sig_b64 = base64url_encode(raw_sig)
 
         result = verify_jws_signature(protected_b64, payload_b64, sig_b64, ec_public_jwk)
+        assert result is True
+
+    def test_valid_eddsa_signature_returns_true(
+        self, ed25519_private_key: ed25519.Ed25519PrivateKey, ed25519_public_jwk: dict
+    ) -> None:
+        protected_b64 = base64url_encode(json.dumps({"alg": "EdDSA"}).encode())
+        payload_b64 = base64url_encode(json.dumps({"z": 3}).encode())
+        signing_input = f"{protected_b64}.{payload_b64}".encode("ascii")
+        signature_bytes = ed25519_private_key.sign(signing_input)
+        signature_b64 = base64url_encode(signature_bytes)
+
+        result = verify_jws_signature(protected_b64, payload_b64, signature_b64, ed25519_public_jwk)
         assert result is True

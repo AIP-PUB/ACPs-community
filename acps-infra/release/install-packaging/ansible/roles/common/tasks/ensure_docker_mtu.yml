@@ -1,0 +1,168 @@
+---
+# ensure_docker_mtu.yml
+# image-mode：对齐 Docker daemon 默认 MTU（仅 Linux Engine）与共享网络 {{ acps_docker_network }}。
+# 宿主机出口 MTU 常为 1400（隧道/云网），容器仍 1500 时跨境 HTTPS 易握手超时。
+#
+# Docker Desktop（含 macOS）不通过 /etc/docker/daemon.json 管理 dockerd：跳过 daemon.json
+# 写入与 service restart，但仍管理 acps-net 的 MTU（Compose 共享网两端都需要）。
+
+- name: 探测 Docker OperatingSystem（Desktop vs Engine）
+  ansible.builtin.command:
+    argv:
+      - docker
+      - info
+      - --format
+      - '{% raw %}{{.OperatingSystem}}{% endraw %}'
+  register: _acps_docker_os_info
+  changed_when: false
+  failed_when: false
+
+- name: 判定是否由本机管理 /etc/docker/daemon.json
+  ansible.builtin.set_fact:
+    # Darwin / Docker Desktop：不可写有效的 Engine daemon.json。
+    # 远端 Linux Engine：保留写入（跨境 LLM MTU 产品路径）。
+    # 不以 docker info 成功为前置——info 偶发失败时 Linux 仍应尝试写 daemon.json。
+    _acps_manage_daemon_json: >-
+      {{
+        (ansible_system | default('') | lower) != 'darwin'
+        and ('docker desktop' not in (_acps_docker_os_info.stdout | default('') | lower))
+      }}
+
+- name: 跳过 daemon.json 时提示（Desktop / Darwin）
+  when: not (_acps_manage_daemon_json | bool)
+  ansible.builtin.debug:
+    msg: >-
+      Skipping /etc/docker/daemon.json mtu merge on this host
+      (system={{ ansible_system | default('unknown') }},
+      docker.OperatingSystem={{ _acps_docker_os_info.stdout | default('') | trim | default('(unavailable)', true) }}).
+      Still enforcing compose network {{ acps_docker_network }} MTU={{ acps_docker_mtu }}.
+      Ensure the host egress NIC MTU is ≤{{ acps_docker_mtu }} for LLM/embedding tunnels.
+
+- name: 读取现有 Docker daemon.json（若有）
+  when: _acps_manage_daemon_json | bool
+  become: true
+  ansible.builtin.slurp:
+    src: /etc/docker/daemon.json
+  register: _acps_daemon_slurp
+  failed_when: false
+  changed_when: false
+
+- name: 确保 /etc/docker 目录存在
+  when: _acps_manage_daemon_json | bool
+  become: true
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+
+- name: 合并 daemon.json 的 mtu
+  when: _acps_manage_daemon_json | bool
+  become: true
+  vars:
+    _acps_daemon_existing: >-
+      {{
+        (_acps_daemon_slurp.content | b64decode | from_json)
+        if (_acps_daemon_slurp.content is defined)
+        else {}
+      }}
+    _acps_daemon_desired: >-
+      {{
+        _acps_daemon_existing
+        | combine({'mtu': (acps_docker_mtu | int)}, recursive=True)
+      }}
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+    content: "{{ _acps_daemon_desired | to_nice_json }}\n"
+  register: _acps_daemon_mtu
+
+- name: daemon.json mtu 变更后重启 Docker
+  when:
+    - _acps_manage_daemon_json | bool
+    - _acps_daemon_mtu is defined
+    - _acps_daemon_mtu is changed
+    - not (_acps_daemon_mtu is skipped)
+  become: true
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+
+- name: 探测共享网络是否存在
+  ansible.builtin.command:
+    argv: [docker, network, inspect, "{{ acps_docker_network }}"]
+  register: _acps_net_inspect
+  changed_when: false
+  failed_when: false
+
+- name: 读取共享网络当前 MTU
+  when: _acps_net_inspect.rc == 0
+  ansible.builtin.command:
+    argv:
+      - docker
+      - network
+      - inspect
+      - -f
+      - '{% raw %}{{index .Options "com.docker.network.driver.mtu"}}{% endraw %}'
+      - "{{ acps_docker_network }}"
+  register: _acps_net_mtu
+  changed_when: false
+
+- name: 判定共享网络 MTU 是否匹配
+  when: _acps_net_inspect.rc == 0
+  ansible.builtin.set_fact:
+    _acps_net_mtu_ok: >-
+      {{
+        (_acps_net_mtu.stdout | default('') | trim) == (acps_docker_mtu | string)
+      }}
+
+- name: 共享网络 MTU 不符且未允许重建时失败
+  when:
+    - _acps_net_inspect.rc == 0
+    - not (_acps_net_mtu_ok | default(true) | bool)
+    - not (acps_docker_network_recreate | default(false) | bool)
+  ansible.builtin.fail:
+    msg: >-
+      Docker network {{ acps_docker_network }} MTU is
+      '{{ _acps_net_mtu.stdout | default('') | trim | default('(empty→1500)', true) }}'
+      but acps_docker_mtu={{ acps_docker_mtu }}.
+      Re-run with -e acps_docker_network_recreate=true (compose down → rm network → create),
+      then bring the stack back (site.yml or compose up).
+
+- name: 重建前停掉本机 compose 栈并删除旧网络
+  when:
+    - _acps_net_inspect.rc == 0
+    - not (_acps_net_mtu_ok | default(true) | bool)
+    - acps_docker_network_recreate | default(false) | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    COMPOSE_DIR="{{ acps_compose_dir }}"
+    ROOT_YML="${COMPOSE_DIR}/docker-compose.yml"
+    if [[ -f "$ROOT_YML" ]]; then
+      ARGS=(-p "{{ acps_compose_project_prefix }}" -f "$ROOT_YML")
+      if [[ -d "${COMPOSE_DIR}/services" ]]; then
+        while IFS= read -r f; do
+          [[ -n "$f" ]] || continue
+          ARGS+=(-f "$f")
+        done < <(find "${COMPOSE_DIR}/services" -maxdepth 1 -name '*.yml' | sort)
+      fi
+      docker compose "${ARGS[@]}" down --remove-orphans || true
+    fi
+    docker network rm "{{ acps_docker_network }}" || true
+  args:
+    executable: /bin/bash
+
+- name: 创建共享网络（带 MTU）
+  when: >-
+    (_acps_net_inspect.rc | default(1)) != 0
+    or (
+      (acps_docker_network_recreate | default(false) | bool)
+      and not (_acps_net_mtu_ok | default(true) | bool)
+    )
+  ansible.builtin.command:
+    argv:
+      - docker
+      - network
+      - create
+      - --opt
+      - "com.docker.network.driver.mtu={{ acps_docker_mtu }}"
+      - "{{ acps_docker_network }}"

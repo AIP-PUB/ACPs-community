@@ -267,8 +267,11 @@ async def test_validate_aic_rejects_mismatch_inactive_and_missing_org(
     monkeypatch.setattr(client, "_make_request_with_retry", _inactive)
     assert await client.validate_aic_and_get_info("AIC-001") is None
 
+    # organization 可选：个人身份认证 Agent 可能没有组织字段
     monkeypatch.setattr(client, "_make_request_with_retry", _missing_org)
-    assert await client.validate_aic_and_get_info("AIC-001") is None
+    missing_org_info = await client.validate_aic_and_get_info("AIC-001")
+    assert missing_org_info is not None
+    assert missing_org_info.organization == ""
 
 
 @pytest.mark.asyncio

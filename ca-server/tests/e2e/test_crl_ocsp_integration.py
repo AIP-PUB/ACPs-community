@@ -237,14 +237,17 @@ class TestCRLOCSPErrorHandling:
         assert response.status_code in [200, 500]
 
     async def test_ocsp_response_without_responder(self, client: AsyncClient, db_session: Session) -> None:
-        """测试在没有 OCSP 响应器时的行为。"""
+        """测试在没有 OCSP 响应器时会自动 bootstrap 默认 responder。"""
 
         for responder in db_session.exec(select(OCSPResponder)).all():
             db_session.delete(responder)
         db_session.commit()
 
         response = await client.get("/acps-atr-v2/ocsp/responder/info")
-        assert response.status_code == 404
+        assert response.status_code == 200
+        data = response.json()
+        assert data["responder"]["name"] == "Agent CA OCSP Responder"
+        assert "key_hash" in data["responder"]
 
         response = await client.get("/acps-atr-v2/ocsp/certificate/TEST123")
         assert response.status_code == 200

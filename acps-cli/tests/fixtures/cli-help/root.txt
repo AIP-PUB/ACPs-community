@@ -6,3 +6,4 @@ auth      User authentication commands.
 cert      Manage certificate lifecycle operations.
 discover  Run discovery queries and health checks.
 entity    Manage derived entities.
+monitor   Query AMP monitor-server data.

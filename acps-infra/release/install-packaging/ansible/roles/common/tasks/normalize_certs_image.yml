@@ -1,0 +1,73 @@
+---
+# normalize_certs_image.yml
+# 期望：acps_certs_dir、acps_cert_owner_uid、acps_cert_owner_gid
+# 在可无密码 sudo 的 Linux 目标上，优先在主机 chown 到容器
+# uid/gid。回退到辅助容器（Docker Desktop macOS 上需要，
+# 主机可见所有权可能无法改变）。
+# image 分支：内容与承载分派引入前字节级一致。
+
+- name: 断言 cert owner uid/gid resolved
+  ansible.builtin.assert:
+    that:
+      - acps_cert_owner_uid is defined
+      - acps_cert_owner_gid is defined
+      - (acps_cert_owner_uid | string) | length > 0
+    fail_msg: "acps_cert_owner_uid/gid must be resolved from image inspect before normalize_certs"
+
+- name: 确保 certs directory exists
+  ansible.builtin.file:
+    path: "{{ acps_certs_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Host-side mode tighten (always; sudo when needed)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    CERTS="{{ acps_certs_dir }}"
+    run() {
+      if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+        sudo "$@"
+      else
+        "$@"
+      fi
+    }
+    run find "$CERTS" -type d -exec chmod 0755 {} +
+    run find "$CERTS" \( -name '*.key' -o -name '*-key.pem' \) -exec chmod 0600 {} +
+    run find "$CERTS" \( -name '*.pem' -o -name '*.crt' -o -name '*.cer' \) ! -name '*.key' ! -name '*-key.pem' -exec chmod 0644 {} +
+  args:
+    executable: /bin/bash
+
+- name: Host-side chown to container uid/gid (sudo when available)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+      sudo chown -R "{{ acps_cert_owner_uid }}:{{ acps_cert_owner_gid }}" "{{ acps_certs_dir }}"
+      echo "chown via sudo ok"
+      exit 0
+    fi
+    # 无 sudo 的非 root：尝试直接 chown（仅当已是所有者时有效）
+    chown -R "{{ acps_cert_owner_uid }}:{{ acps_cert_owner_gid }}" "{{ acps_certs_dir }}"
+  args:
+    executable: /bin/bash
+  register: _host_chown
+  failed_when: false
+  changed_when: _host_chown.rc == 0
+
+- name: Best-effort chown via local image helper when host chown failed
+  when: _host_chown.rc | default(1) != 0
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - --entrypoint
+      - chown
+      - -v
+      - "{{ acps_certs_dir }}:/certs:z"
+      - "{{ acps_effective_image_tag }}"
+      - "-R"
+      - "{{ acps_cert_owner_uid }}:{{ acps_cert_owner_gid }}"
+      - /certs
+  register: _chown
+  failed_when: false
+  changed_when: _chown.rc == 0

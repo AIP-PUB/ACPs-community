@@ -1,0 +1,140 @@
+---
+# clickhouse/tasks/main_host.yml — host 模式：官方 tgz vendor_bundle + systemd
+# （本设计 §5.5 / §8.2.1 / Step 15）。读模型 DDL 由 monitor-server Writers 启动时 bootstrap。
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: stage clickhouse vendor_bundle
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: clickhouse
+    acps_artifact_kind: vendor_bundle
+
+- name: 解析 clickhouse 数据目录属主（host：acps 系统账号）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+  vars:
+    acps_cert_owner_user: ""
+
+- name: 规范化 clickhouse 数据目录属主
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_data_dir.yml
+  vars:
+    acps_data_dir: "{{ acps_data_root }}/clickhouse"
+
+- name: 准备 clickhouse 配置目录
+  ansible.builtin.file:
+    path: "{{ acps_runtime_root }}/config/clickhouse"
+    state: directory
+    mode: "0755"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 clickhouse config.xml（host）
+  ansible.builtin.template:
+    src: config.xml.host.j2
+    dest: "{{ acps_runtime_root }}/config/clickhouse/config.xml"
+    mode: "0644"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 clickhouse users.xml（host）
+  ansible.builtin.template:
+    src: users.xml.host.j2
+    dest: "{{ acps_runtime_root }}/config/clickhouse/users.xml"
+    mode: "0644"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 clickhouse EnvironmentFile（占位，供 systemd 契约）
+  ansible.builtin.copy:
+    content: |
+      # clickhouse host mode — primary config in config.xml; file kept for systemd contract.
+    dest: "{{ acps_runtime_root }}/config/clickhouse/.env"
+    mode: "0600"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 clickhouse systemd 单元
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_systemd.yml
+  vars:
+    acps_compose_service_name: clickhouse
+    acps_host_install_dest: "{{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/clickhouse/.env"
+    acps_host_entrypoint: >-
+      {{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}/clickhouse-server
+      --config-file={{ acps_runtime_root }}/config/clickhouse/config.xml
+      --pid-file={{ acps_data_root }}/clickhouse/clickhouse-server.pid
+    acps_host_unit_description: "ACPS ClickHouse (host vendor_bundle)"
+
+- name: Rocky SELinux：clickhouse 数据/配置/vendor 目录打标签
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: selinux_restore_path.yml
+  vars:
+    acps_selinux_path: "{{ item }}"
+  loop:
+    - "{{ acps_data_root }}/clickhouse"
+    - "{{ acps_runtime_root }}/config/clickhouse"
+    - "{{ acps_vendor_install_dest }}"
+
+- name: 开放 clickhouse 广告端口（firewalld/ufw，幂等）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ clickhouse_http_port }}"
+
+- name: 部署 clickhouse（systemd enable --now）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: clickhouse
+    acps_component_key: clickhouse
+    acps_compose_force_recreate: false
+
+- name: 等待 clickhouse HTTP 端口
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ clickhouse_http_port }}"
+    timeout: 120
+
+- name: 幂等 bootstrap amp 数据库（monitor Writers DDL 前置）
+  ansible.builtin.command:
+    argv:
+      - "{{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}/clickhouse-client"
+      - --host
+      - 127.0.0.1
+      - --port
+      - "{{ clickhouse_native_port | default(19000) }}"
+      - --query
+      - CREATE DATABASE IF NOT EXISTS amp
+  register: _ch_db_bootstrap
+  changed_when: "'already exists' not in (_ch_db_bootstrap.stderr | default('') | lower)"
+  failed_when: _ch_db_bootstrap.rc != 0
+
+- name: 健康检查：ClickHouse /ping（本设计 §8.2.1）
+  ansible.builtin.command:
+    argv:
+      - curl
+      - -fsS
+      - --max-time
+      - "10"
+      - "http://127.0.0.1:{{ clickhouse_http_port }}/ping"
+  register: _ch_health
+  retries: 30
+  delay: 2
+  until: _ch_health.rc == 0
+  changed_when: false

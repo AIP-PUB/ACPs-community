@@ -15,6 +15,7 @@ from acps_cli.mq.auth_probe_cmd import (
 from acps_cli.mq.client import MqAuthClient
 from acps_cli.mq.config import MqConfig
 from acps_cli.mq.group_cmd import add_member, delete_group, kick_member, remove_member
+from acps_cli.shared.flexible_group import FlexibleGroup
 from acps_cli.shared.runtime import get_root_runtime
 
 # ─── 辅助函数 ─────────────────────────────────────────────────────────────────
@@ -159,7 +160,7 @@ def health(ctx: click.Context, cert_file: str | None, key_file: str | None, outp
 # ─── group 命令组（来自 group_cmd.py） ───────────────────────────────────────
 
 
-@click.group(name="group", help="管理 mq-auth-server 群组 ACL（Leader 专属）。")
+@click.group(cls=FlexibleGroup, name="group", help="管理 mq-auth-server 群组 ACL（Leader 专属）。")
 @click.pass_context
 def group_group(ctx: click.Context) -> None:
     # 仅包含子命令，顶层不执行操作
@@ -175,7 +176,7 @@ group_group.add_command(kick_member)
 # ─── auth-probe 命令组（来自 auth_probe_cmd.py） ──────────────────────────────
 
 
-@click.group(name="auth-probe", help="探测 mq-auth-server Auth API 的授权决策。")
+@click.group(cls=FlexibleGroup, name="auth-probe", help="探测 mq-auth-server Auth API 的授权决策。")
 @click.pass_context
 def auth_probe_group(ctx: click.Context) -> None:
     # 仅包含子命令，顶层不执行操作
@@ -191,7 +192,7 @@ auth_probe_group.add_command(probe_topic)
 # ─── admin_mq_group 顶层 Group ────────────────────────────────────────────────
 
 
-@click.group(name="mq", help="mq-auth-server 管理命令（Group ACL 与 Auth API 探测）。")
+@click.group(cls=FlexibleGroup, name="mq", help="mq-auth-server 管理命令（Group ACL 与 Auth API 探测）。")
 @click.option("--group-api-url", default=None, help="覆盖 mq-auth-server Group API 地址。")
 @click.option("--auth-api-url", default=None, help="覆盖 mq-auth-server Auth API 地址。")
 @click.pass_context

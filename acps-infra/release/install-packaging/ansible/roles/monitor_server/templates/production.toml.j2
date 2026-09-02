@@ -1,0 +1,76 @@
+# Monitor image-mode overlay — keys must match monitor-server Settings (env for secrets/hosts).
+# + : single production overlay (no second forked Writer config).
+# Topics / consumer groups / Writer defaults live in default.toml; this file only
+# overrides install-topology hosts and explicit enable / single-node knobs.
+
+[server]
+host = "0.0.0.0"
+port = 9009
+
+{% set kafka_h = 'redpanda' if (acps_deploy_mode == 'image' and inventory_hostname in (groups['redpanda'] | default([]))) else _redpanda_host %}
+{% set kafka_port = 9092 if (acps_deploy_mode == 'image' and inventory_hostname in (groups['redpanda'] | default([]))) else redpanda_kafka_port %}
+[kafka]
+bootstrap_servers = "{{ kafka_h }}:{{ kafka_port }}"
+security_protocol = "PLAINTEXT"
+
+[oidc]
+{% if keycloak_enabled | bool %}
+{# OIDC issuer MUST match Keycloak --hostname (advertise URL). JWT iss is never
+   docker-DNS keycloak:8080; using that here causes discovery issuer mismatch
+   (business Step D / Monitor query APIs). JWKS is fetched via advertise:port. #}
+enabled = true
+issuer = "http://{{ _keycloak_host }}:{{ keycloak_port }}/realms/acps-monitor"
+audience = "monitor-api"
+allowed_azp = ["monitor-web", "monitor-cli", "monitor-install"]
+client_id = "monitor-api"
+algorithms = ["EdDSA"]
+require_https = false
+role_source_client_id = "monitor-api"
+{% else %}
+enabled = false
+{% endif %}
+
+[atr]
+{% set ca_connect = 'ca_server' if (acps_deploy_mode == 'image' and inventory_hostname in (groups['ca_server'] | default([]))) else _ca_host %}
+ca_base_url = "http://{{ ca_connect }}:{{ ca_server_port }}"
+mock_mode = true
+
+{% set redis_h = 'redis' if (acps_deploy_mode == 'image' and inventory_hostname in (groups['redis'] | default([]))) else _redis_host %}
+{% set _redis_ca = (acps_runtime_root ~ '/certs/monitor_server/acps-root-ca.pem') if acps_deploy_mode == 'host' else '/certs/acps-root-ca.pem' %}
+[redis]
+url = "rediss://:{{ redis_password | acps_urlquote }}@{{ redis_h }}:6379/2?ssl_ca_certs={{ _redis_ca }}&ssl_cert_reqs=required&ssl_check_hostname=false"
+
+{% set vm_h = 'victoria_metrics' if (acps_deploy_mode == 'image' and inventory_hostname in (groups['victoria_metrics'] | default([]))) else _victoria_metrics_host %}
+[metrics]
+# MetricsWriter consumes amp.metrics (LogAppendTime, 1 partition); VM hosts from.
+vm_query_url = "http://{{ vm_h }}:{{ victoria_metrics_port }}"
+vm_remote_write_url = "http://{{ vm_h }}:{{ victoria_metrics_port }}"
+
+{% set minio_h = 'minio' if (acps_deploy_mode == 'image' and inventory_hostname in (groups['minio'] | default([]))) else _minio_host %}
+[access]
+# AccessWriter consumes amp.access (≥4 partitions, LogAppendTime).
+minio_endpoint = "http://{{ minio_h }}:{{ minio_api_port }}"
+minio_secure = false
+
+[message]
+# MessageWriter consumes amp.message (≥4 partitions, LogAppendTime).
+writer_enabled = true
+
+[system]
+# SystemWriter consumes amp.system (≥4 partitions, LogAppendTime).
+writer_enabled = true
+query_enabled = true
+# Demo/install matrix is single-node OpenSearch (avoid yellow primary).
+index_number_of_replicas = 0
+
+[heartbeat]
+# HeartbeatWriter ingress on amp.heartbeat (1 partition, LogAppendTime).
+# HeartbeatRelay publishes alive-delta. Topic is pre-created by redpanda role.
+# sync_enabled=true starts Relay + exposes /acps-amp-v1/heartbeat/sync/{info,snapshot}.
+sync_enabled = true
+delta_topic = "amp.heartbeat.alive-delta"
+input_partition_count = 1
+heartbeat_shard_count = 1
+# Must match amp.heartbeat.alive-delta partition count (lifecycle-immutable).
+relay_max_publish_lag_seconds = 30
+relay_published_seq_batch_size = 100

@@ -1,0 +1,336 @@
+---
+# cert_provision — 控制节点 bootstrap + 分发
+# 期望： cert_provision_profile in
+# {registry-9002, redis, rabbitmq, mq-auth-server, demo-partner, demo-leader}
+# bootstrap 在控制节点运行；材料随后复制到
+# 目标组件组各主机并在该处规范化所有权（远程安全）。
+
+- name: 绑定 ca-materials root-ca 与 control/work/certs（CA 变更则强制重签）
+  ansible.builtin.include_tasks: ensure_ca_binding.yml
+
+- name: bootstrap 前刷新 OIDC 安装 token（使用 advertise URL，与 Keycloak --hostname 一致）
+  when: keycloak_enabled | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    SCRIPT="{{ acps_release_root }}/scripts/oidc_password_login.py"
+    KC_HOST="{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+    PUBLIC_BASE="http://${KC_HOST}:{{ keycloak_port }}"
+    FETCH_ISSUER_REG="${PUBLIC_BASE}/realms/acps-registry"
+    # JWT iss 现为 advertise URL（image/host 相同）；session issuer 必须与之匹配。
+    SESSION_ISSUER_REG="${PUBLIC_BASE}/realms/acps-registry"
+    TOK="{{ acps_control_root }}/work/tokens"
+    mkdir -p "$TOK"
+    "$PY" "$SCRIPT" \
+      --issuer "$FETCH_ISSUER_REG" --public-base "$PUBLIC_BASE" \
+      --client-id "{{ keycloak_registry_install_client_id | default('registry-install') }}" \
+      --username "{{ registry_bootstrap_username | default(registry_admin_username) }}" \
+      --password "{{ registry_bootstrap_password | default(registry_admin_password) }}" \
+      --token-file "$TOK/registry-user.json" \
+      --service registry --account-kind user \
+      --session-issuer "$SESSION_ISSUER_REG"
+    "$PY" "$SCRIPT" \
+      --issuer "$FETCH_ISSUER_REG" --public-base "$PUBLIC_BASE" \
+      --client-id "{{ keycloak_registry_install_client_id | default('registry-install') }}" \
+      --username "{{ registry_admin_username }}" \
+      --password "{{ registry_admin_password }}" \
+      --token-file "$TOK/registry-admin.json" \
+      --service registry --account-kind admin \
+      --session-issuer "$SESSION_ISSUER_REG"
+  args:
+    executable: /bin/bash
+
+- name: Demo T4 pull/bootstrap/push 路径
+  when: cert_provision_profile in ['demo-partner', 'demo-leader']
+  ansible.builtin.include_tasks: demo_t4.yml
+
+- name: demo T4 后跳过静态 profile 任务
+  when: cert_provision_profile in ['demo-partner', 'demo-leader']
+  # end_role：只结束本 role，不得 end_host（会掐断同一 play 后续的 clear_force_cert_renew）。
+  ansible.builtin.meta: end_role
+
+- name: 映射 profile 元数据
+  ansible.builtin.set_fact:
+    _profile: "{{ cert_provision_profile }}"
+    _bootstrap_cmd: "{{ cert_provision_profile }}"
+    _target_group: >-
+      {{
+        {
+          'registry-9002': 'registry_server',
+          'redis': 'redis',
+          'rabbitmq': 'rabbitmq',
+          'mq-auth-server': 'mq_auth_server',
+        }[cert_provision_profile]
+      }}
+    _profile_outdir_name: >-
+      {{
+        {
+          'registry-9002': 'registry-server-9002',
+          'redis': 'redis',
+          'rabbitmq': 'rabbitmq',
+          'mq-auth-server': 'mq-auth-server',
+        }[cert_provision_profile]
+      }}
+    _marker_file: >-
+      {{
+        {
+          'registry-9002': 'server.pem',
+          'mq-auth-server': 'server.pem',
+          'redis': 'redis-server.pem',
+          'rabbitmq': 'rabbitmq-server.pem',
+        }[cert_provision_profile]
+      }}
+    _acs_basename: >-
+      {{
+        {
+          'registry-9002': 'registry-server-9002-service-acs.json',
+          'redis': 'redis-acs.json',
+          'rabbitmq': 'rabbitmq-acs.json',
+          'mq-auth-server': 'mq-auth-server-acs.json',
+        }[cert_provision_profile]
+      }}
+
+- name: 解析目标组的 advertise 主机（SAN）
+  ansible.builtin.set_fact:
+    _cert_advertise_host: "{{ hostvars | acps_group_addr(groups, _target_group) }}"
+    # 业务机 host_vars 上的 *_tls_extra_sans 须在 control localhost 可见：
+    # 不能只用当前 host 的 var（localhost 读不到 rhel9 host_vars）。
+    _cert_extra_sans: >-
+      {{
+        hostvars[(groups[_target_group] | first)][
+          {
+            'registry-9002': 'registry_server_tls_extra_sans',
+            'redis': 'redis_tls_extra_sans',
+            'rabbitmq': 'rabbitmq_tls_extra_sans',
+            'mq-auth-server': 'mq_auth_server_tls_extra_sans',
+          }[_profile]
+        ]
+        | default(
+          lookup(
+            'vars',
+            {
+              'registry-9002': 'registry_server_tls_extra_sans',
+              'redis': 'redis_tls_extra_sans',
+              'rabbitmq': 'rabbitmq_tls_extra_sans',
+              'mq-auth-server': 'mq_auth_server_tls_extra_sans',
+            }[_profile],
+            default=[]
+          ),
+          true
+        )
+      }}
+
+- name: 绑定 advertise+SAN 指纹（变更则强制重签）
+  ansible.builtin.include_tasks: ensure_advertise_binding.yml
+
+- name: 确保控制节点 profile 输出目录
+  ansible.builtin.file:
+    path: "{{ acps_control_root }}/work/certs/{{ _profile_outdir_name }}"
+    state: directory
+    mode: "0700"
+
+- name: 检查控制节点现有标记
+  ansible.builtin.stat:
+    path: "{{ acps_control_root }}/work/certs/{{ _profile_outdir_name }}/{{ _marker_file }}"
+  register: _existing
+
+# Leaf mode 解耦：
+# - reissue：force renew / issuer（非 advertise 变更）→ 同 AIC 续签，禁止 bootstrap 换号
+# - bootstrap：首装（无标记）或 advertise/SAN 变更例外（可能换 AIC）
+# - skip：材料已在且非 force / 非 advertise
+- name: 决定 leaf 模式（reissue vs bootstrap）
+  ansible.builtin.set_fact:
+    _want_reissue: >-
+      {{
+        (acps_force_cert_renew | default(false) | bool)
+        and (not (_advertise_sans_changed | default(false) | bool))
+      }}
+    _need_bootstrap: >-
+      {{
+        (not (
+          (acps_force_cert_renew | default(false) | bool)
+          and (not (_advertise_sans_changed | default(false) | bool))
+        ))
+        and (
+          (not (_existing.stat.exists | default(false)))
+          or (_advertise_sans_changed | default(false) | bool)
+        )
+      }}
+
+- name: 宣告 leaf 模式
+  ansible.builtin.debug:
+    msg: >-
+      profile={{ _profile }} want_reissue={{ _want_reissue }}
+      need_bootstrap={{ _need_bootstrap }}
+      force_renew={{ acps_force_cert_renew | default(false) }}
+      advertise_changed={{ _advertise_sans_changed | default(false) }}
+      marker={{ _existing.stat.exists | default(false) }}
+
+# Recover only when leaf marker missing. summary.json absence is OK: planner
+# falls back to PEM URI/CN, then refreshes summary after reissue. Pulling from
+# target solely because summary is gone can clobber newer control PEMs / fail
+# when SSH is down despite local leaves being enough.
+- name: reissue 前若 control 叶证缺失则从目标机恢复
+  when:
+    - _want_reissue | bool
+    - not (_existing.stat.exists | default(false))
+  ansible.builtin.include_tasks: static_recover_from_target.yml
+
+- name: 同 AIC 重签静态叶子（禁止 agent save/delete）
+  when: _want_reissue | bool
+  ansible.builtin.include_tasks: static_reissue.yml
+
+- name: bootstrap 前将 advertise 主机注入静态 ACS altNames
+  when: _need_bootstrap | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ACS="{{ acps_control_root }}/acps-cli/scripts/acs/{{ _acs_basename }}"
+    test -f "$ACS"
+    "{{ acps_tools_python | default('python3') }}" - "$ACS" <<'PY'
+    import json, sys
+    path = sys.argv[1]
+    advertise = "{{ _cert_advertise_host }}"
+    extras = {{ _cert_extra_sans | to_json }}
+    data = json.loads(open(path, encoding="utf-8").read())
+    cert = data.setdefault("certificate", {})
+    alt = cert.setdefault("altNames", {})
+    dns = list(alt.get("dns") or [])
+    ip = list(alt.get("ip") or [])
+    for name in [advertise, *extras]:
+        name = (name or "").strip()
+        if not name:
+            continue
+        # 粗略 IPv4 检测
+        if all(p.isdigit() for p in name.split(".")) and name.count(".") == 3:
+            if name not in ip:
+                ip.append(name)
+        else:
+            if name not in dns:
+                dns.append(name)
+    # 若已存在则保留 compose 服务名
+    alt["dns"] = dns
+    if ip:
+        alt["ip"] = ip
+    open(path, "w", encoding="utf-8").write(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+    print(f"patched {path}: dns={dns} ip={ip}")
+    PY
+  args:
+    executable: /bin/bash
+
+- name: 运行 acps-cli bootstrap profile
+  when: _need_bootstrap | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    export BOOTSTRAP_ADMIN_USERNAME='{{ registry_admin_username }}'
+    export BOOTSTRAP_ADMIN_PASSWORD='{{ registry_admin_password }}'
+    export BOOTSTRAP_REGISTRY_USERNAME='{{ registry_bootstrap_username | default(registry_admin_username) }}'
+    export BOOTSTRAP_REGISTRY_PASSWORD='{{ registry_bootstrap_password | default(registry_admin_password) }}'
+    OUT="{{ acps_control_root }}/work/certs"
+    CFG="{{ acps_control_root }}/acps-cli/acps-cli.toml"
+    CLI="{{ acps_control_root }}/acps-cli/venv/bin/acps-cli"
+    PY="{{ acps_control_root }}/acps-cli/venv/bin/python"
+    SCRIPT="{{ acps_control_root }}/acps-cli/scripts/bootstrap_runtime.py"
+    # 仅使用控制节点 work 目录；远程 install-dir 写入由 Ansible distribute 替代。
+    "$PY" "$SCRIPT" "{{ _bootstrap_cmd }}" \
+      --config "$CFG" \
+      --cli-bin "$CLI" \
+      --output-dir "$OUT" \
+      --admin-username "{{ registry_admin_username }}" \
+      --admin-password "{{ registry_admin_password }}" \
+      --user-username "{{ registry_bootstrap_username | default(registry_admin_username) }}" \
+      --user-password "{{ registry_bootstrap_password | default(registry_admin_password) }}"
+  args:
+    executable: /bin/bash
+
+- name: 在控制节点保留探测客户端证书（registry-9002）
+  when: _profile == 'registry-9002'
+  ansible.builtin.shell: |
+    set -euo pipefail
+    SRC="{{ acps_control_root }}/work/certs/{{ _profile_outdir_name }}"
+    DEST="{{ acps_control_root }}/work/certs/registry-9002-probe"
+    CHAIN="{{ acps_control_root }}/work/certs/ca-chain.pem"
+    INT="{{ acps_ca_materials_dir }}/ca.crt"
+    mkdir -p "$DEST"
+    for f in client.pem client.key; do
+      if [[ -f "$SRC/$f" ]]; then
+        cp -a "$SRC/$f" "$DEST/$f"
+      fi
+    done
+    # 供 tls_plane_smoke 优先选用；不改动 trust-bundle.pem（仅 Root 合同）。
+    if [[ -f "$CHAIN" ]]; then
+      cp -a "$CHAIN" "$SRC/ca-chain.pem"
+      chmod 644 "$SRC/ca-chain.pem"
+    fi
+    # 服务端发送完整链：leaf + intermediate（客户端仅持 Root trust-bundle 时也能验链）。
+    if [[ -f "$SRC/server.pem" && -f "$INT" ]]; then
+      n=$(grep -c 'BEGIN CERTIFICATE' "$SRC/server.pem" || true)
+      if [[ "${n:-0}" -lt 2 ]]; then
+        cat "$SRC/server.pem" "$INT" > "$SRC/server.pem.tmp"
+        mv "$SRC/server.pem.tmp" "$SRC/server.pem"
+        chmod 644 "$SRC/server.pem"
+      fi
+    fi
+  args:
+    executable: /bin/bash
+
+- name: 初始化本 profile 证书分发变更标记
+  ansible.builtin.set_fact:
+    _cert_profile_copy_changed: false
+
+- name: 向各目标主机分发证书并规范化所有权
+  ansible.builtin.include_tasks: distribute_normalize.yml
+  loop: "{{ groups[_target_group] | default([]) }}"
+  loop_control:
+    loop_var: _cert_target_host
+  vars:
+    acps_cert_owner_user: >-
+      {{
+        {
+          'registry_server': 'acps',
+          'mq_auth_server': 'acps',
+          'redis': 'redis',
+          'rabbitmq': 'rabbitmq',
+        }[_target_group]
+      }}
+    acps_component_key: >-
+      {{
+        {
+          'registry_server': 'registry_server',
+          'redis': 'redis',
+          'rabbitmq': 'rabbitmq',
+          'mq_auth_server': 'mq_auth_server',
+        }[_target_group]
+      }}
+    # 证书材料变更或本轮重签后，重启已在跑的 TLS 消费方（首装单元未就绪则跳过）。
+    _cert_restart_compose_services: >-
+      {{
+        {
+          'registry-9002': 'registry_server_mtls',
+          'redis': 'redis',
+          'rabbitmq': 'rabbitmq',
+          'mq-auth-server': 'mq_auth_server',
+        }[_profile]
+      }}
+    _cert_restart_after_copy: >-
+      {{
+        (_need_bootstrap | default(false) | bool)
+        or (_want_reissue | default(false) | bool)
+        or (_ca_issuer_changed | default(false) | bool)
+      }}
+
+# 目录 copy 的 changed 会因 mtime/mode 噪声误报；闭包只跟重签 / issuer 变更。
+- name: 证书材料变更后重启依赖 TLS 消费方闭包
+  ansible.builtin.include_tasks: reload_dependents.yml
+  vars:
+    _cert_materials_changed: >-
+      {{
+        (_need_bootstrap | default(false) | bool)
+        or (_want_reissue | default(false) | bool)
+        or (_ca_issuer_changed | default(false) | bool)
+      }}
+
+- name: 写回 advertise+SAN 绑定指纹
+  ansible.builtin.include_tasks: persist_advertise_binding.yml
+
+- name: issuer 旋转 checklist 打勾（本 profile 已成功）
+  ansible.builtin.include_tasks: mark_issuer_checklist.yml

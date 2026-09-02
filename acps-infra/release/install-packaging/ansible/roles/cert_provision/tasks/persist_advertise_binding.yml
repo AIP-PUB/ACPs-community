@@ -1,0 +1,11 @@
+---
+# 重签成功后写回 advertise+SAN 指纹。
+# 期望：_profile_outdir_name、_advertise_current_sha256
+
+- name: 写入 advertise+SAN 绑定指纹
+  ansible.builtin.copy:
+    dest: "{{ acps_control_root }}/work/certs/{{ _profile_outdir_name }}/.advertise-sans-sha256"
+    content: "{{ _advertise_current_sha256 }}\n"
+    mode: "0644"
+  delegate_to: localhost
+  become: false

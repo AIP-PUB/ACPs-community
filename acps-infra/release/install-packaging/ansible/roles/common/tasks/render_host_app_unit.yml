@@ -1,0 +1,75 @@
+---
+# render_host_app_unit.yml
+# host 模式应用配置 + systemd 单元渲染（本设计 §5.2 / 实施计划 Step 8）：
+#   1) 从调用方 env.j2 渲染 app.env（0600，含连接串广告地址）
+#   2) 前置 PATH={{ venv }}/bin（ExecStart 依赖 uvicorn/console-script）
+#   3) include render_host_systemd.yml → acps-<name>.service
+#
+# PATH 必须与模板内容一并原子写入：若先 template 再 lineinfile，下一轮 template
+# 会抹掉 PATH → 每次 changed → deploy_host_service 无条件 restart（P2-8.1）。
+#
+# 期望（调用方 vars）：
+#   acps_compose_service_name   （必填）systemd 单元逻辑名，如 registry_server
+#   acps_host_install_dest      （必填）app-release 落地根（WorkingDirectory）
+#   acps_host_env_file          （必填）app.env 绝对路径
+#   acps_host_env_template_abs  （必填）调用方 role templates/env.j2 的绝对路径
+#                                 （在组件 role 内用 {{ role_path }}/templates/env.j2）
+#   acps_host_component_id      （可选）runtime-package.toml [[components]].id
+#   acps_host_entrypoint        （可选）显式 ExecStart 覆盖（第 1 级）
+
+- name: 要求 render_host_app_unit 必填参数
+  ansible.builtin.assert:
+    that:
+      - acps_compose_service_name is defined
+      - (acps_compose_service_name | string | length) > 0
+      - acps_host_install_dest is defined
+      - (acps_host_install_dest | string | length) > 0
+      - acps_host_env_file is defined
+      - (acps_host_env_file | string | length) > 0
+      - acps_host_env_template_abs is defined
+      - (acps_host_env_template_abs | string | length) > 0
+    fail_msg: >-
+      render_host_app_unit.yml requires acps_compose_service_name,
+      acps_host_install_dest, acps_host_env_file and
+      acps_host_env_template_abs (absolute path to the component role env.j2).
+
+- name: 确保 app.env 父目录存在
+  ansible.builtin.file:
+    path: "{{ acps_host_env_file | dirname }}"
+    state: directory
+    mode: "0755"
+
+- name: 渲染 app.env 到临时文件（尚不含 PATH）
+  ansible.builtin.template:
+    src: "{{ acps_host_env_template_abs }}"
+    dest: "{{ acps_host_env_file }}.acps-tmp"
+    mode: "0600"
+
+- name: 临时文件追加 PATH（venv/bin 优先）
+  ansible.builtin.lineinfile:
+    path: "{{ acps_host_env_file }}.acps-tmp"
+    regexp: "^PATH="
+    line: "PATH={{ acps_app_install_venv }}/bin:/usr/local/bin:/usr/bin:/bin"
+    mode: "0600"
+    create: false
+
+- name: 仅当内容变化时安装 app.env（幂等；避免 PATH 往返导致假 changed）
+  ansible.builtin.copy:
+    src: "{{ acps_host_env_file }}.acps-tmp"
+    dest: "{{ acps_host_env_file }}"
+    remote_src: true
+    mode: "0600"
+  register: _acps_host_env_install
+
+- name: 清理 app.env 临时文件
+  ansible.builtin.file:
+    path: "{{ acps_host_env_file }}.acps-tmp"
+    state: absent
+  changed_when: false
+
+- name: 记录 app.env 是否变更（供 deploy_host_service 判定是否需重启）
+  ansible.builtin.set_fact:
+    acps_host_env_changed: "{{ _acps_host_env_install.changed | default(false) | bool }}"
+
+- name: 渲染 systemd 单元（委托 render_host_systemd.yml）
+  ansible.builtin.include_tasks: render_host_systemd.yml

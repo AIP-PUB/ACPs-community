@@ -1,0 +1,53 @@
+---
+# upgrade_one_component.yml — 单组件升级主体（mode 无关编排）
+#
+# 期望（play vars）：
+# acps_upgrade_component_key — 规范 state/manifest key（非 acps_component_key：
+# role 的 stage_artifact set_fact 否则会跨 play 泄漏并破坏 skip）
+# acps_upgrade_role — Ansible role 名（如 registry_server、discovery_server）
+# _acps_upgrade_components — 规范列表（来自 preflight_upgrade / 镜像到目标）
+#
+# 按 acps_deploy_mode 分派：
+#   image → upgrade_one_component_image.yml（既有语义，不得回归）
+#   host  → upgrade_one_component_host.yml（H4：扁平迁移 + releases/current）
+#
+# 不包含：renew-certs、down -v、删除数据目录。rollback.yml 独立。
+
+- name: 组件未选择时跳过主机
+  when: >-
+    acps_upgrade_component_key not in (
+      _acps_upgrade_components
+      | default(hostvars['localhost']['_acps_upgrade_components'] | default([]))
+    )
+  ansible.builtin.meta: end_host
+
+- name: 在目标上解析升级选择列表
+  ansible.builtin.set_fact:
+    _acps_upgrade_components: >-
+      {{
+        _acps_upgrade_components
+        | default(hostvars['localhost']['_acps_upgrade_components'] | default([]))
+      }}
+
+- name: 为本升级绑定 acps_component_key（覆盖陈旧 host fact）
+  ansible.builtin.set_fact:
+    acps_component_key: "{{ acps_upgrade_component_key }}"
+
+- name: 按 acps_deploy_mode 分派升级实现
+  block:
+    - name: 分派 upgrade_one 实现
+      ansible.builtin.include_tasks: "upgrade_one_component_{{ acps_deploy_mode | default('image') }}.yml"
+
+    - name: 记录已 commit 组件（§9.5.8 / BP12）
+      ansible.builtin.include_tasks: record_upgrade_committed.yml
+  rescue:
+    - name: 失败路径打印 committed vs requested（§9.5.8 / BP12）
+      ansible.builtin.include_tasks: print_upgrade_summary.yml
+      vars:
+        _upgrade_summary_failed_at: "{{ acps_upgrade_component_key }}"
+
+    - name: 重新抛出升级失败
+      ansible.builtin.fail:
+        msg: >-
+          upgrade_one_component failed for {{ acps_upgrade_component_key }}:
+          {{ ansible_failed_result.msg | default(ansible_failed_result | string) }}

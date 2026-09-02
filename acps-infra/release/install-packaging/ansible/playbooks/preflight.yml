@@ -1,0 +1,14 @@
+---
+# 独立 preflight。也建议通过 site.yml 阶段 0 运行。
+
+- name: Preflight
+  hosts: all
+  gather_facts: true
+  tags: [preflight]
+  roles:
+    - role: baseline
+  tasks:
+    - name: 集群 preflight
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: preflight_cluster.yml

@@ -1,0 +1,58 @@
+# inventories/hosts.example.yml
+# 默认：全部组件落在 acps-node-1。多机时只改各组件组的 hosts 映射。
+# 无 gateway / 无 acps_cli 组（CLI 仅控制节点）。
+
+all:
+  vars:
+    acps_deploy_mode: image
+    # 多拓扑并行时设独立控制面路径（可覆盖 common/defaults；勿与其它解包目录共用）：
+    # acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control-mytopo"
+  children:
+    postgresql:
+      hosts:
+        acps-node-1:
+    redis:
+      hosts:
+        acps-node-1:
+    rabbitmq:
+      hosts:
+        acps-node-1:
+    keycloak:
+      hosts:
+        acps-node-1:
+    redpanda:
+      hosts:
+        acps-node-1:
+    victoria_metrics:
+      hosts:
+        acps-node-1:
+    clickhouse:
+      hosts:
+        acps-node-1:
+    minio:
+      hosts:
+        acps-node-1:
+    opensearch:
+      hosts:
+        acps-node-1:
+    registry_server:
+      hosts:
+        acps-node-1:
+    ca_server:
+      hosts:
+        acps-node-1:
+    discovery_server:
+      hosts:
+        acps-node-1:
+    mq_auth_server:
+      hosts:
+        acps-node-1:
+    monitor_server:
+      hosts:
+        acps-node-1:
+    demo_partner:
+      hosts:
+        acps-node-1:
+    demo_leader:
+      hosts:
+        acps-node-1:

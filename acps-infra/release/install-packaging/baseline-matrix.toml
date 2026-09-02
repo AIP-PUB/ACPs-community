@@ -1,0 +1,137 @@
+# host 直装模式基线矩阵（构建期契约）。
+#
+# 由 build-install-package.sh --mode host 读取：
+#   [os_whitelist]  供 preflight 校验目标机 OS 白名单（本设计 §6.1）。
+#   [python]        钉版本 uv + CPython（禁止浮动版本号）；构建期回写 group_vars。
+#   [infra.*]       os_package 组件（PostgreSQL/Redis/RabbitMQ）；在线装，不打入安装包，
+#                   仅用于生成 release-manifest.toml 的 [os_packages.*]。
+#   [vendor.*]      vendor_bundle 组件（Keycloak + Temurin JRE17 + AMP 五件套 +
+#                   amp_forwarder）。构建前 ensure_vendor_bundle.py 按 url 将制品落到
+#                   缓存目录（默认 .vendor-bundle/）：存在且 sha256 匹配则复用；缺失则
+#                   下载（可 fetch 变换）后再校验。--vendor-offline 禁止下载。
+#                   file/url 支持占位符 {arch}/{platform}/{opensearch_arch}/{deb_arch}。
+#                   sha256 或 sha256_amd64 / sha256_arm64；留空则跳过校验（不推荐）。
+#                   align_with_image=false：host-only 依赖（无对应容器镜像），不对齐
+#                   image-inputs.lock。
+#
+# 版本对齐（本设计 §8.2.1 强约束）：AMP 五件套的 host 版本须与
+# release/install-packaging/release-manifest.toml 的 [images.*] 主版本一致（image ↔ host
+# 双写）；漂移视为 P1。
+
+[os_whitelist]
+ids = ["rocky8", "rocky9", "ubuntu20", "ubuntu22"]
+
+[python]
+version = "3.14.2"
+# 精确钉版本；禁止浮动。uv_version 与 version 存在耦合，须联合验证（S7
+# install_python role 实测发现，非纯理论）：
+#   - `uv python install --no-bin`（本设计 §6.2 step 2 硬性要求的 flag）
+#     在 uv 0.7.x 及更早版本不存在（0.6.14 会报 "unexpected argument '--no-bin'"）。
+#   - uv 自带的 CPython 下载索引按发布时间收录；0.9.11 及更早不认得
+#     cpython-3.14.2（"No download found"），0.10.0 起才收录。
+# 故联合钉在两者交集之上验证过的 0.10.11（非 latest）；升级 version 或
+# uv_version 任一方须重新跑一遍 install_python 门控验证组合仍兼容。
+uv_version = "0.10.11"
+uv_sha256 = "" # 可选；产品发布前建议填写，留空则构建跳过校验
+
+[infra.postgresql]
+artifact_kind = "os_package"
+version = "17" # 对齐 release-manifest.toml [images.postgresql]（17-bookworm）；
+                # roles/postgresql/defaults/main.yml::postgresql_os_major_version 双写此值
+min_version = "16"
+require_pgvector = true
+
+[infra.redis]
+artifact_kind = "os_package"
+min_version = "7.0" # Ubuntu 22.04 发行版仓 <7；须走 redis.io 官方源（本设计 §6.4）
+
+[infra.rabbitmq]
+artifact_kind = "os_package"
+min_version = "4.0"
+
+[vendor.keycloak]
+artifact_kind = "vendor_bundle"
+version = "26.6.3" # 对齐 release-manifest.toml [images.keycloak] 主版本
+file = "keycloak-26.6.3.tar.gz" # Quarkus 发行版 tarball；OS/arch 无关
+url = "https://github.com/keycloak/keycloak/releases/download/26.6.3/keycloak-26.6.3.tar.gz"
+fetch = "direct"
+sha256 = "db21d044cc1190b83cd70bdf9a9256455b90058bccd37a1b88411ea0fd218e44"
+
+# Keycloak host 运行时 JRE（替代目标机在线 OpenJDK OS 包）。无对应镜像；
+# OpenSearch 仍用官方 tarball 自带 JDK。PG/Redis/RabbitMQ 仍为 os_package。
+[vendor.temurin_jre17]
+artifact_kind = "vendor_bundle"
+align_with_image = false
+version = "17.0.20+8"
+file = "temurin-jre-17.0.20+8-{arch}.tar.gz"
+url_amd64 = "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20%2B8/OpenJDK17U-jre_x64_linux_hotspot_17.0.20_8.tar.gz"
+url_arm64 = "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20%2B8/OpenJDK17U-jre_aarch64_linux_hotspot_17.0.20_8.tar.gz"
+fetch = "direct"
+sha256_amd64 = "ef491a51a46ef90cc47fbc4abb219fde32483ff91be5ec66ddc896df43524b27"
+sha256_arm64 = "9d14a95e07c44bc48666625162baf40db9da4dcb192bfc3e43047790693061a2"
+
+[vendor.redpanda]
+artifact_kind = "vendor_bundle"
+version = "26.1.9" # 对齐 [images.redpanda]
+file = "redpanda-26.1.9-{arch}.tar.gz"
+glob = "redpanda-*-{arch}.tar.gz"
+url = "https://vectorized-public.s3.us-west-2.amazonaws.com/releases/redpanda/26.1.9/redpanda-26.1.9-{arch}.tar.gz"
+fetch = "direct"
+sha256_amd64 = "030e9849b22a5f0a6706951b07dd5a41367ac4b8ec9d7026b70de5717fd72476"
+sha256_arm64 = "" # 首次 arm64 ensure 后把打印的 sha256 填回此处
+
+[vendor.victoria_metrics]
+artifact_kind = "vendor_bundle"
+version = "1.111.0" # 对齐 [images.victoria_metrics]
+file = "victoria-metrics-linux-{arch}-v1.111.0.tar.gz"
+glob = "victoria-metrics-linux-{arch}-*.tar.gz"
+url = "https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/v1.111.0/victoria-metrics-linux-{arch}-v1.111.0.tar.gz"
+fetch = "direct"
+sha256_amd64 = "1c7328173ef352fa9cdaa0957ff43b752e9458755e0a9588cce4b52fe189ab8f"
+sha256_arm64 = ""
+
+[vendor.clickhouse]
+artifact_kind = "vendor_bundle"
+version = "25.5" # 对齐 [images.clickhouse]（镜像用 25.5-alpine）；制品细版 25.5.1.2782
+file = "clickhouse-25.5.1.2782-{arch}.tgz"
+glob = "clickhouse-*-{arch}.tgz"
+url = "https://packages.clickhouse.com/tgz/stable/clickhouse-common-static-25.5.1.2782-{arch}.tgz"
+fetch = "clickhouse_flat" # 官方 common-static → 扁平 clickhouse{,-server,-client}
+sha256_amd64 = "46f822c69af43326a385848b6c613c68ee19926f18689173bcf4878e3060274a"
+sha256_arm64 = ""
+
+[vendor.minio]
+artifact_kind = "vendor_bundle"
+version = "2025-04-22" # 对齐 [images.minio]（RELEASE.2025-04-22T22-12-26Z）
+file = "minio-2025-04-22-{arch}.tar.gz"
+glob = "minio-*{arch}*"
+url = "https://dl.min.io/server/minio/release/linux-{arch}/archive/minio.RELEASE.2025-04-22T22-12-26Z"
+fetch = "minio_wrap" # 官方裸二进制 → minio-2025-04-22-{arch}/minio tarball
+sha256_amd64 = "f2cbefa7a4ceaa3a75f058c93d226cff24279e73f7f2368be74a7ffa213beaef"
+sha256_arm64 = ""
+
+[vendor.opensearch]
+artifact_kind = "vendor_bundle"
+version = "2.19.2" # 对齐 [images.opensearch]
+file = "opensearch-2.19.2-linux-{arch}.tar.gz"
+glob = "opensearch-*-linux-{arch}.tar.gz"
+# 官方 amd64 包名用 x64；ensure 仍存为 linux-amd64
+url = "https://artifacts.opensearch.org/releases/bundle/opensearch/2.19.2/opensearch-2.19.2-linux-{opensearch_arch}.tar.gz"
+fetch = "direct"
+sha256_amd64 = "11a3b1f2fb37cb4d259fbad489a086a03f87862418e1b850033bb5f157da4d8c"
+sha256_arm64 = ""
+
+[vendor.amp_forwarder]
+artifact_kind = "vendor_bundle"
+version = "3.2" # 对齐 [images.fluent_bit]（fluent-bit 3.2.10）
+# 默认 — rocky9 / ubuntu22（jammy；勿改 file/url/sha256，零变更约束）
+file = "fluent-bit-3.2.10-{arch}.tar.gz"
+url = "https://packages.fluentbit.io/ubuntu/jammy/pool/main/f/fluent-bit/fluent-bit_3.2.10_{deb_arch}.deb"
+fetch = "fluentbit_deb" # .deb → bin/ etc/ lib/ 布局
+sha256_amd64 = "047f8b7c08d70d1a39f87a5adadab80138d9656ae8f6dbbeb605a81f7cf7b0a2"
+sha256_arm64 = ""
+# 次要 — rocky8 / ubuntu20（bionic / glibc 2.27，可在 EL8 glibc 2.28 上运行）
+file_glibc228 = "fluent-bit-3.2.10-{arch}-glibc228.tar.gz"
+url_glibc228 = "https://packages.fluentbit.io/ubuntu/bionic/pool/main/f/fluent-bit/fluent-bit_3.2.10_{deb_arch}.deb"
+sha256_amd64_glibc228 = "3f682bb97b30214c398ff8b7db5889bd6196733a64af6df144b994dccf29d4da"
+sha256_arm64_glibc228 = ""
