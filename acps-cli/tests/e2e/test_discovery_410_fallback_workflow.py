@@ -141,6 +141,7 @@ def _run_registry_retention_fixture(
             "APP_ENV": "development",
             "DATABASE_URL": harness.registry_database_url,
             "CA_SERVER_MOCK": "false",
+            "CA_SERVER_BASE_URL": os.getenv("CA_URL", "http://localhost:9003"),
             "REGISTRY_SERVER_DSP_RETENTION_WINDOW_HOURS": "1",
             "REGISTRY_SERVER_DSP_RETENTION_MAX_RECORDS": "1",
         }

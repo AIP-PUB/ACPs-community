@@ -1,0 +1,45 @@
+# 由 ACPs install-packaging 生成（host 模式）— 请勿手改，重跑 site.yml 会覆盖。
+# 与 image/host 合同对齐（RabbitMQ-Native-Deployment.md / 本设计
+# §5.5）；auth_http.* 指向 mq-auth-server 的宿主机广告地址，而非 Compose
+# 服务名（本设计 §5.2「host 不使用 Compose 服务名」）。
+
+# ===== TLS listeners =====
+listeners.ssl.default = {{ rabbitmq_amqps_port }}
+listeners.tcp = none
+
+ssl_options.cacertfile = {{ acps_runtime_root }}/certs/rabbitmq/acps-root-ca.pem
+ssl_options.certfile = {{ acps_runtime_root }}/certs/rabbitmq/rabbitmq-server.pem
+ssl_options.keyfile = {{ acps_runtime_root }}/certs/rabbitmq/rabbitmq-server.key
+ssl_options.verify = verify_peer
+ssl_options.fail_if_no_peer_cert = true
+ssl_options.versions.1 = tlsv1.3
+# leaf → intermediate → root 需要 depth>=2（仅 root 在 trust 时）
+ssl_options.depth = 2
+ssl_options.ciphers.1 = TLS_AES_256_GCM_SHA384
+ssl_options.ciphers.2 = TLS_CHACHA20_POLY1305_SHA256
+ssl_options.ciphers.3 = TLS_AES_128_GCM_SHA256
+
+# ===== Management API =====
+management.tcp.port = {{ rabbitmq_mgmt_port }}
+
+# ===== Authentication =====
+auth_mechanisms.1 = EXTERNAL
+auth_mechanisms.2 = PLAIN
+ssl_cert_login_from = common_name
+
+# ===== Authorization backends =====
+auth_backends.1 = internal
+auth_backends.2 = cache
+
+auth_cache.cached_backend = http
+auth_cache.cache_ttl = 15000
+
+auth_http.user_path = https://{{ _mq_auth_advertise_host }}:{{ mq_auth_server_auth_api_port }}/auth/user
+auth_http.vhost_path = https://{{ _mq_auth_advertise_host }}:{{ mq_auth_server_auth_api_port }}/auth/vhost
+auth_http.resource_path = https://{{ _mq_auth_advertise_host }}:{{ mq_auth_server_auth_api_port }}/auth/resource
+auth_http.topic_path = https://{{ _mq_auth_advertise_host }}:{{ mq_auth_server_auth_api_port }}/auth/topic
+auth_http.http_method = post
+auth_http.ssl_options.cacertfile = {{ acps_runtime_root }}/certs/rabbitmq/acps-root-ca.pem
+auth_http.ssl_options.certfile = {{ acps_runtime_root }}/certs/rabbitmq/rabbitmq-client.pem
+auth_http.ssl_options.keyfile = {{ acps_runtime_root }}/certs/rabbitmq/rabbitmq-client.key
+auth_http.ssl_options.verify = verify_peer

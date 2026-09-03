@@ -14,12 +14,15 @@ import subprocess
 import tempfile
 import time
 import tomllib
+import uuid
 from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 import pytest
+from acps_sdk.aip.aip_identity import extract_common_name
 from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -31,6 +34,13 @@ PARTNER_PYTHON = DEMO_PARTNER_ROOT / ".venv" / "bin" / "python"
 LEADER_CERT_FILE = LEADER_ROOT / "atr" / "client.pem"
 LEADER_KEY_FILE = LEADER_ROOT / "atr" / "client.key"
 LEADER_TRUST_BUNDLE = LEADER_ROOT / "atr" / "trust-bundle.pem"
+RABBITMQ_TLS_DIR = PROJECT_ROOT.parent / "acps-infra" / "dev-infra" / "certs" / "issued" / "rabbitmq"
+RABBITMQ_CLIENT_CERT_FILE = RABBITMQ_TLS_DIR / "rabbitmq-client.pem"
+RABBITMQ_CLIENT_KEY_FILE = RABBITMQ_TLS_DIR / "rabbitmq-client.key"
+RABBITMQ_CA_FILE = RABBITMQ_TLS_DIR / "trust-bundle.pem"
+RABBITMQ_MGMT_URL = os.getenv("RABBITMQ_MGMT_URL", "http://localhost:15672")
+RABBITMQ_ADMIN_USER = "admin"
+RABBITMQ_ADMIN_PASSWORD = "devpass"
 TEST_CONNECT_HOST = "localhost"
 TEST_BIND_HOST = "127.0.0.1"
 PARTNER_STARTUP_TIMEOUT_SECONDS = 45.0
@@ -71,6 +81,14 @@ os.environ.setdefault("LEADER_LLM_PRO_BASE_URL", "http://localhost:11434/v1")
 os.environ.setdefault("LEADER_LLM_PRO_MODEL", "test-model")
 
 
+def _apply_test_rabbitmq_overrides(env: dict[str, str]) -> None:
+    """仅向集成测试启动的 Partner 子进程传递隔离 RabbitMQ 配置。"""
+    for field_name in ("HOST", "PORT", "USER", "PASSWORD", "VHOST"):
+        value = os.getenv(f"TEST_RABBITMQ_{field_name}")
+        if value:
+            env[f"RABBITMQ_{field_name}"] = value
+
+
 @dataclass(slots=True)
 class DemoPartnerRuntime:
     """demo-partner 临时运行时信息。"""
@@ -90,6 +108,14 @@ class _PreparedPartnerRuntime:
     reserved_sockets: list[socket.socket]
 
 
+def _cert_common_name(cert_file: Path) -> str:
+    cert = ssl._ssl._test_decode_cert(str(cert_file))  # type: ignore[attr-defined]
+    common_name = extract_common_name(cert)
+    if common_name is None:
+        raise RuntimeError(f"certificate CN missing: {cert_file}")
+    return common_name
+
+
 def _reserve_free_port() -> tuple[int, socket.socket]:
     reserved_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     reserved_socket.bind((TEST_BIND_HOST, 0))
@@ -98,10 +124,21 @@ def _reserve_free_port() -> tuple[int, socket.socket]:
     return port, reserved_socket
 
 
-def _build_partner_client_ssl_context() -> ssl.SSLContext:
-    context = ssl.create_default_context(cafile=str(LEADER_TRUST_BUNDLE))
+def _build_partner_client_ssl_context(ca_bundle: Path | None = None) -> ssl.SSLContext:
+    context = ssl.create_default_context(cafile=str(ca_bundle or LEADER_TRUST_BUNDLE))
+    context.check_hostname = False
     context.load_cert_chain(certfile=str(LEADER_CERT_FILE), keyfile=str(LEADER_KEY_FILE))
     return context
+
+
+def _resolve_partner_trust_bundle(online_dir: Path) -> Path:
+    for entry in sorted(online_dir.iterdir(), key=lambda item: item.name):
+        if not entry.is_dir():
+            continue
+        bundle_path = entry / "trust-bundle.pem"
+        if bundle_path.is_file():
+            return bundle_path
+    raise RuntimeError(f"未在 {online_dir} 中找到 partner trust-bundle.pem")
 
 
 def _rewrite_partner_server_port(config_path: Path, port: int) -> None:
@@ -144,6 +181,7 @@ def _prepare_temp_partner_runtime() -> _PreparedPartnerRuntime:
     runtime_root = Path(tempfile.mkdtemp(prefix="demo-leader-shared-partners-"))
     online_dir = runtime_root / "online"
     shutil.copytree(PARTNER_ONLINE_DIR, online_dir)
+    _rewrite_partner_mq_client_assets(online_dir)
 
     reserved_sockets: list[socket.socket] = []
     for entry in sorted(online_dir.iterdir(), key=lambda item: item.name):
@@ -164,6 +202,55 @@ def _prepare_temp_partner_runtime() -> _PreparedPartnerRuntime:
         agent_urls=_discover_partner_urls(online_dir),
         reserved_sockets=reserved_sockets,
     )
+
+
+def _rewrite_partner_mq_client_assets(online_dir: Path) -> None:
+    rabbitmq_bundle = RABBITMQ_CA_FILE.read_bytes()
+    rabbitmq_client_cert = RABBITMQ_CLIENT_CERT_FILE.read_bytes()
+    rabbitmq_client_key = RABBITMQ_CLIENT_KEY_FILE.read_bytes()
+
+    for entry in sorted(online_dir.iterdir(), key=lambda item: item.name):
+        if not entry.is_dir():
+            continue
+
+        bundle_path = entry / "trust-bundle.pem"
+        if bundle_path.is_file():
+            original_bundle = bundle_path.read_bytes()
+            if rabbitmq_bundle not in original_bundle:
+                bundle_path.write_bytes(original_bundle.rstrip() + b"\n" + rabbitmq_bundle)
+
+        (entry / "rabbitmq-client.pem").write_bytes(rabbitmq_client_cert)
+        (entry / "rabbitmq-client.key").write_bytes(rabbitmq_client_key)
+
+
+def _create_rabbitmq_test_user(base_url: str, *, username: str, password: str) -> None:
+    encoded_username = quote(username, safe="")
+    encoded_vhost = quote("acps", safe="")
+    auth = (RABBITMQ_ADMIN_USER, RABBITMQ_ADMIN_PASSWORD)
+    with httpx.Client(timeout=10.0) as client:
+        user_response = client.put(
+            f"{base_url}/api/users/{encoded_username}",
+            auth=auth,
+            json={"password": password, "tags": ""},
+        )
+        user_response.raise_for_status()
+        permission_response = client.put(
+            f"{base_url}/api/permissions/{encoded_vhost}/{encoded_username}",
+            auth=auth,
+            json={"configure": ".*", "write": ".*", "read": ".*"},
+        )
+        permission_response.raise_for_status()
+
+
+def _delete_rabbitmq_test_user(base_url: str, *, username: str) -> None:
+    encoded_username = quote(username, safe="")
+    with httpx.Client(timeout=10.0) as client:
+        response = client.delete(
+            f"{base_url}/api/users/{encoded_username}",
+            auth=(RABBITMQ_ADMIN_USER, RABBITMQ_ADMIN_PASSWORD),
+        )
+    if response.status_code not in {204, 404}:
+        response.raise_for_status()
 
 
 def _rewrite_static_mapping(domain_path: Path) -> None:
@@ -226,6 +313,7 @@ def _wait_for_partner_ready(
     ssl_context: ssl.SSLContext,
 ) -> None:
     deadline = time.monotonic() + PARTNER_STARTUP_TIMEOUT_SECONDS
+    last_probe_error = ""
 
     with httpx.Client(timeout=1.0, verify=ssl_context) as client:
         while time.monotonic() < deadline:
@@ -237,9 +325,11 @@ def _wait_for_partner_ready(
                 try:
                     response = client.get(f"{url}/health")
                     if response.status_code != 200:
+                        last_probe_error = f"{url}/health -> HTTP {response.status_code}: {response.text[:200]}"
                         all_ready = False
                         break
-                except httpx.HTTPError, OSError:
+                except (httpx.HTTPError, OSError) as exc:
+                    last_probe_error = f"{url}/health -> {type(exc).__name__}: {exc}"
                     all_ready = False
                     break
 
@@ -250,6 +340,7 @@ def _wait_for_partner_ready(
 
     raise RuntimeError(
         f"Partner 临时实例启动超时（{PARTNER_STARTUP_TIMEOUT_SECONDS}s）\n\n"
+        + (f"last probe error: {last_probe_error}\n\n" if last_probe_error else "")
         + log_path.read_text(encoding="utf-8", errors="replace")
     )
 
@@ -257,18 +348,27 @@ def _wait_for_partner_ready(
 @pytest.fixture(scope="session")
 def managed_partner_runtime() -> Generator[DemoPartnerRuntime]:
     """为 demo-leader API/integration 测试提供临时 HTTPS Partner runtime。"""
-    ssl_context = _build_partner_client_ssl_context()
     prepared_runtime = _prepare_temp_partner_runtime()
+    ssl_context = _build_partner_client_ssl_context(_resolve_partner_trust_bundle(prepared_runtime.online_dir))
     scenario_root: Path | None = None
     process: subprocess.Popen[str] | None = None
     log_path: Path | None = None
+    rabbitmq_username = _cert_common_name(RABBITMQ_CLIENT_CERT_FILE)
+    rabbitmq_password = f"shared-{uuid.uuid4().hex}"
 
     try:
+        _create_rabbitmq_test_user(
+            RABBITMQ_MGMT_URL,
+            username=rabbitmq_username,
+            password=rabbitmq_password,
+        )
+
         file_descriptor, log_path_str = tempfile.mkstemp(prefix="demo-leader-shared-partners-", suffix=".log")
         os.close(file_descriptor)
         log_path = Path(log_path_str)
 
         env = os.environ.copy()
+        _apply_test_rabbitmq_overrides(env)
         env["PARTNERS_ONLINE_DIR"] = str(prepared_runtime.online_dir)
 
         with log_path.open("w+", encoding="utf-8") as log_file:
@@ -310,3 +410,7 @@ def managed_partner_runtime() -> Generator[DemoPartnerRuntime]:
         shutil.rmtree(prepared_runtime.runtime_root, ignore_errors=True)
         if scenario_root is not None:
             shutil.rmtree(scenario_root.parent, ignore_errors=True)
+        _delete_rabbitmq_test_user(
+            RABBITMQ_MGMT_URL,
+            username=rabbitmq_username,
+        )

@@ -1,0 +1,8 @@
+# config/development.toml — 开发环境覆盖配置
+
+[rabbitmq]
+mgmt_user = "admin"
+
+[logging]
+level = "DEBUG"
+format = "console"

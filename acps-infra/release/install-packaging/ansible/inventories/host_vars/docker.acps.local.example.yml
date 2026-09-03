@@ -1,0 +1,9 @@
+# 远程单节点业务主机 host_vars 示例（控制节点独立）。
+# inventory 主机名为 docker.acps.local 时复制为 docker.acps.local.yml。
+
+ansible_host: docker.acps.local
+acps_advertise_host: docker.acps.local
+ansible_user: huxiaofeng
+ansible_python_interpreter: /usr/bin/python3
+# 使用安装包默认路径：/opt/acps、/var/lib/acps、/var/log/acps
+# 确保这些目录存在且 ansible_user 可写（或启用 become）。

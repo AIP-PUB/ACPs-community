@@ -1,11 +1,11 @@
 {
   "aic": "",
   "active": true,
-  "protocolVersion": "02.01",
+  "protocolVersion": "02.02",
   "lastModifiedTime": "2026-04-15T07:32:00+08:00",
   "name": "ACPs RabbitMQ 基础设施服务",
   "description": "ACPs 共享 RabbitMQ 基础设施服务，用于 AMQPS 5671 监听与 Auth Service mTLS 回调。",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "webAppUrl": "",
   "provider": {
     "organization": "ACPs工作组",

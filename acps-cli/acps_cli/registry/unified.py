@@ -7,8 +7,10 @@ from typing import Any, cast
 
 import click
 
+from acps_cli.shared.auth_session import AuthSessionError, OidcAuthSessionManager
+from acps_cli.shared.flexible_group import FlexibleGroup
 from acps_cli.shared.runtime import get_root_runtime
-from acps_cli.shared.unified_config import build_registry_legacy_section
+from acps_cli.shared.unified_config import ServiceAuthConfig, build_registry_auth_config, build_registry_legacy_section
 
 from . import admin_commands, commands
 from .client import RegistryApiClient
@@ -38,6 +40,7 @@ def _build_registry_context(
 ) -> None:
     runtime = get_root_runtime(ctx)
     admin = credential_env_prefix == "REGISTRY_ADMIN"
+    auth_config = build_registry_auth_config(runtime, admin=admin)
     legacy_section = build_registry_legacy_section(
         runtime,
         cli_base_url=server_url,
@@ -59,13 +62,101 @@ def _build_registry_context(
         )
     except ConfigError as exc:
         raise click.ClickException(str(exc)) from exc
+    oidc_session = OidcAuthSessionManager(auth_config) if auth_config.mode == "oidc" else None
+    try:
+        client = RegistryApiClient(config, auth_mode=auth_config.mode, oidc_session=oidc_session)
+    except TypeError:
+        client = RegistryApiClient(config)
     ctx.obj = {
         "config": config,
-        "client": RegistryApiClient(config),
+        "client": client,
+        "auth_config": auth_config,
+        "auth_session": oidc_session,
     }
 
 
-@click.group(name="auth", help="User authentication commands.")
+def _auth_config(ctx: click.Context) -> ServiceAuthConfig:
+    auth_config = (ctx.obj or {}).get("auth_config")
+    if not isinstance(auth_config, ServiceAuthConfig):
+        raise click.ClickException("Registry auth configuration is not initialized.")
+    return auth_config
+
+
+def _oidc_auth_session(ctx: click.Context) -> OidcAuthSessionManager:
+    auth_session = (ctx.obj or {}).get("auth_session")
+    if auth_session is None:
+        raise click.ClickException("OIDC auth session is not initialized.")
+    return cast("OidcAuthSessionManager", auth_session)
+
+
+def _print_device_prompt(prompt: Any, *, as_json: bool) -> None:
+    click.echo(
+        f"Open this URL in a browser: {prompt.verification_uri_complete or prompt.verification_uri}",
+        err=as_json,
+    )
+    click.echo(f"Enter this code if prompted: {prompt.user_code}", err=as_json)
+
+
+def _registry_local_status_payload(ctx: click.Context) -> dict[str, Any]:
+    client: RegistryApiClient = ctx.obj["client"]
+    token_data = client.token_store.load()
+    return {
+        "service": "registry",
+        "account_kind": _auth_config(ctx).account_kind,
+        "auth_mode": "local",
+        "authenticated": bool(token_data and token_data.get("access_token")),
+        "has_refresh_token": bool(token_data and token_data.get("refresh_token")),
+        "token_type": token_data.get("token_type") if token_data else None,
+    }
+
+
+def _run_oidc_login(ctx: click.Context, *, success_message: str, as_json: bool) -> None:
+    auth_session = _oidc_auth_session(ctx)
+    try:
+        auth_session.login(on_prompt=lambda prompt: _print_device_prompt(prompt, as_json=as_json))
+        payload = {"message": success_message, **auth_session.whoami(), "authenticated": True}
+    except AuthSessionError as exc:
+        raise click.ClickException(str(exc)) from exc
+    print_result(payload, as_json=as_json)
+
+
+def _run_oidc_refresh(ctx: click.Context, *, success_message: str, as_json: bool) -> None:
+    auth_session = _oidc_auth_session(ctx)
+    try:
+        auth_session.refresh()
+        payload = {"message": success_message, **auth_session.whoami(), "authenticated": True}
+    except AuthSessionError as exc:
+        raise click.ClickException(str(exc)) from exc
+    print_result(payload, as_json=as_json)
+
+
+def _run_oidc_logout(ctx: click.Context, *, as_json: bool) -> None:
+    auth_session = _oidc_auth_session(ctx)
+    try:
+        payload = auth_session.logout()
+    except AuthSessionError as exc:
+        raise click.ClickException(str(exc)) from exc
+    print_result(payload, as_json=as_json)
+
+
+def _reject_oidc_login_options(
+    *, username: str | None, password: str | None, name: str | None = None, org_name: str | None = None
+) -> None:
+    invalid_options = []
+    if username is not None:
+        invalid_options.append("--username")
+    if password is not None:
+        invalid_options.append("--password")
+    if name is not None:
+        invalid_options.append("--name")
+    if org_name is not None:
+        invalid_options.append("--org-name")
+    if invalid_options:
+        joined = ", ".join(invalid_options)
+        raise click.ClickException(f"{joined} is not supported when registry.auth.mode=oidc")
+
+
+@click.group(cls=FlexibleGroup, name="auth", help="User authentication commands.")
 @click.option("--server-url", default=None, help="Override registry server base URL.")
 @click.pass_context
 def auth_group(ctx: click.Context, server_url: str | None) -> None:
@@ -93,6 +184,10 @@ def auth_login(
     org_name: str | None,
     as_json: bool,
 ) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        _reject_oidc_login_options(username=username, password=password, name=name, org_name=org_name)
+        _run_oidc_login(ctx, success_message="Registry login successful", as_json=as_json)
+        return
     _invoke_legacy_callback(
         commands.login,
         username=username,
@@ -110,14 +205,63 @@ def auth_whoami(ctx: click.Context, as_json: bool) -> None:
     _invoke_legacy_callback(commands.whoami, as_json=as_json)
 
 
+@auth_group.command("status")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def auth_status(ctx: click.Context, as_json: bool) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        try:
+            payload = _oidc_auth_session(ctx).status()
+        except AuthSessionError as exc:
+            raise click.ClickException(str(exc)) from exc
+        print_result(payload, as_json=as_json)
+        return
+    print_result(_registry_local_status_payload(ctx), as_json=as_json)
+
+
+@auth_group.command("refresh")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def auth_refresh(ctx: click.Context, as_json: bool) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        _run_oidc_refresh(ctx, success_message="Registry session refreshed", as_json=as_json)
+        return
+    client: RegistryApiClient = ctx.obj["client"]
+    try:
+        refreshed = client.refresh_local_token()
+    except RegistryClientError as exc:
+        raise click.ClickException(str(exc)) from exc
+    payload = {
+        "message": "Registry session refreshed",
+        "auth_mode": "local",
+        "has_refresh_token": bool(refreshed.get("refresh_token")),
+        "token_type": refreshed.get("token_type", "bearer"),
+    }
+    print_result(payload, as_json=as_json)
+
+
+@auth_group.command("logout")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def auth_logout(ctx: click.Context, as_json: bool) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        _run_oidc_logout(ctx, as_json=as_json)
+        return
+    _invoke_legacy_callback(commands.logout, as_json=as_json)
+
+
 @auth_group.command("change-password")
 @click.option("--json", "as_json", is_flag=True, help="Output JSON")
 @click.pass_context
 def auth_change_password(ctx: click.Context, as_json: bool) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        raise click.ClickException(
+            "Password changes are managed by the OIDC identity provider in registry.auth.mode=oidc"
+        )
     _invoke_legacy_callback(commands.change_password, as_json=as_json)
 
 
-@click.group(name="agent", help="Manage Agent drafts and review lifecycle.")
+@click.group(cls=FlexibleGroup, name="agent", help="Manage Agent drafts and review lifecycle.")
 @click.option("--server-url", default=None, help="Override registry server base URL.")
 @click.pass_context
 def agent_group(ctx: click.Context, server_url: str | None) -> None:
@@ -206,7 +350,7 @@ def agent_delete(ctx: click.Context, acs_file: str, as_json: bool) -> None:
     _invoke_legacy_callback(commands.delete_agent, acs_file=acs_file, as_json=as_json)
 
 
-@click.group(name="entity", help="Manage derived entities.")
+@click.group(cls=FlexibleGroup, name="entity", help="Manage derived entities.")
 @click.option("--server-url", default=None, help="Override registry server base URL.")
 @click.option("--mtls-url", default=None, help="Override registry mTLS base URL.")
 @click.pass_context
@@ -227,7 +371,11 @@ def entity_group(ctx: click.Context, server_url: str | None, mtls_url: str | Non
     required=True,
     help="Approved ontology AIC for derived entity registration",
 )
-@click.option("--payload-file", default=None, help="Path to derived entity payload JSON file")
+@click.option(
+    "--payload-file",
+    default=None,
+    help="Optional UTF-8 JSON object. Allowed keys: endPoints, entityUserId, entityMeta, certificate",
+)
 @click.option(
     "--mtls-cert-file",
     type=click.Path(dir_okay=False),
@@ -257,6 +405,7 @@ def entity_derive(
     mtls_server_ca_file: str | None,
     as_json: bool,
 ) -> None:
+    """Derive and register an entity from an approved ontology AIC."""
     _invoke_legacy_callback(
         commands.register_entity,
         ontology_aic=ontology_aic,
@@ -268,7 +417,7 @@ def entity_derive(
     )
 
 
-@click.group(name="eab", help="Manage external account binding credentials.")
+@click.group(cls=FlexibleGroup, name="eab", help="Manage external account binding credentials.")
 @click.option("--server-url", default=None, help="Override registry server base URL.")
 @click.pass_context
 def cert_eab_group(ctx: click.Context, server_url: str | None) -> None:
@@ -290,7 +439,7 @@ def cert_eab_fetch(ctx: click.Context, aic: str, output_path: str, as_json: bool
     _invoke_legacy_callback(commands.get_eab, aic=aic, output_path=output_path, as_json=as_json)
 
 
-@click.group(name="auth", help="Registry administrator authentication commands.")
+@click.group(cls=FlexibleGroup, name="auth", help="Registry administrator authentication commands.")
 @click.option("--server-url", default=None, help="Override registry server base URL.")
 @click.pass_context
 def admin_auth_group(ctx: click.Context, server_url: str | None) -> None:
@@ -309,6 +458,10 @@ def admin_auth_group(ctx: click.Context, server_url: str | None) -> None:
 @click.option("--json", "as_json", is_flag=True, help="Output JSON")
 @click.pass_context
 def admin_auth_login(ctx: click.Context, username: str | None, password: str | None, as_json: bool) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        _reject_oidc_login_options(username=username, password=password)
+        _run_oidc_login(ctx, success_message="Registry admin login successful", as_json=as_json)
+        return
     _invoke_legacy_callback(admin_commands.login, username=username, password=password, as_json=as_json)
 
 
@@ -324,14 +477,63 @@ def admin_auth_whoami(ctx: click.Context, as_json: bool) -> None:
     print_result(result, as_json=as_json)
 
 
+@admin_auth_group.command("status")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def admin_auth_status(ctx: click.Context, as_json: bool) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        try:
+            payload = _oidc_auth_session(ctx).status()
+        except AuthSessionError as exc:
+            raise click.ClickException(str(exc)) from exc
+        print_result(payload, as_json=as_json)
+        return
+    print_result(_registry_local_status_payload(ctx), as_json=as_json)
+
+
+@admin_auth_group.command("refresh")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def admin_auth_refresh(ctx: click.Context, as_json: bool) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        _run_oidc_refresh(ctx, success_message="Registry admin session refreshed", as_json=as_json)
+        return
+    client: RegistryApiClient = ctx.obj["client"]
+    try:
+        refreshed = client.refresh_local_token()
+    except RegistryClientError as exc:
+        raise click.ClickException(str(exc)) from exc
+    payload = {
+        "message": "Registry admin session refreshed",
+        "auth_mode": "local",
+        "has_refresh_token": bool(refreshed.get("refresh_token")),
+        "token_type": refreshed.get("token_type", "bearer"),
+    }
+    print_result(payload, as_json=as_json)
+
+
+@admin_auth_group.command("logout")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def admin_auth_logout(ctx: click.Context, as_json: bool) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        _run_oidc_logout(ctx, as_json=as_json)
+        return
+    _invoke_legacy_callback(admin_commands.logout, as_json=as_json)
+
+
 @admin_auth_group.command("change-password")
 @click.option("--json", "as_json", is_flag=True, help="Output JSON")
 @click.pass_context
 def admin_auth_change_password(ctx: click.Context, as_json: bool) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        raise click.ClickException(
+            "Password changes are managed by the OIDC identity provider in registry.auth.mode=oidc"
+        )
     _invoke_legacy_callback(admin_commands.change_password, as_json=as_json)
 
 
-@click.group(name="registry", help="Registry administration commands.")
+@click.group(cls=FlexibleGroup, name="registry", help="Registry administration commands.")
 @click.option("--server-url", default=None, help="Override registry server base URL.")
 @click.pass_context
 def admin_registry_group(ctx: click.Context, server_url: str | None) -> None:
@@ -429,3 +631,31 @@ def admin_registry_agent_disable(ctx: click.Context, agent_id: str, reason: str,
 @click.pass_context
 def admin_registry_agent_enable(ctx: click.Context, agent_id: str, as_json: bool) -> None:
     _invoke_legacy_callback(admin_commands.enable_agent, agent_id=agent_id, as_json=as_json)
+
+
+@admin_registry_group.group("user", help="Manage registry user accounts.")
+def admin_registry_user_group() -> None:
+    return None
+
+
+@admin_registry_user_group.command("reset-password")
+@click.option("--user-id", required=True, help="Target user UUID")
+@click.option("--new-password", default=None, help="New password for the target user")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def admin_registry_user_reset_password(
+    ctx: click.Context,
+    user_id: str,
+    new_password: str | None,
+    as_json: bool,
+) -> None:
+    if _auth_config(ctx).mode == "oidc":
+        raise click.ClickException(
+            "User password reset is managed by the OIDC identity provider in registry.auth.mode=oidc"
+        )
+    _invoke_legacy_callback(
+        admin_commands.reset_user_password,
+        user_id=user_id,
+        new_password=new_password,
+        as_json=as_json,
+    )

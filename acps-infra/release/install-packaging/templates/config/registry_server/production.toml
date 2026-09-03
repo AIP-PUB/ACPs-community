@@ -1,0 +1,32 @@
+# config/production.toml — 生产环境覆盖配置
+
+[server]
+reload = false
+uvicorn_log_level = "warning"
+enable_mtls_listener = true
+
+[database]
+pool_size = 20
+max_overflow = 10
+pool_recycle = 1800
+pool_timeout = 30
+
+[logging]
+level = "INFO"
+format = "json"
+
+[cors]
+# 生产环境：按实际部署的前端域名填写，禁止使用 "*"
+# 若无 Web 前端直接访问此 API，保持 enabled = false 即可
+enabled = false
+origins = [
+ # "https://your-frontend.example.com",
+]
+allow_credentials = false # 使用 JWT Bearer Token 无需 true；若用 Cookie 鉴权改为 true
+
+[ca_server]
+mock = false
+
+[verification]
+auto_approve_identity = false
+auto_approve_org = false

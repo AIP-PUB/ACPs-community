@@ -1,0 +1,31 @@
+services:
+  redis:
+    image: {{ acps_effective_image_tag }}
+    environment:
+      REDIS_PASSWORD: {{ redis_password }}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - {{ redis_password }}
+      - --tls-port
+      - "6379"
+      - --port
+      - "0"
+      - --tls-cert-file
+      - /certs/redis-server.pem
+      - --tls-key-file
+      - /certs/redis-server.key
+      - --tls-ca-cert-file
+      - /certs/acps-root-ca.pem
+      - --tls-auth-clients
+      - optional
+    ports:
+      - "{{ redis_port }}:6379"
+    volumes:
+      - {{ acps_data_root }}/redis:/data:z
+      - {{ acps_runtime_root }}/certs/redis:/certs:ro,z
+    restart: unless-stopped
+    networks:
+      - {{ acps_docker_network }}

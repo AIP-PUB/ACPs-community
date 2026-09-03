@@ -1,0 +1,246 @@
+---
+# os_package_install.yml — host 模式：ensure_repos（Team RabbitMQ + erlang）+
+# install_packages（本设计 §5.5 / §6.4(2)；RabbitMQ-Native-Deployment.md 为配置
+# 合同参考）。幂等；不清 mnesia 数据目录。可能被 site.yml 证书签发前的预装
+# play（先建立 rabbitmq 系统账号，供 cert_provision 属主规范化使用，见本设计
+# §4.4）与本 role 自身 host 主流程各调用一次。
+
+- name: 加载 OS 系族默认（服务名/数据目录/配置目录）
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
+- name: 补齐 acps_os_id / acps_el_major（防御）
+  ansible.builtin.include_tasks: "{{ role_path }}/../common/tasks/resolve_acps_os_facts.yml"
+
+- name: Debian -- 确保 Team RabbitMQ APT 仓库 + Erlang
+  when: ansible_os_family == 'Debian'
+  become: true
+  block:
+    - name: 安装仓库前置依赖
+      ansible.builtin.apt:
+        name: [curl, gnupg, apt-transport-https]
+        state: present
+        update_cache: true
+
+    - name: 检查 RabbitMQ team GPG key 是否已导入
+      ansible.builtin.stat:
+        path: /usr/share/keyrings/com.rabbitmq.team.gpg
+      register: _rmq_key
+
+    - name: 导入 RabbitMQ team GPG key（幂等：creates 守护）
+      when: not _rmq_key.stat.exists
+      ansible.builtin.shell: |
+        set -euo pipefail
+        curl -1sLf "https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA" \
+          | gpg --dearmor -o /usr/share/keyrings/com.rabbitmq.team.gpg
+      args:
+        executable: /bin/bash
+        creates: /usr/share/keyrings/com.rabbitmq.team.gpg
+
+    - name: 写入 RabbitMQ + Erlang APT 源
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/rabbitmq.list
+        mode: "0644"
+        content: |
+          ## Modern Erlang/OTP releases
+          deb [signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb1.rabbitmq.com/rabbitmq-erlang/ubuntu/{{ ansible_distribution_release }} {{ ansible_distribution_release }} main
+          deb [signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb2.rabbitmq.com/rabbitmq-erlang/ubuntu/{{ ansible_distribution_release }} {{ ansible_distribution_release }} main
+
+          ## Latest RabbitMQ releases
+          deb [signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb1.rabbitmq.com/rabbitmq-server/ubuntu/{{ ansible_distribution_release }} {{ ansible_distribution_release }} main
+          deb [signed-by=/usr/share/keyrings/com.rabbitmq.team.gpg] https://deb2.rabbitmq.com/rabbitmq-server/ubuntu/{{ ansible_distribution_release }} {{ ansible_distribution_release }} main
+      register: _rmq_apt_list
+
+    - name: apt update（新增 rabbitmq 源后）
+      when: _rmq_apt_list.changed
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: 安装 erlang 依赖包
+      ansible.builtin.apt:
+        name:
+          - erlang-base
+          - erlang-asn1
+          - erlang-crypto
+          - erlang-eldap
+          - erlang-ftp
+          - erlang-inets
+          - erlang-mnesia
+          - erlang-os-mon
+          - erlang-parsetools
+          - erlang-public-key
+          - erlang-runtime-tools
+          - erlang-snmp
+          - erlang-ssl
+          - erlang-syntax-tools
+          - erlang-tftp
+          - erlang-tools
+          - erlang-xmerl
+        state: present
+
+- name: RedHat -- 确保 Team RabbitMQ RPM 仓库 + Erlang
+  when: ansible_os_family == 'RedHat'
+  become: true
+  block:
+    # 下载签名 key 到本地临时文件（curl；理由同 postgresql role 的 PGDG RPM 下载
+    # 注释：rpm_key(key=<URL>) 会走 ansible module_utils.urls，在 RHEL9
+    # Python 3.9 + OpenSSL 3.5.7+ 上触发 "[ASN1: NOT_ENOUGH_DATA]"，改用裸
+    # curl 落盘规避）。
+    # yum/dnf 在 repo_gpgcheck 时会再次按 gpgkey= URL 拉取；GitHub 偶发超时会导致
+    # 已 curl 成功仍失败。落盘到 /etc/pki/rpm-gpg/ 后，repo 一律 file://。
+    - name: 确保 rpm-gpg 目录
+      ansible.builtin.file:
+        path: /etc/pki/rpm-gpg
+        state: directory
+        mode: "0755"
+
+    - name: 下载 RabbitMQ/Erlang 签名 key 到 /etc/pki/rpm-gpg（creates 守护，幂等）
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -fsSL
+          - --connect-timeout
+          - "30"
+          - --retry
+          - "5"
+          - --retry-delay
+          - "2"
+          - -o
+          - "/etc/pki/rpm-gpg/{{ item | basename }}"
+          - "{{ item }}"
+        creates: "/etc/pki/rpm-gpg/{{ item | basename }}"
+      loop:
+        - https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc
+        - https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key
+        - https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key
+
+    - name: 导入 RabbitMQ/Erlang 签名 key（本地文件）
+      ansible.builtin.rpm_key:
+        key: "/etc/pki/rpm-gpg/{{ item | basename }}"
+        state: present
+      loop:
+        - https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc
+        - https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key
+        - https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key
+
+    - name: 写入 RabbitMQ/Erlang yum 仓库定义
+      vars:
+        _el: "{{ acps_el_major | default(ansible_distribution_major_version) }}"
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/rabbitmq.repo
+        mode: "0644"
+        content: |
+          [modern-erlang]
+          name=modern-erlang-el{{ _el }}
+          baseurl=https://yum1.rabbitmq.com/erlang/el/{{ _el }}/$basearch
+                  https://yum2.rabbitmq.com/erlang/el/{{ _el }}/$basearch
+          repo_gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key
+          gpgcheck=1
+          sslverify=1
+          metadata_expire=300
+          pkg_gpgcheck=1
+          autorefresh=1
+          type=rpm-md
+
+          [modern-erlang-noarch]
+          name=modern-erlang-el{{ _el }}-noarch
+          baseurl=https://yum1.rabbitmq.com/erlang/el/{{ _el }}/noarch
+                  https://yum2.rabbitmq.com/erlang/el/{{ _el }}/noarch
+          repo_gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key
+                 file:///etc/pki/rpm-gpg/rabbitmq-release-signing-key.asc
+          gpgcheck=1
+          sslverify=1
+          metadata_expire=300
+          pkg_gpgcheck=1
+          autorefresh=1
+          type=rpm-md
+
+          [rabbitmq-el{{ _el }}]
+          name=rabbitmq-el{{ _el }}
+          baseurl=https://yum2.rabbitmq.com/rabbitmq/el/{{ _el }}/$basearch
+                  https://yum1.rabbitmq.com/rabbitmq/el/{{ _el }}/$basearch
+          repo_gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/cloudsmith.rabbitmq-server.9F4587F226208342.key
+                 file:///etc/pki/rpm-gpg/rabbitmq-release-signing-key.asc
+          gpgcheck=1
+          sslverify=1
+          metadata_expire=300
+          pkg_gpgcheck=1
+          autorefresh=1
+          type=rpm-md
+
+          [rabbitmq-el{{ _el }}-noarch]
+          name=rabbitmq-el{{ _el }}-noarch
+          baseurl=https://yum2.rabbitmq.com/rabbitmq/el/{{ _el }}/noarch
+                  https://yum1.rabbitmq.com/rabbitmq/el/{{ _el }}/noarch
+          repo_gpgcheck=1
+          enabled=1
+          gpgkey=file:///etc/pki/rpm-gpg/cloudsmith.rabbitmq-server.9F4587F226208342.key
+                 file:///etc/pki/rpm-gpg/rabbitmq-release-signing-key.asc
+          gpgcheck=1
+          sslverify=1
+          metadata_expire=300
+          pkg_gpgcheck=1
+          autorefresh=1
+          type=rpm-md
+      register: _rmq_yum_repo
+
+    - name: 安装 erlang 包
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/common/tasks/ensure_os_packages.yml"
+      vars:
+        acps_pkg_names: erlang
+        acps_pkg_state: present
+
+- name: 解析 rabbitmq-server 包名（ubuntu20 pin 4.2.8；其余走仓候选）
+  ansible.builtin.set_fact:
+    _rabbitmq_os_pkg: >-
+      {{
+        rabbitmq_os_package_ubuntu20
+        if (acps_os_id | default('')) == 'ubuntu20'
+           and (rabbitmq_os_package_ubuntu20 is defined)
+        else (rabbitmq_os_package_default | default('rabbitmq-server'))
+      }}
+    _rabbitmq_ubuntu20_pin: >-
+      {{
+        (acps_os_id | default('')) == 'ubuntu20'
+        and (rabbitmq_os_package_ubuntu20 is defined)
+      }}
+
+# ubuntu20：Team RMQ focal erlang 最高 26.x，rabbitmq-server ≥4.2.9 需 erlang ≥27。
+# 钉 4.2.8-1；强制 present（忽略 upgrade latest）、允许降级，并写 apt pin 防漂移。
+- name: ubuntu20 — apt pin rabbitmq-server（防漂到 4.3.x）
+  when: _rabbitmq_ubuntu20_pin | bool
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/apt/preferences.d/acps-rabbitmq-ubuntu20
+    mode: "0644"
+    content: |
+      Package: rabbitmq-server
+      Pin: version 4.2.8-1
+      Pin-Priority: 1001
+
+- name: ubuntu20 — 安装钉死的 rabbitmq-server（present + allow_downgrade）
+  when: _rabbitmq_ubuntu20_pin | bool
+  become: true
+  ansible.builtin.apt:
+    name: "{{ _rabbitmq_os_pkg }}"
+    state: present
+    allow_downgrade: true
+    update_cache: true
+  register: _rabbitmq_pkg_install
+
+- name: 非 ubuntu20 — 安装/升级 rabbitmq-server（upgrade 路径可传 latest）
+  when: not (_rabbitmq_ubuntu20_pin | bool)
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/common/tasks/ensure_os_packages.yml"
+  vars:
+    acps_pkg_names: "{{ _rabbitmq_os_pkg }}"
+    acps_pkg_state: "{{ acps_os_package_state | default('present') }}"
+
+- name: 记录非 ubuntu20 rabbitmq-server 包安装结果
+  when: not (_rabbitmq_ubuntu20_pin | bool)
+  ansible.builtin.set_fact:
+    _rabbitmq_pkg_install: "{{ _acps_pkg_result }}"

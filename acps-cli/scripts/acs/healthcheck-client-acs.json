@@ -1,7 +1,7 @@
 {
   "aic": "",
   "active": true,
-  "protocolVersion": "02.01",
+  "protocolVersion": "02.02",
   "lastModifiedTime": "2026-04-18T00:00:00+08:00",
   "name": "ACPs MQ Auth Service 健康检查客户端",
   "description": "mq-auth-server 容器健康检查与冒烟测试专用 mTLS 客户端身份。仅用于 /health 和 /ready 探针，不参与任何业务 API 调用。",

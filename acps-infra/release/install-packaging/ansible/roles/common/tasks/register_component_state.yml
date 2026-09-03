@@ -1,0 +1,44 @@
+---
+# register_component_state.yml — 首装 / 回填辅助
+# 始终从 release-manifest 解析 acps_component_key 的镜像元数据，再 commit。
+# 不调用 save_previous_state（首次注册使 previous=null）。
+#
+# 期望：acps_component_key
+# 可选：acps_image_tag 覆盖；commit_state 的 acps_state_* 覆盖
+
+- name: 要求 component key
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - (acps_component_key | string | length) > 0
+    fail_msg: "register_component_state requires acps_component_key"
+
+- name: Lookup component in release-manifest.toml
+  ansible.builtin.command:
+    argv:
+      - "{{ acps_tools_python | default('python3') }}"
+      - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+      - "--manifest"
+      - "{{ acps_manifest_path }}"
+      - "--component"
+      - "{{ acps_component_key }}"
+  register: _reg_manifest_lookup
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 应用 manifest meta for state registration
+  ansible.builtin.set_fact:
+    acps_image_meta: "{{ _reg_manifest_lookup.stdout | from_json }}"
+    # 使用专用 fact 名，避免 include_role 循环 vars 遮蔽。
+    _acps_register_image_tag: >-
+      {{
+        acps_image_tag
+        | default((_reg_manifest_lookup.stdout | from_json).tag, true)
+      }}
+
+- name: 提交 current component state
+  ansible.builtin.include_tasks: commit_state.yml
+  vars:
+    acps_effective_image_tag: "{{ _acps_register_image_tag }}"
+    acps_image_meta: "{{ _reg_manifest_lookup.stdout | from_json }}"

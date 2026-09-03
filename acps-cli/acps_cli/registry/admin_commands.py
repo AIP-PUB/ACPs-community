@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import click
 
 from acps_cli.shared.cli_logging import setup_cli_logging
 from acps_cli.shared.config import load_toml_config
+from acps_cli.shared.flexible_group import FlexibleGroup
 
 from .client import RegistryApiClient
 from .config import CliOverrides, Config, ConfigError
 from .exceptions import RegistryClientError
 from .output import print_result
+
+RELOGIN_RECOMMENDED_NOTICE = "密码已修改，建议重新登录"
 
 
 def _setup_logging(verbose: bool) -> None:
@@ -43,7 +48,39 @@ def _prompt_password_change() -> tuple[str, str]:
     return current_password, new_password
 
 
-@click.group()
+def _prompt_new_password(new_password: str | None) -> str:
+    if new_password:
+        return new_password
+    return cast("str", click.prompt("New password", hide_input=True, confirmation_prompt=True))
+
+
+def _build_password_change_output(result: dict[str, object]) -> dict[str, object]:
+    output = dict(result)
+    output["notice"] = RELOGIN_RECOMMENDED_NOTICE
+    return output
+
+
+def _logout_with_local_cleanup(client: RegistryApiClient) -> dict[str, object]:
+    try:
+        result = client.logout()
+    except RegistryClientError as exc:
+        try:
+            client.clear_token()
+        except OSError as clear_exc:
+            raise click.ClickException(f"{exc}; failed to clear local token: {clear_exc}") from clear_exc
+        raise click.ClickException(f"{exc}; local token cleared") from exc
+
+    try:
+        client.clear_token()
+    except OSError as exc:
+        raise click.ClickException(f"Server logout succeeded but failed to clear local token: {exc}") from exc
+
+    output = dict(result)
+    output["local_token_cleared"] = True
+    return output
+
+
+@click.group(cls=FlexibleGroup)
 @click.option("--config", "config_path", default=None, help="Path to acps-cli.toml config file")
 @click.option("--server-url", default=None, help="Override registry server base URL")
 @click.option("--timeout", type=int, default=None, help="Override request timeout seconds")
@@ -112,7 +149,16 @@ def change_password(ctx: click.Context, as_json: bool) -> None:
         result = client.update_current_user_password(current_password, new_password)
     except RegistryClientError as exc:
         raise click.ClickException(str(exc)) from exc
-    print_result(result, as_json=as_json)
+    print_result(_build_password_change_output(result), as_json=as_json)
+
+
+@main.command("logout")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def logout(ctx: click.Context, as_json: bool) -> None:
+    """注销当前登录管理员，并清理本地 token。"""
+    client: RegistryApiClient = ctx.obj["client"]
+    print_result(_logout_with_local_cleanup(client), as_json=as_json)
 
 
 @main.command("list")
@@ -223,6 +269,25 @@ def enable_agent(ctx: click.Context, agent_id: str, as_json: bool) -> None:
         "is_disabled": result.get("is_disabled"),
         "agent": result,
     }
+    print_result(output, as_json=as_json)
+
+
+@main.command("reset-user-password")
+@click.option("--user-id", required=True, help="Target user UUID")
+@click.option("--new-password", default=None, help="New password for the target user")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def reset_user_password(ctx: click.Context, user_id: str, new_password: str | None, as_json: bool) -> None:
+    """为指定用户重置密码。"""
+    client: RegistryApiClient = ctx.obj["client"]
+    resolved_password = _prompt_new_password(new_password)
+    try:
+        result = client.reset_user_password(user_id=user_id, new_password=resolved_password)
+    except RegistryClientError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    output = dict(result)
+    output["user_id"] = user_id
     print_result(output, as_json=as_json)
 
 

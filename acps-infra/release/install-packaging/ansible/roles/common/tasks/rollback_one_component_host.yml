@@ -1,0 +1,546 @@
+---
+# rollback_one_component_host.yml — 单组件制品回滚（host-mode，H4 / 本设计 §5）
+#
+# 由 rollback_one_component.yml 按 acps_deploy_mode=host 分派。
+#
+# S2–S4 范围：
+#   - app_release：migrate 闸门 → 读 previous → ln -sfn previous → skip stage →
+#     role render/restart/health → commit（clear previous）
+#   - control_cli：同构切 previous releases；不跑 migrate downgrade
+#   - vendor_bundle：切 previous releases；skip stage；禁止清 data
+#   - os_package：默认拒绝（不自动 dnf/apt 降包；本设计 §5.3）
+#
+# 期望（play vars）：
+#   acps_rollback_component_key / acps_rollback_role / acps_component_key
+#   _acps_rollback_components
+# 可选：acps_rollback_to；acps_rollback_acknowledge_migrate=true
+
+- name: 复位跨组件残留 facts（防御 all-in-one 同机多 play）
+  ansible.builtin.set_fact:
+    acps_host_app_install_dest: ""
+    acps_vendor_unit_root: ""
+    acps_vendor_install_dest: ""
+    acps_vendor_stage_dest: ""
+    acps_host_release_dest: ""
+    acps_host_release_path: ""
+    # 清空上一组件残留；migrate/cutover 均用 default(..., true) 回落。
+    acps_host_component_root: ""
+    acps_host_unit_via_current: false
+    acps_host_layout: ""
+    acps_host_app_install_changed: false
+    acps_host_vendor_install_changed: false
+    acps_host_forbid_cutover: false
+    acps_host_cutover_done: false
+    acps_skip_stage_artifact: false
+    acps_host_skip_migrate: false
+
+- name: 加载 host 制品 kind 映射（共用）
+  ansible.builtin.include_tasks: host_artifact_kind_map.yml
+
+- name: 解析本组件 host 回滚制品 kind
+  ansible.builtin.set_fact:
+    _acps_host_rollback_kind: >-
+      {{
+        _acps_host_artifact_kind_map[acps_component_key]
+        | default('unknown')
+      }}
+
+- name: host 回滚 — 未知 kind 失败
+  when: _acps_host_rollback_kind == 'unknown'
+  ansible.builtin.fail:
+    msg: >-
+      rollback_one_component_host: no artifact kind mapping for
+      {{ acps_component_key }}.
+
+# --- app_release ----------------------------------------------------------
+
+- name: host 回滚 — app_release 路径
+  when: _acps_host_rollback_kind == 'app_release'
+  block:
+    - name: 解析回滚用 state 文件路径
+      ansible.builtin.set_fact:
+        _acps_rb_state_file: "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}/components/{{ acps_component_key }}.json"
+        _acps_rb_comp_root: "{{ acps_runtime_root }}/{{ acps_component_key }}"
+
+    - name: 要求组件 state 文件
+      ansible.builtin.stat:
+        path: "{{ _acps_rb_state_file }}"
+      register: _acps_rb_state_stat
+
+    - name: state 缺失时失败（无回滚目标）
+      when: not (_acps_rb_state_stat.stat.exists | bool)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback {{ acps_component_key }}: no state at {{ _acps_rb_state_file }}.
+          Scene preserved.
+
+    - name: 加载组件 state
+      ansible.builtin.slurp:
+        src: "{{ _acps_rb_state_file }}"
+      register: _acps_rb_state_slurp
+
+    - name: 解析组件 state JSON
+      ansible.builtin.set_fact:
+        _acps_rb_state_doc: "{{ _acps_rb_state_slurp.content | b64decode | from_json }}"
+
+    - name: 要求 previous 快照
+      when: >-
+        (_acps_rb_state_doc.previous is not defined)
+        or (_acps_rb_state_doc.previous is none)
+        or (_acps_rb_state_doc.previous is not mapping)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback {{ acps_component_key }}: previous is null/absent in
+          {{ _acps_rb_state_file }}. V1 只保留最近一次 previous. Scene preserved.
+
+    - name: 从 previous 绑定回滚目标
+      ansible.builtin.set_fact:
+        _acps_rollback_target: "{{ _acps_rb_state_doc.previous }}"
+
+    - name: 校验可选 acps_rollback_to
+      when: (acps_rollback_to | default('') | string | length) > 0
+      ansible.builtin.assert:
+        that:
+          - >-
+            (acps_rollback_to | string) == (_acps_rollback_target.version | default('') | string)
+            or (acps_rollback_to | string) == (_acps_rollback_target.artifact_id | default('') | string)
+            or (acps_rollback_to | string) == (_acps_rollback_target.release_path | default('') | string)
+        fail_msg: >-
+          acps_rollback_to={{ acps_rollback_to }} does not match retained previous
+          (version={{ _acps_rollback_target.version | default('') }},
+          artifact_id={{ _acps_rollback_target.artifact_id | default('') }},
+          release_path={{ _acps_rollback_target.release_path | default('') }}).
+          Scene preserved.
+
+    # 本设计 §5.4 / G §7.3：current.migrate_id 新于 previous → WARN + 须确认
+    - name: 判定 migrate 已新于 previous（不可自动 schema 回滚）
+      ansible.builtin.set_fact:
+        _acps_rb_migrate_newer: >-
+          {{
+            (
+              (_acps_rb_state_doc.migrate_id | default('') | string | length) > 0
+            )
+            and (
+              (_acps_rb_state_doc.migrate_id | default('') | string)
+              != (_acps_rollback_target.migrate_id | default('') | string)
+            )
+          }}
+
+    - name: WARN — migrate 新于 previous，回滚仅切代码
+      when: _acps_rb_migrate_newer | bool
+      ansible.builtin.debug:
+        msg: >-
+          WARN: rollback {{ acps_component_key }}: state.current.migrate_id
+          ({{ _acps_rb_state_doc.migrate_id | default('') }}) differs from
+          previous.migrate_id ({{ _acps_rollback_target.migrate_id | default('(none)') }}).
+          Schema will NOT be downgraded; rolled-back code may not work.
+          Re-run with -e acps_rollback_acknowledge_migrate=true to continue.
+
+    - name: migrate 新于 previous 且未确认时拒绝回滚
+      when:
+        - _acps_rb_migrate_newer | bool
+        - not (acps_rollback_acknowledge_migrate | default(false) | bool)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback {{ acps_component_key }}: migrate_id on current is newer
+          than previous and acps_rollback_acknowledge_migrate is not true.
+          Scene preserved. Pass -e acps_rollback_acknowledge_migrate=true after
+          acknowledging that DB schema will remain at the newer revision.
+
+    - name: 解析 previous release 目录
+      ansible.builtin.set_fact:
+        _acps_rb_release_path: >-
+          {{
+            (_acps_rollback_target.release_path | default('') | string)
+            if ((_acps_rollback_target.release_path | default('') | string | length) > 0)
+            else (
+              _acps_rb_comp_root ~ '/releases/' ~ (
+                (
+                  _acps_rollback_target.artifact_id | default(_acps_rollback_target.version | default('')) | string
+                )
+                | regex_replace('\\.(tar\\.gz|tgz|zip)$', '')
+                | regex_replace('[^A-Za-z0-9._+-]+', '_')
+                | trim('_')
+              )
+            )
+          }}
+
+    - name: 要求 previous releases 目录存在
+      ansible.builtin.stat:
+        path: "{{ _acps_rb_release_path }}"
+      register: _acps_rb_rel_stat
+
+    - name: previous 目录缺失时失败（保留现场）
+      when: not (_acps_rb_rel_stat.stat.exists | default(false) | bool)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback {{ acps_component_key }}: previous release directory
+          missing at {{ _acps_rb_release_path }}. Scene preserved.
+
+    - name: 绑定 cutover dest 并切换 current → previous
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: cutover_host_current.yml
+      vars:
+        acps_host_release_dest: "{{ _acps_rb_release_path }}"
+        acps_host_component_root: "{{ _acps_rb_comp_root }}"
+
+    - name: 回滚后禁止 stage / migrate / 再次 cutover（保护 previous 树）
+      ansible.builtin.set_fact:
+        # 跳过 stage_artifact：勿用当前包覆盖 previous
+        acps_skip_stage_artifact: true
+        # 跳过 alembic（db_migrate.yml 统一 short-circuit；S2 P1）
+        acps_host_skip_migrate: true
+        acps_host_release_dest: ""
+        acps_host_forbid_cutover: true
+        acps_host_cutover_done: true
+        acps_host_unit_via_current: true
+        acps_host_app_install_dest: "{{ _acps_rb_comp_root }}/current"
+        acps_app_install_venv: "{{ _acps_rb_comp_root }}/current/venv"
+        acps_app_install_python: "{{ _acps_rb_comp_root }}/current/venv/bin/python"
+        acps_host_layout: releases
+        acps_host_release_path: "{{ _acps_rb_release_path }}"
+        acps_image_meta: >-
+          {{
+            {
+              'file': (_acps_rollback_target.artifact_id | default('') | string),
+              'app_release': (_acps_rollback_target.artifact_id | default('') | string),
+            }
+          }}
+
+    - name: 宣告 host 回滚切换目标
+      ansible.builtin.debug:
+        msg: >-
+          rollback {{ acps_component_key }} (host):
+          current → {{ _acps_rb_release_path }}
+          (version {{ _acps_rollback_target.version | default('') }});
+          stage+migrate skipped; no alembic; cutover forbidden after this point.
+
+    - name: 应用组件 role（跳过 stage；仅 render/restart/health）
+      ansible.builtin.include_role:
+        name: "{{ acps_rollback_role }}"
+
+    - name: role 后重新绑定组件 key
+      ansible.builtin.set_fact:
+        acps_component_key: "{{ acps_rollback_component_key }}"
+
+    - name: commit_state after health（current=restored；清空 previous 指针）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: commit_state.yml
+      vars:
+        acps_state_version: "{{ _acps_rollback_target.version | default(acps_version) }}"
+        acps_state_artifact_id: "{{ _acps_rollback_target.artifact_id }}"
+        acps_state_image_tag: ""
+        acps_state_clear_previous: true
+        acps_state_layout: "{{ _acps_rollback_target.layout | default('releases') }}"
+        acps_state_release_path: "{{ _acps_rb_release_path }}"
+        acps_state_migrate_id: "{{ _acps_rollback_target.migrate_id | default('') }}"
+
+# --- control_cli ----------------------------------------------------------
+
+- name: host 回滚 — control acps-cli 路径
+  when: _acps_host_rollback_kind == 'control_cli'
+  block:
+    - name: 绑定 control CLI state / 根
+      ansible.builtin.set_fact:
+        acps_component_key: acps_cli
+        acps_state_scope: control
+        acps_runtime_root: "{{ acps_control_root | dirname }}"
+        acps_state_root: "{{ acps_control_root | dirname }}/state"
+        _acps_rb_state_file: "{{ acps_control_root | dirname }}/state/control/acps_cli.json"
+        _acps_rb_comp_root: "{{ acps_control_root }}/acps-cli"
+
+    - name: 要求 control CLI state
+      ansible.builtin.stat:
+        path: "{{ _acps_rb_state_file }}"
+      register: _acps_rb_cli_stat
+
+    - name: control CLI state 缺失时失败
+      when: not (_acps_rb_cli_stat.stat.exists | bool)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback acps_cli: no state at {{ _acps_rb_state_file }}.
+          Scene preserved.
+
+    - name: 加载 control CLI state
+      ansible.builtin.slurp:
+        src: "{{ _acps_rb_state_file }}"
+      register: _acps_rb_cli_slurp
+
+    - name: 解析 control CLI state
+      ansible.builtin.set_fact:
+        _acps_rb_state_doc: "{{ _acps_rb_cli_slurp.content | b64decode | from_json }}"
+
+    - name: 要求 control CLI previous
+      when: >-
+        (_acps_rb_state_doc.previous is not defined)
+        or (_acps_rb_state_doc.previous is none)
+        or (_acps_rb_state_doc.previous is not mapping)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback acps_cli: previous is null/absent. Scene preserved.
+
+    - name: 绑定 control 回滚目标
+      ansible.builtin.set_fact:
+        _acps_rollback_target: "{{ _acps_rb_state_doc.previous }}"
+
+    - name: 校验 control CLI 的可选 acps_rollback_to
+      when: (acps_rollback_to | default('') | string | length) > 0
+      ansible.builtin.assert:
+        that:
+          - >-
+            (acps_rollback_to | string) == (_acps_rollback_target.version | default('') | string)
+            or (acps_rollback_to | string) == (_acps_rollback_target.artifact_id | default('') | string)
+            or (acps_rollback_to | string) == (_acps_rollback_target.release_path | default('') | string)
+        fail_msg: >-
+          acps_rollback_to={{ acps_rollback_to }} does not match retained acps_cli previous.
+          Scene preserved.
+
+    - name: 解析 control CLI previous release 目录
+      ansible.builtin.set_fact:
+        _acps_rb_release_path: >-
+          {{
+            (_acps_rollback_target.release_path | default('') | string)
+            if ((_acps_rollback_target.release_path | default('') | string | length) > 0)
+            else (
+              _acps_rb_comp_root ~ '/releases/' ~ (
+                (
+                  _acps_rollback_target.artifact_id | default(_acps_rollback_target.version | default('')) | string
+                )
+                | regex_replace('\\.(tar\\.gz|tgz|zip)$', '')
+                | regex_replace('[^A-Za-z0-9._+-]+', '_')
+                | trim('_')
+              )
+            )
+          }}
+
+    - name: 要求 control previous releases 目录存在
+      ansible.builtin.stat:
+        path: "{{ _acps_rb_release_path }}"
+      register: _acps_rb_cli_rel_stat
+
+    - name: control previous 目录缺失时失败
+      when: not (_acps_rb_cli_rel_stat.stat.exists | default(false) | bool)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback acps_cli: previous release missing at
+          {{ _acps_rb_release_path }}. Scene preserved.
+
+    - name: cutover control CLI current → previous
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: cutover_host_current.yml
+      vars:
+        acps_component_key: acps_cli
+        acps_host_release_dest: "{{ _acps_rb_release_path }}"
+        acps_host_component_root: "{{ _acps_rb_comp_root }}"
+
+    - name: 刷新 control CLI compat symlinks（venv/scripts → current）
+      ansible.builtin.shell: |
+        set -euo pipefail
+        ROOT="{{ _acps_rb_comp_root }}"
+        ln -sfn current/venv "${ROOT}/venv"
+        if [[ -d "${ROOT}/current/scripts" ]]; then
+          ln -sfn current/scripts "${ROOT}/scripts"
+        fi
+      args:
+        executable: /bin/bash
+
+    - name: 回滚后禁止 stage / migrate（control CLI）
+      ansible.builtin.set_fact:
+        acps_skip_stage_artifact: true
+        acps_host_skip_migrate: true
+        acps_host_cli_rollback: true
+        acps_host_release_dest: ""
+        acps_host_forbid_cutover: true
+        acps_host_cutover_done: true
+        acps_host_layout: releases
+        acps_host_release_path: "{{ _acps_rb_release_path }}"
+
+    - name: 应用 control_acps_cli（跳过安装；重渲染 toml + smoke）
+      ansible.builtin.include_role:
+        name: control_acps_cli
+
+    - name: commit_state（control acps_cli 已恢复）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: commit_state.yml
+      vars:
+        acps_state_scope: control
+        acps_runtime_root: "{{ acps_control_root | dirname }}"
+        acps_state_root: "{{ acps_control_root | dirname }}/state"
+        acps_state_version: "{{ _acps_rollback_target.version | default(acps_version) }}"
+        acps_state_artifact_id: "{{ _acps_rollback_target.artifact_id }}"
+        acps_state_image_tag: ""
+        acps_state_clear_previous: true
+        acps_state_layout: "{{ _acps_rollback_target.layout | default('releases') }}"
+        acps_state_release_path: "{{ _acps_rb_release_path }}"
+
+# --- vendor_bundle（S3） --------------------------------------------------
+
+- name: host 回滚 — vendor_bundle 路径
+  when: _acps_host_rollback_kind == 'vendor_bundle'
+  block:
+    - name: 解析 vendor 落地根与 state
+      ansible.builtin.set_fact:
+        _acps_rb_comp_root: >-
+          {{
+            (vendor_bundle_install_roots | default({})).get(
+              acps_component_key,
+              acps_runtime_root ~ '/' ~ acps_component_key
+            )
+          }}
+        _acps_rb_state_file: "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}/components/{{ acps_component_key }}.json"
+
+    - name: 要求 vendor 组件 state 文件
+      ansible.builtin.stat:
+        path: "{{ _acps_rb_state_file }}"
+      register: _acps_rb_state_stat
+
+    - name: vendor state 缺失时失败（无回滚目标）
+      when: not (_acps_rb_state_stat.stat.exists | bool)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback {{ acps_component_key }} (vendor_bundle): no state at
+          {{ _acps_rb_state_file }}. Scene preserved; data dirs untouched.
+
+    - name: 加载 vendor 组件 state
+      ansible.builtin.slurp:
+        src: "{{ _acps_rb_state_file }}"
+      register: _acps_rb_state_slurp
+
+    - name: 解析 vendor 组件 state JSON
+      ansible.builtin.set_fact:
+        _acps_rb_state_doc: "{{ _acps_rb_state_slurp.content | b64decode | from_json }}"
+
+    - name: 要求 vendor previous 快照
+      when: >-
+        (_acps_rb_state_doc.previous is not defined)
+        or (_acps_rb_state_doc.previous is none)
+        or (_acps_rb_state_doc.previous is not mapping)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback {{ acps_component_key }} (vendor_bundle): previous is
+          null/absent in {{ _acps_rb_state_file }}. Scene preserved; data dirs untouched.
+
+    - name: 从 previous 绑定 vendor 回滚目标
+      ansible.builtin.set_fact:
+        _acps_rollback_target: "{{ _acps_rb_state_doc.previous }}"
+
+    - name: 校验可选 acps_rollback_to（vendor）
+      when: (acps_rollback_to | default('') | string | length) > 0
+      ansible.builtin.assert:
+        that:
+          - >-
+            (acps_rollback_to | string) == (_acps_rollback_target.version | default('') | string)
+            or (acps_rollback_to | string) == (_acps_rollback_target.artifact_id | default('') | string)
+            or (acps_rollback_to | string) == (_acps_rollback_target.release_path | default('') | string)
+        fail_msg: >-
+          acps_rollback_to={{ acps_rollback_to }} does not match retained previous
+          for vendor {{ acps_component_key }}. Scene preserved; data dirs untouched.
+
+    - name: 解析 vendor previous release 目录
+      ansible.builtin.set_fact:
+        _acps_rb_release_path: >-
+          {{
+            (_acps_rollback_target.release_path | default('') | string)
+            if ((_acps_rollback_target.release_path | default('') | string | length) > 0)
+            else (
+              _acps_rb_comp_root ~ '/releases/' ~ (
+                (
+                  _acps_rollback_target.artifact_id | default(_acps_rollback_target.version | default('')) | string
+                )
+                | regex_replace('\\.(tar\\.gz|tgz|zip)$', '')
+                | regex_replace('[^A-Za-z0-9._+-]+', '_')
+                | trim('_')
+              )
+            )
+          }}
+
+    - name: 要求 vendor previous releases 目录存在
+      ansible.builtin.stat:
+        path: "{{ _acps_rb_release_path }}"
+      register: _acps_rb_rel_stat
+
+    - name: vendor previous 目录缺失时失败（保留现场；不毁 data）
+      when: not (_acps_rb_rel_stat.stat.exists | default(false) | bool)
+      ansible.builtin.fail:
+        msg: >-
+          Cannot rollback {{ acps_component_key }} (vendor_bundle): previous release
+          directory missing at {{ _acps_rb_release_path }}. Scene preserved;
+          acps_data_root / vendor data dirs were NOT modified.
+
+    - name: 绑定 cutover dest 并切换 vendor current → previous
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: cutover_host_current.yml
+      vars:
+        acps_host_release_dest: "{{ _acps_rb_release_path }}"
+        acps_host_component_root: "{{ _acps_rb_comp_root }}"
+
+    - name: 回滚后禁止 stage / 再次 cutover（保护 previous 树；不毁 data）
+      ansible.builtin.set_fact:
+        acps_skip_stage_artifact: true
+        acps_host_release_dest: ""
+        acps_host_forbid_cutover: true
+        acps_host_cutover_done: true
+        acps_host_unit_via_current: true
+        # 与 vendor unit_root 对齐，防止 stage skip 被同机 app 残留覆盖（P1）
+        acps_host_app_install_dest: "{{ _acps_rb_comp_root }}/current"
+        acps_vendor_unit_root: "{{ _acps_rb_comp_root }}/current"
+        acps_vendor_install_dest: "{{ _acps_rb_comp_root }}/current"
+        acps_vendor_stage_dest: "{{ _acps_rb_release_path }}"
+        acps_host_layout: releases
+        acps_host_release_path: "{{ _acps_rb_release_path }}"
+        acps_image_meta: >-
+          {{
+            {
+              'file': (_acps_rollback_target.artifact_id | default('') | string),
+            }
+          }}
+
+    - name: 宣告 vendor 回滚切换目标
+      ansible.builtin.debug:
+        msg: >-
+          rollback {{ acps_component_key }} (host vendor_bundle):
+          current → {{ _acps_rb_release_path }}
+          (version {{ _acps_rollback_target.version | default('') }});
+          stage skipped; data dirs untouched.
+
+    - name: 应用 vendor role（跳过 stage；仅 render/restart/health）
+      ansible.builtin.include_role:
+        name: "{{ acps_rollback_role }}"
+
+    - name: role 后重新绑定组件 key
+      ansible.builtin.set_fact:
+        acps_component_key: "{{ acps_rollback_component_key }}"
+
+    - name: commit_state after health（current=restored；清空 previous 指针）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: commit_state.yml
+      vars:
+        acps_state_version: "{{ _acps_rollback_target.version | default(acps_version) }}"
+        acps_state_artifact_id: "{{ _acps_rollback_target.artifact_id }}"
+        acps_state_image_tag: ""
+        acps_state_clear_previous: true
+        acps_state_layout: "{{ _acps_rollback_target.layout | default('releases') }}"
+        acps_state_release_path: "{{ _acps_rb_release_path }}"
+
+# --- os_package（S4：默认拒绝降包） ---------------------------------------
+
+- name: host 回滚 — os_package 默认拒绝（不自动降包）
+  when: _acps_host_rollback_kind == 'os_package'
+  ansible.builtin.assert:
+    that:
+      - false
+    fail_msg: >-
+      rollback_one_component_host: os_package rollback for
+      {{ acps_component_key }} is refused by default. Host-mode does NOT run
+      automatic package downgrade (dnf/apt downgrade) for PostgreSQL / Redis /
+      RabbitMQ (design §2.3 / §5.3; H4 Step 4). Restore from backup or reinstall
+      the prior package set manually if required; data directories were NOT
+      modified. Scene preserved. Remove this component from
+      acps_rollback_components or roll back only app_release/vendor_bundle
+      components.

@@ -1,0 +1,38 @@
+---
+# common/tasks/resolve_tls_upstream_bounce.yml
+#
+# 解析本轮 inventory 内 broker 是否已真重启（由 redis/rabbitmq role set_fact）。
+# 产出（调用方主机上）：
+#   _acps_redis_bounced_this_run (bool)
+#   _acps_rabbitmq_bounced_this_run (bool)
+#
+# 主路径仍是 broker 真重启后立即调用 reload_tls_dependents；本 fact 供依赖
+# role 自身 deploy 时 OR 进 force_recreate（同 play 后续 phase / 标签重跑）。
+
+- name: 解析本轮 redis 是否已真重启
+  ansible.builtin.set_fact:
+    _acps_redis_bounced_this_run: >-
+      {{
+        (
+          groups['redis'] | default([])
+          | map('extract', hostvars)
+          | selectattr('acps_tls_upstream_bounced_redis', 'defined')
+          | selectattr('acps_tls_upstream_bounced_redis')
+          | list
+          | length
+        ) > 0
+      }}
+
+- name: 解析本轮 rabbitmq 是否已真重启
+  ansible.builtin.set_fact:
+    _acps_rabbitmq_bounced_this_run: >-
+      {{
+        (
+          groups['rabbitmq'] | default([])
+          | map('extract', hostvars)
+          | selectattr('acps_tls_upstream_bounced_rabbitmq', 'defined')
+          | selectattr('acps_tls_upstream_bounced_rabbitmq')
+          | list
+          | length
+        ) > 0
+      }}

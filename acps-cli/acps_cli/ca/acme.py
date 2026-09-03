@@ -11,6 +11,7 @@ import httpx
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.x509 import ocsp
 
@@ -108,18 +109,67 @@ def get_jwk(private_key):
         }
     if isinstance(private_key, ec.EllipticCurvePrivateKey):
         pn = private_key.private_numbers()
+        coordinate_length = (private_key.curve.key_size + 7) // 8
+        if isinstance(private_key.curve, ec.SECP256R1):
+            curve_name = "P-256"
+        elif isinstance(private_key.curve, ec.SECP384R1):
+            curve_name = "P-384"
+        elif isinstance(private_key.curve, ec.SECP521R1):
+            curve_name = "P-521"
+        else:
+            raise ValueError(f"Unsupported EC curve: {private_key.curve.name}")
         return {
-            "crv": "P-256",
+            "crv": curve_name,
             "kty": "EC",
-            "x": base64url_encode(pn.public_numbers.x.to_bytes(32, "big")),
-            "y": base64url_encode(pn.public_numbers.y.to_bytes(32, "big")),
+            "x": base64url_encode(pn.public_numbers.x.to_bytes(coordinate_length, "big")),
+            "y": base64url_encode(pn.public_numbers.y.to_bytes(coordinate_length, "big")),
+        }
+    if isinstance(private_key, Ed25519PrivateKey):
+        public_bytes = private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        return {
+            "crv": "Ed25519",
+            "kty": "OKP",
+            "x": base64url_encode(public_bytes),
         }
     raise ValueError("Unsupported key type")
 
 
+def public_jwk_projection(jwk):
+    kty = jwk.get("kty")
+    if kty == "RSA":
+        if any(field in jwk for field in ("d", "p", "q", "dp", "dq", "qi", "oth")):
+            raise ValueError("ACME public JWK must not contain private key material")
+        return {
+            "e": jwk["e"],
+            "kty": "RSA",
+            "n": jwk["n"],
+        }
+    if kty == "EC":
+        if "d" in jwk:
+            raise ValueError("ACME public JWK must not contain private key material")
+        return {
+            "crv": jwk["crv"],
+            "kty": "EC",
+            "x": jwk["x"],
+            "y": jwk["y"],
+        }
+    if kty == "OKP":
+        if "d" in jwk:
+            raise ValueError("ACME public JWK must not contain private key material")
+        return {
+            "crv": jwk["crv"],
+            "kty": "OKP",
+            "x": jwk["x"],
+        }
+    raise ValueError(f"Unsupported key type: {kty}")
+
+
 def get_jwk_thumbprint(jwk):
     # Sort keys and remove whitespace for canonical JSON
-    canonical_json = json.dumps(jwk, sort_keys=True, separators=(",", ":"))
+    canonical_json = json.dumps(public_jwk_projection(jwk), sort_keys=True, separators=(",", ":"))
     return base64url_encode(hashlib.sha256(canonical_json.encode("utf-8")).digest())
 
 
@@ -278,6 +328,8 @@ class AcmeClient:
             return "RS256"
         if isinstance(key, ec.EllipticCurvePrivateKey):
             return "ES256"
+        if isinstance(key, Ed25519PrivateKey):
+            return "EdDSA"
         raise ValueError("Unsupported key type for signing")
 
     @staticmethod
@@ -287,8 +339,10 @@ class AcmeClient:
         if isinstance(key, ec.EllipticCurvePrivateKey):
             signature = key.sign(data, ec.ECDSA(hashes.SHA256()))
             r, s = decode_dss_signature(signature)
-            curve_size = key.curve.key_size // 8
+            curve_size = (key.curve.key_size + 7) // 8
             return r.to_bytes(curve_size, "big") + s.to_bytes(curve_size, "big")
+        if isinstance(key, Ed25519PrivateKey):
+            return key.sign(data)
         raise ValueError("Unsupported key type for signing")
 
     @classmethod
@@ -324,13 +378,14 @@ class AcmeClient:
 
     @classmethod
     def _build_eab_jws(cls, key_id, mac_key, account_jwk, new_account_url):
+        projected_account_jwk = public_jwk_projection(account_jwk)
         protected = {
             "alg": "HS256",
             "kid": key_id,
             "url": new_account_url,
         }
         protected_b64 = base64url_encode(json.dumps(protected, separators=(",", ":")).encode("utf-8"))
-        payload_b64 = base64url_encode(json.dumps(account_jwk, separators=(",", ":")).encode("utf-8"))
+        payload_b64 = base64url_encode(json.dumps(projected_account_jwk, separators=(",", ":")).encode("utf-8"))
         signature = hmac.new(
             base64url_decode(mac_key),
             f"{protected_b64}.{payload_b64}".encode("ascii"),
@@ -469,10 +524,10 @@ class AcmeClient:
 
         inner_payload = {
             "account": self.account_url,
-            "oldKey": self.jwk,
+            "oldKey": public_jwk_projection(self.jwk),
         }
 
-        new_jwk = get_jwk(new_key)
+        new_jwk = public_jwk_projection(get_jwk(new_key))
         # RFC 8555 §7.3.5: 内层 JWS 的 url 字段必须与外层 JWS 的 url 相同，
         # 且不得包含 nonce。v2.1.0 恢复了 protected.url 完整性校验。
         inner_jws = self._build_jws(

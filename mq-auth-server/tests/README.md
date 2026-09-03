@@ -21,7 +21,8 @@ tests/
 └── e2e/                           # 端到端测试（需要已部署的真实服务）
     ├── conftest.py
     ├── test_auth_api_e2e.py       # Auth API 完整 mTLS e2e 验证
-    └── test_groups_api_e2e.py     # Group API CRUD lifecycle e2e 验证
+    ├── test_groups_api_e2e.py     # Group API CRUD lifecycle e2e 验证
+    └── test_rabbitmq_user_id_identity.py  # RabbitMQ validated user-id e2e 验证
 ```
 
 ---
@@ -102,8 +103,7 @@ e2e 测试对运行中的真实 mq-auth-server 实例发起 mTLS HTTP 请求，�
 先确保本地服务已经启动：
 
 ```bash
-just app bootstrap
-just app
+just dev start
 ```
 
 若 `certs/` 下缺少证书，development 模式会自动生成：
@@ -127,9 +127,16 @@ export TLS_CA_CERT_FILE=certs/acps-root-ca.pem
 export E2E_TEST_AIC=1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4
 export E2E_LEADER_AIC=1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4
 export E2E_MEMBER_AIC=<Member AIC>       # 被操作的成员 AIC
+export AMQP_BROKER_HOST=localhost
+export AMQP_BROKER_PORT=5671
+export AMQP_BROKER_VHOST=acps
 
 just test e2e
 ```
+
+说明：`just test e2e` 会把临时 Auth API 默认监听在 `https://localhost:9008`，
+以匹配本地 RabbitMQ dev-infra 中固定的 HTTP auth backend 回调地址。
+如果本机已有其它进程占用 `9008`（例如后台运行的 `mq-auth-server`），请先停止它。
 
 #### 在已部署的生产/预发布环境
 
@@ -142,6 +149,9 @@ export TLS_CA_CERT_FILE=/path/to/ca.pem
 export E2E_TEST_AIC=1.2.156.3088.1.1.XXXX.YYYYYY.ZZZZZZ.AAAA
 export E2E_LEADER_AIC=1.2.156.3088.1.1.AAAA.BBBBBB.CCCCCC.DDDD
 export E2E_MEMBER_AIC=1.2.156.3088.1.1.EEEE.FFFFFF.GGGGGG.HHHH
+export AMQP_BROKER_HOST=your-rabbitmq-host
+export AMQP_BROKER_PORT=5671
+export AMQP_BROKER_VHOST=acps
 
 uv run pytest tests/e2e/ -v
 ```
@@ -191,7 +201,7 @@ just test
 
 - **原则**：黑盒验证，模拟 RabbitMQ 和 Leader Agent 的真实调用
 - 需要 mTLS 证书 + 已部署的服务实例
-- 验证内容：证书鉴权、vhost 权限、inbox 队列权限、group 生命周期
+- 验证内容：证书鉴权、vhost 权限、inbox 队列权限、group 生命周期、RabbitMQ validated user-id
 - development 环境可直接复用自动生成的开发 Leader 证书
 
 ---
@@ -209,6 +219,10 @@ just test
 | `E2E_TEST_AIC`     | e2e         | Auth API 测试用的合法 AIC                       |
 | `E2E_LEADER_AIC`   | e2e         | Group API 测试用 Leader AIC                     |
 | `E2E_MEMBER_AIC`   | e2e         | Group API 测试用 Member AIC                     |
+| `E2E_FORGED_AIC`   | e2e         | 可选；RabbitMQ forged `user_id` 测试用伪造 AIC  |
+| `AMQP_BROKER_HOST` | e2e         | RabbitMQ AMQPS 主机，默认 `localhost`           |
+| `AMQP_BROKER_PORT` | e2e         | RabbitMQ AMQPS 端口，默认 `5671`                |
+| `AMQP_BROKER_VHOST` | e2e         | RabbitMQ vhost，默认 `acps`                     |
 
 ---
 

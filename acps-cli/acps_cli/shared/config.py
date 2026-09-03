@@ -2,16 +2,52 @@
 
 from __future__ import annotations
 
+import os
 import sys
+from collections.abc import Callable
+from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 if sys.version_info >= (3, 11):
     import tomllib
 else:
     import tomli as tomllib
 
-from dotenv import load_dotenv
+try:
+    _dotenv_module = import_module("dotenv")
+except ModuleNotFoundError:  # pragma: no cover - fallback for partial dev environments
+
+    def _dotenv_load_dotenv(dotenv_path: object | None = None, *, override: bool = False, **kwargs: object) -> bool:
+        del kwargs
+        candidates: list[Path] = []
+        if dotenv_path is not None:
+            candidates.append(Path(str(dotenv_path)))
+        else:
+            candidates.append(Path.cwd() / ".env")
+
+        loaded = False
+        for candidate in candidates:
+            if not candidate.exists():
+                continue
+            for raw_line in candidate.read_text(encoding="utf-8").splitlines():
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                if not key:
+                    continue
+                if not override and key in os.environ:
+                    continue
+                os.environ[key] = value.strip().strip('"').strip("'")
+            loaded = True
+        return loaded
+else:
+    _dotenv_load_dotenv = cast("Callable[..., bool]", _dotenv_module.load_dotenv)
+
+
+load_dotenv: Callable[..., bool] = _dotenv_load_dotenv
 
 
 def find_config_file(config_path: str | None) -> Path | None:

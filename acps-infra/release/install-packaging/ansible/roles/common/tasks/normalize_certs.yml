@@ -1,0 +1,9 @@
+---
+# normalize_certs.yml
+# 承载分派层（mode 无关中性入口）：按 acps_deploy_mode include 对应实现。
+# image → normalize_certs_image.yml（现有 host chown + docker run chown 回退，
+# 逻辑不变）。
+# host  → normalize_certs_host.yml（只用 ansible.builtin.file / chown；
+# 禁止 docker，见本设计 §4.4 / §6.3）。
+- name: 按 mode 分派 normalize_certs 实现
+  ansible.builtin.include_tasks: "normalize_certs_{{ acps_deploy_mode }}.yml"

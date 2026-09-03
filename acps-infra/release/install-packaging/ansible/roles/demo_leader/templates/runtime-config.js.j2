@@ -1,0 +1,20 @@
+{# Parity with demo-leader/scripts/release-app/deploy.sh render_web_runtime_config
+   and LEADER_WEB_OIDC_* in env.j2. backendBase='' → webserver /api/v1/ 同源反代。 #}
+window.APP_CONFIG = {
+  backendBase: '',
+  oidc: {
+{% if keycloak_enabled | bool %}
+    enabled: true,
+    issuer: {{ ("http://" ~ _keycloak_public_host ~ ":" ~ (keycloak_port | string) ~ "/realms/acps-leader") | tojson }},
+    clientId: {{ "leader-web" | tojson }},
+    apiAudience: {{ "leader-api" | tojson }},
+    scope: {{ "openid profile email" | tojson }},
+{% else %}
+    enabled: false,
+    issuer: "",
+    clientId: {{ "leader-web" | tojson }},
+    apiAudience: {{ "leader-api" | tojson }},
+    scope: {{ "openid profile email" | tojson }},
+{% endif %}
+  },
+};

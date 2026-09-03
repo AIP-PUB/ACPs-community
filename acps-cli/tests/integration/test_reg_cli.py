@@ -2,6 +2,8 @@
 
 覆盖范围：
   - login（自动注册 + 登录）
+  - logout（退出并清理登录态）
+  - change-password（提示与会话保持）
   - whoami（需要有效 token）
   - list（列出 Agent）
   - upsert（创建/更新 Agent）
@@ -136,6 +138,12 @@ def _write_entity_payload_file(work_dir: Path, label: str) -> Path:
                         "security": [],
                     }
                 ],
+                "certificate": {
+                    "altNames": {
+                        "dns": [f"entity-{label}.example.com"],
+                    },
+                    "requestedValidity": 365,
+                },
             },
             ensure_ascii=False,
             indent=2,
@@ -311,6 +319,109 @@ class TestRegCliWhoami:
         runner = CliRunner()
         result = runner.invoke(main, ["--config", str(reg_conf), "auth", "whoami"])
         assert result.exit_code != 0
+
+
+class TestRegCliAuthLifecycle:
+    """auth logout / change-password 命令集成测试。"""
+
+    def test_logout_clears_local_token_and_invalidates_server_session(
+        self,
+        work_dir: Path,
+        reg_conf: Path,
+        user_credentials: tuple[str, str],
+        token_file: Path,
+    ) -> None:
+        """logout 后本地 token 应删除，恢复旧 token 也不能再通过 whoami。"""
+        username, password = user_credentials
+        runner = CliRunner()
+
+        _login_user(runner, reg_conf, username, password)
+        assert token_file.exists(), f"token 文件未生成：{token_file}"
+        saved_token = json.loads(token_file.read_text(encoding="utf-8"))
+
+        result = runner.invoke(
+            main,
+            ["--config", str(reg_conf), "auth", "logout", "--json"],
+        )
+
+        assert result.exit_code == 0, f"logout 失败，输出: {result.output}"
+        data = json.loads(result.output)
+        assert data["success"] is True
+        assert data["message"] == "Successfully logged out"
+        assert data["local_token_cleared"] is True
+        assert not token_file.exists(), "logout 后本地 token 文件仍存在"
+
+        token_file.parent.mkdir(parents=True, exist_ok=True)
+        token_file.write_text(json.dumps(saved_token, ensure_ascii=True, indent=2), encoding="utf-8")
+
+        whoami_result = runner.invoke(main, ["--config", str(reg_conf), "auth", "whoami", "--json"])
+        assert whoami_result.exit_code != 0, "恢复旧 token 后 whoami 不应继续成功"
+
+    def test_change_password_keeps_current_session_and_requires_new_password_for_future_login(
+        self,
+        work_dir: Path,
+        reg_conf: Path,
+        user_credentials: tuple[str, str],
+        token_file: Path,
+    ) -> None:
+        """change-password 应提示重新登录，但不主动清当前 token。"""
+        username, old_password = user_credentials
+        new_password = "Reset@Test67890"
+        runner = CliRunner()
+
+        _login_user(runner, reg_conf, username, old_password)
+        assert token_file.exists(), f"token 文件未生成：{token_file}"
+
+        change_result = runner.invoke(
+            main,
+            ["--config", str(reg_conf), "auth", "change-password", "--json"],
+            input=f"{old_password}\n{new_password}\n{new_password}\n",
+        )
+
+        assert change_result.exit_code == 0, f"change-password 失败，输出: {change_result.output}"
+        data = json.loads(change_result.output[change_result.output.find("{") :])
+        assert data["success"] is True
+        assert data["message"] == "Password updated successfully"
+        assert data["notice"] == "密码已修改，建议重新登录"
+        assert token_file.exists(), "change-password 不应主动清理当前 token 文件"
+
+        whoami_result = runner.invoke(main, ["--config", str(reg_conf), "auth", "whoami", "--json"])
+        assert whoami_result.exit_code == 0, f"改密后当前会话不应失效，输出: {whoami_result.output}"
+        whoami_data = json.loads(whoami_result.output)
+        assert whoami_data.get("username") == username
+
+        old_login_result = runner.invoke(
+            main,
+            [
+                "--config",
+                str(reg_conf),
+                "auth",
+                "login",
+                "--username",
+                username,
+                "--password",
+                old_password,
+            ],
+        )
+        assert old_login_result.exit_code != 0, "旧密码改后不应还能登录"
+
+        new_login_result = runner.invoke(
+            main,
+            [
+                "--config",
+                str(reg_conf),
+                "auth",
+                "login",
+                "--username",
+                username,
+                "--password",
+                new_password,
+                "--json",
+            ],
+        )
+        assert new_login_result.exit_code == 0, f"新密码登录失败，输出: {new_login_result.output}"
+        new_login_data = json.loads(new_login_result.output)
+        assert new_login_data["username"] == username
 
 
 class TestRegCliList:
@@ -699,3 +810,4 @@ class TestRegCliAtr:
         assert isinstance(data.get("aic"), str) and data["aic"]
         assert data["entity"]["ontologyAic"] == aic
         assert data["entity"]["entityMeta"]["scenario"] == "integration"
+        assert data["entity"]["certificate"]["altNames"]["dns"] == [f"entity-{aic.split('.')[-1]}.example.com"]

@@ -1,0 +1,59 @@
+---
+# selinux_restore_path.yml — 通用 SELinux fcontext + restorecon helper（本设计
+# §6.4(3)）。用于给落在 acps_runtime_root / acps_data_root 等自定义路径下、且
+# 会被发行版受限域（如 redis_t / rabbitmq_t）读取的文件打标签。
+#
+# 硬约束：不 setenforce 0；仅在 SELinux 处于 Enforcing/Permissive（非 Disabled/
+# 未安装）时生效；仅 RedHat 系族调用（Ubuntu 用 AppArmor，另案）。
+#
+# 期望：acps_selinux_path（须打标签的目录，会自动加 (/.*)? 递归匹配）；
+# 可选：acps_selinux_type（默认 cert_t —— SELinux 通用「TLS 证书」类型，
+# 常见受限域策略均放行读取该类型)。
+
+- name: 要求 acps_selinux_path 已定义
+  ansible.builtin.assert:
+    that:
+      - acps_selinux_path is defined
+      - acps_selinux_path | length > 0
+    fail_msg: "selinux_restore_path.yml requires acps_selinux_path"
+
+- name: 探测 SELinux 状态（getenforce）
+  ansible.builtin.command:
+    argv: [getenforce]
+  register: _acps_selinux_getenforce
+  changed_when: false
+  failed_when: false
+
+- name: SELinux enabled（Enforcing/Permissive）时打标签并 restorecon
+  when:
+    - (_acps_selinux_getenforce.rc | default(1)) == 0
+    - (_acps_selinux_getenforce.stdout | default('Disabled') | trim) in ['Enforcing', 'Permissive']
+  become: true
+  block:
+    - name: 确保 semanage 可用（policycoreutils-python-utils）
+      ansible.builtin.include_tasks: ensure_os_packages.yml
+      vars:
+        acps_pkg_names: policycoreutils-python-utils
+        acps_pkg_state: present
+
+    - name: 添加 fcontext 规则（幂等：已存在时 semanage 返回非 0 但可忽略）
+      ansible.builtin.command:
+        argv:
+          - semanage
+          - fcontext
+          - --add
+          - --type
+          - "{{ acps_selinux_type | default('cert_t') }}"
+          - "{{ acps_selinux_path }}(/.*)?"
+      register: _acps_fcontext_add
+      changed_when: _acps_fcontext_add.rc == 0
+      failed_when: >-
+        _acps_fcontext_add.rc != 0
+        and ('already defined' not in (_acps_fcontext_add.stderr | default('')))
+        and ('already exists' not in (_acps_fcontext_add.stderr | default('')))
+
+    - name: restorecon 应用标签（递归）
+      ansible.builtin.command:
+        argv: [restorecon, -R, -v, "{{ acps_selinux_path }}"]
+      register: _acps_restorecon
+      changed_when: "'Relabeled' in (_acps_restorecon.stdout | default(''))"

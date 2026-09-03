@@ -176,6 +176,14 @@ class BackgroundExecutor:
             self._session_manager.update_session(session)
         logger.debug(f"[BackgroundExecutor] Progress updated: {message[:50]}...")
 
+    def _is_current_active_task(
+        self,
+        session: Session,
+        task_id: ActiveTaskId,
+    ) -> bool:
+        """检查 task_id 是否仍然对应当前 session.active_task。"""
+        return bool(session.active_task and session.active_task.active_task_id == task_id)
+
     def resume_after_continue(
         self,
         task_id: ActiveTaskId,
@@ -222,6 +230,35 @@ class BackgroundExecutor:
         bg_task.add_done_callback(lambda t: self._running_tasks.pop(task_id, None))
 
         logger.info(f"[BackgroundExecutor] Task {task_id[:12]} resumed for background polling")
+
+    async def cancel_task_and_wait(
+        self,
+        task_id: ActiveTaskId,
+        timeout: float = 5.0,
+    ) -> bool:
+        """
+        取消后台任务并等待其结束，避免旧任务继续回写当前 Session。
+        """
+        bg_task = self._running_tasks.get(task_id)
+        if not bg_task:
+            return False
+
+        if bg_task.done():
+            return True
+
+        bg_task.cancel()
+        logger.info(f"Task {task_id} cancellation requested, waiting for shutdown")
+
+        try:
+            await asyncio.wait_for(bg_task, timeout=timeout)
+        except asyncio.CancelledError:
+            pass
+        except TimeoutError:
+            logger.warning(f"Timeout waiting for task {task_id} cancellation")
+        except Exception as exc:
+            logger.warning(f"Task {task_id} raised during cancellation: {exc}")
+
+        return True
 
     def _rebuild_planning_result_from_session(
         self,
@@ -299,7 +336,12 @@ class BackgroundExecutor:
             # 创建轮询更新回调
             def on_poll_update(exec_result: ExecutionResult) -> None:
                 """每轮轮询后更新 session 中的 partner_tasks"""
-                self._update_partner_tasks_from_execution(session, exec_result, planning_result)
+                self._update_partner_tasks_from_execution(
+                    session,
+                    exec_result,
+                    planning_result,
+                    task_id=task_id,
+                )
                 if self._session_manager:
                     self._session_manager.update_session(session)
                 logger.debug(f"[BackgroundExecutor] Updated partner_tasks (resume), phase={exec_result.phase.value}")
@@ -340,11 +382,16 @@ class BackgroundExecutor:
             self._update_progress_from_execution(task_id, execution_result)
 
             # 最终同步 partner_tasks 到 session
-            self._update_partner_tasks_from_execution(session, execution_result, planning_result)
+            self._update_partner_tasks_from_execution(
+                session,
+                execution_result,
+                planning_result,
+                task_id=task_id,
+            )
             if self._session_manager:
                 from ..models.base import ActiveTaskStatus
 
-                if session.active_task:
+                if self._is_current_active_task(session, task_id):
                     session.active_task.external_status = ActiveTaskStatus.RUNNING
                 self._session_manager.update_session(session)
 
@@ -412,7 +459,12 @@ class BackgroundExecutor:
                 self._update_progress_from_execution(task_id, execution_result)
 
                 # 同步 LLM-5 完成后的 partner 状态到 session
-                self._update_partner_tasks_from_execution(session, execution_result, planning_result)
+                self._update_partner_tasks_from_execution(
+                    session,
+                    execution_result,
+                    planning_result,
+                    task_id=task_id,
+                )
                 if self._session_manager:
                     self._session_manager.update_session(session)
 
@@ -681,7 +733,12 @@ class BackgroundExecutor:
             # 创建轮询更新回调，用于实时同步 partner 状态到 session
             def on_poll_update(exec_result: ExecutionResult) -> None:
                 """每轮轮询后更新 session 中的 partner_tasks"""
-                self._update_partner_tasks_from_execution(session, exec_result, planning_result)
+                self._update_partner_tasks_from_execution(
+                    session,
+                    exec_result,
+                    planning_result,
+                    task_id=task_id,
+                )
                 if self._session_manager:
                     self._session_manager.update_session(session)
                 logger.debug(f"[BackgroundExecutor] Updated partner_tasks, phase={exec_result.phase.value}")
@@ -725,10 +782,15 @@ class BackgroundExecutor:
             self._update_progress_from_execution(task_id, execution_result)
 
             # 最终同步 partner_tasks 到 session
-            self._update_partner_tasks_from_execution(session, execution_result, planning_result)
+            self._update_partner_tasks_from_execution(
+                session,
+                execution_result,
+                planning_result,
+                task_id=task_id,
+            )
             if self._session_manager:
                 # 更新 active_task 状态为 running
-                if session.active_task:
+                if self._is_current_active_task(session, task_id):
                     from ..models.base import ActiveTaskStatus
 
                     session.active_task.external_status = ActiveTaskStatus.RUNNING
@@ -814,7 +876,12 @@ class BackgroundExecutor:
                 self._update_progress_from_execution(task_id, execution_result)
 
                 # 同步 LLM-5 完成后的 partner 状态到 session
-                self._update_partner_tasks_from_execution(session, execution_result, planning_result)
+                self._update_partner_tasks_from_execution(
+                    session,
+                    execution_result,
+                    planning_result,
+                    task_id=task_id,
+                )
                 if self._session_manager:
                     self._session_manager.update_session(session)
 
@@ -957,8 +1024,8 @@ class BackgroundExecutor:
                 response_text = aggregation_result.text  # AggregationResult 使用 text 字段
                 try:
                     aggregation_dict = aggregation_result.model_dump(by_alias=True)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("[BackgroundExecutor] aggregation result serialization skipped: %s", exc)
 
                 aggregation_elapsed = (time.time() - aggregation_start) * 1000
                 logger.debug(f"[BackgroundExecutor] <<< LLM-6 aggregation completed in {aggregation_elapsed:.0f}ms")
@@ -997,14 +1064,19 @@ class BackgroundExecutor:
                 )
 
                 # 更新 active_task 状态
-                if session.active_task:
+                if self._is_current_active_task(session, task_id):
                     from ..models.base import ActiveTaskStatus
 
                     session.active_task.external_status = ActiveTaskStatus.COMPLETED
 
                     # 同步 partner_tasks 到 active_task
                     # 让前端能够通过 /result 接口看到每个 partner 的执行状态
-                    self._update_partner_tasks_from_execution(session, execution_result, planning_result)
+                    self._update_partner_tasks_from_execution(
+                        session,
+                        execution_result,
+                        planning_result,
+                        task_id=task_id,
+                    )
 
                 # 保存 Session 更新
                 self._session_manager.update_session(session)
@@ -1033,7 +1105,7 @@ class BackgroundExecutor:
             if self._session_manager:
                 from ..models.base import ActiveTaskStatus
 
-                if session.active_task:
+                if self._is_current_active_task(session, task_id):
                     session.active_task.external_status = ActiveTaskStatus.FAILED
                     self._session_manager.update_session(session)
             raise
@@ -1209,6 +1281,7 @@ class BackgroundExecutor:
         session: Session,
         execution_result: ExecutionResult,
         planning_result: PlanningResult,
+        task_id: ActiveTaskId | None = None,
     ) -> None:
         """
         根据执行结果更新 session.active_task.partner_tasks。
@@ -1222,8 +1295,17 @@ class BackgroundExecutor:
             session: 会话对象
             execution_result: 执行结果
             planning_result: 规划结果
+            task_id: 期望写入的 activeTaskId；若当前 session.active_task 已切换，则跳过写入
         """
         if not session.active_task:
+            return
+
+        if task_id and session.active_task.active_task_id != task_id:
+            logger.debug(
+                "[BackgroundExecutor] Skip stale partner_tasks update: task=%s current=%s",
+                task_id[:12],
+                session.active_task.active_task_id[:12],
+            )
             return
 
         from acps_sdk.aip.aip_base_model import TaskState

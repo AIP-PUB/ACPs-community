@@ -1,0 +1,45 @@
+# Discovery image-mode overlay — install-topology + Monitor→Discovery alive-sync.
+# Rendered by discovery_server role; do not hand-edit inside the container.
+
+[server]
+reload = false
+uvicorn_log_level = "warning"
+
+[logging]
+level = "INFO"
+format = "json"
+
+[dsp]
+base_url = ""
+
+[dsp.webhook]
+receive_url = ""
+
+[polling]
+server_url = ""
+
+# Monitor→Discovery heartbeat sync.
+# D2 asserts on Discovery alive views only — never Monitor heartbeat/summary API.
+# Bootstrap uses Monitor /sync/* with shared internal Bearer
+# (ALIVE_SYNC_PROVIDER_BEARER_TOKEN == Monitor HEARTBEAT_SYNC_INTERNAL_TOKEN).
+# Works with Keycloak OIDC on (H final E2E) and with OIDC off (local-auth matrix).
+# Kafka: PLAINTEXT; same-host Compose DNS vs cross-host advertise.
+{% if monitor_server_enabled | bool %}
+{% set _same_host_shortcut = acps_deploy_mode == 'image' %}
+{% set mon_h = 'monitor_server' if (_same_host_shortcut and inventory_hostname in (groups['monitor_server'] | default([]))) else _monitor_host %}
+{% set mon_port = 9009 if (_same_host_shortcut and inventory_hostname in (groups['monitor_server'] | default([]))) else monitor_server_port %}
+{% set kafka_h = 'redpanda' if (_same_host_shortcut and inventory_hostname in (groups['redpanda'] | default([]))) else _redpanda_host %}
+{% set kafka_port = 9092 if (_same_host_shortcut and inventory_hostname in (groups['redpanda'] | default([]))) else redpanda_kafka_port %}
+[alive_sync]
+enabled = true
+auto_start = true
+provider_base_url = "http://{{ mon_h }}:{{ mon_port }}/acps-amp-v1/heartbeat"
+kafka_bootstrap_servers = "{{ kafka_h }}:{{ kafka_port }}"
+kafka_topic = "amp.heartbeat.alive-delta"
+kafka_group_id = "discovery-server.alive-sync.v1"
+{% else %}
+[alive_sync]
+# Monitor disabled: no Provider / Relay; business acceptance D2 unsupported.
+enabled = false
+auto_start = false
+{% endif %}

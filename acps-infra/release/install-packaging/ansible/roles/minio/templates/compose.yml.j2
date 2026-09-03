@@ -1,0 +1,15 @@
+services:
+  minio:
+    image: {{ acps_effective_image_tag }}
+    command: server /data --console-address ":9004"
+    environment:
+      MINIO_ROOT_USER: "{{ minio_root_user }}"
+      MINIO_ROOT_PASSWORD: "{{ minio_root_password }}"
+    ports:
+      - "{{ minio_api_port }}:9000"
+      - "{{ minio_console_port }}:9004"
+    volumes:
+      - {{ acps_data_root }}/minio:/data:z
+    restart: unless-stopped
+    networks:
+      - {{ acps_docker_network }}

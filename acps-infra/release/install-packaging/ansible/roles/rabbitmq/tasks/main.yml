@@ -1,0 +1,259 @@
+---
+- name: rabbitmq 禁用时结束
+  when: not (rabbitmq_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 RabbitMQ（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: stage rabbitmq image
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: rabbitmq
+        acps_artifact_kind: os_package
+
+    - name: 准备目录
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ acps_data_root }}/rabbitmq"
+        - "{{ acps_runtime_root }}/certs/rabbitmq"
+        - "{{ acps_runtime_root }}/config/rabbitmq"
+
+    - name: 解析 mq-auth-server 广告地址（分机 auth_http；同机用 Compose DNS）
+      ansible.builtin.set_fact:
+        _mq_auth_advertise_host: "{{ hostvars | acps_group_addr(groups, 'mq_auth_server') }}"
+        _mq_auth_http_host: >-
+          {{
+            'mq-auth-server'
+            if (inventory_hostname in (groups['mq_auth_server'] | default([])))
+            else (hostvars | acps_group_addr(groups, 'mq_auth_server'))
+          }}
+
+    - name: 渲染 rabbitmq.conf（image：auth_http 随 mq-auth 同机/分机切换）
+      ansible.builtin.template:
+        src: rabbitmq.conf.j2
+        dest: "{{ acps_runtime_root }}/config/rabbitmq/rabbitmq.conf"
+        mode: "0644"
+      register: _rmq_conf_render
+
+    - name: 安装 enabled_plugins
+      ansible.builtin.copy:
+        src: "{{ acps_release_root }}/templates/enabled_plugins"
+        dest: "{{ acps_runtime_root }}/config/rabbitmq/enabled_plugins"
+        mode: "0644"
+      register: _rmq_plugins_render
+
+    - name: 解析 cert owner
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: resolve_cert_owner.yml
+      vars:
+        acps_cert_owner_user: rabbitmq
+
+    - name: 规范化 rabbitmq certs
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: normalize_certs.yml
+      vars:
+        acps_certs_dir: "{{ acps_runtime_root }}/certs/rabbitmq"
+
+    - name: 规范化 rabbitmq data dir ownership
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: normalize_data_dir.yml
+      vars:
+        acps_data_dir: "{{ acps_data_root }}/rabbitmq"
+
+    - name: 渲染 compose
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/rabbitmq.yml"
+        mode: "0644"
+      register: _rmq_compose_render
+
+    - name: 计算 rabbitmq TLS 材料 digest（image）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: tls_material_digest.yml
+      vars:
+        acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/rabbitmq"
+        acps_tls_digest_files:
+          - rabbitmq-server.pem
+          - rabbitmq-server.key
+          - rabbitmq-client.pem
+          - rabbitmq-client.key
+          - acps-root-ca.pem
+        acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/rabbitmq-tls-material.sha256"
+        acps_tls_digest_persist: false
+
+    - name: 判定 rabbitmq 是否 force recreate
+      ansible.builtin.set_fact:
+        _rmq_force_recreate: >-
+          {{
+            (_rmq_conf_render is changed)
+            or (_rmq_plugins_render is changed)
+            or (_rmq_compose_render is changed)
+            or (_tls_material_digest_changed | default(true) | bool)
+            or (acps_force_rabbitmq_restart | default(false) | bool)
+          }}
+
+    - name: 部署 rabbitmq
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: rabbitmq
+        acps_compose_force_recreate: "{{ _rmq_force_recreate | bool }}"
+
+    - name: 标记本轮 rabbitmq 已真 recreate（供下游依赖 role 跟随）
+      when: _rmq_force_recreate | bool
+      ansible.builtin.set_fact:
+        acps_tls_upstream_bounced_rabbitmq: true
+
+    - name: 持久化 rabbitmq TLS digest（本轮 recreate 后）
+      when: _rmq_force_recreate | bool
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: tls_material_digest.yml
+      vars:
+        acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/rabbitmq"
+        acps_tls_digest_files:
+          - rabbitmq-server.pem
+          - rabbitmq-server.key
+          - rabbitmq-client.pem
+          - rabbitmq-client.key
+          - acps-root-ca.pem
+        acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/rabbitmq-tls-material.sha256"
+        acps_tls_digest_persist: true
+
+    - name: rabbitmq recreate 后触发依赖闭包
+      when: _rmq_force_recreate | bool
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: reload_tls_dependents.yml
+      vars:
+        acps_tls_upstream: rabbitmq
+
+    - name: 等待 amqps port
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ rabbitmq_amqps_port }}"
+        timeout: 90
+
+    # Broker defaults only create user+vhost `/`. AIP group mode requires shared
+    # vhost `acps`、inbox.topic，以及供 mq-auth-server 使用的管理用户（见
+    # RabbitMQ-Native-Deployment). EXTERNAL agents
+    # 经 auth_http 授权；broker 上仍须存在该 vhost。
+    - name: Await RabbitMQ application startup
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ acps_compose_project_prefix }}-rabbitmq-1"
+          - rabbitmqctl
+          - await_startup
+      register: _rmq_ready
+      retries: 30
+      delay: 2
+      until: _rmq_ready.rc == 0
+      changed_when: false
+
+    - name: 确保 RabbitMQ acps vhost, users, and inbox exchange
+      ansible.builtin.shell: |
+        set -euo pipefail
+        c={{ acps_compose_project_prefix }}-rabbitmq-1
+        admin_user='{{ rabbitmq_user }}'
+        admin_pass='{{ rabbitmq_password }}'
+        mgmt_user='{{ mq_auth_mgmt_user | default("mq-auth-svc") }}'
+        mgmt_pass='{{ mq_auth_mgmt_pass }}'
+        vhost='{{ rabbitmq_vhost | default("acps") }}'
+        inbox_ex='{{ rabbitmq_inbox_exchange | default("inbox.topic") }}'
+
+        ctl() { docker exec "$c" rabbitmqctl "$@"; }
+        admin() {
+          docker exec "$c" rabbitmqadmin \
+            --username "$admin_user" \
+            --password "$admin_pass" \
+            "$@"
+        }
+
+        ensure_user() {
+          local user="$1" pass="$2"
+          if ctl list_users --silent | awk '{print $1}' | grep -Fxq "$user"; then
+            ctl change_password "$user" "$pass" >/dev/null
+          else
+            ctl add_user "$user" "$pass" >/dev/null
+          fi
+        }
+
+        if [[ "$admin_user" == "$mgmt_user" ]]; then
+          echo "rabbitmq_user and mq_auth_mgmt_user must differ" >&2
+          exit 1
+        fi
+
+        ensure_user "$admin_user" "$admin_pass"
+        ctl set_user_tags "$admin_user" administrator >/dev/null
+
+        if ! ctl list_vhosts --silent | grep -Fxq "$vhost"; then
+          ctl add_vhost "$vhost" >/dev/null
+          echo "created_vhost=$vhost"
+        else
+          echo "vhost_exists=$vhost"
+        fi
+
+        ctl set_permissions -p "$vhost" "$admin_user" ".*" ".*" ".*" >/dev/null
+
+        ensure_user "$mgmt_user" "$mgmt_pass"
+        ctl set_user_tags "$mgmt_user" administrator >/dev/null
+        # 仅管理账号：对业务 vhost 无 AMQP 权限。
+        if ctl list_permissions -p "$vhost" --silent | awk '{print $1}' | grep -Fxq "$mgmt_user"; then
+          ctl clear_permissions -p "$vhost" "$mgmt_user" >/dev/null
+        fi
+
+        admin declare exchange \
+          -V "$vhost" \
+          --name "$inbox_ex" \
+          --type topic \
+          --durable true \
+          --non-interactive >/dev/null
+        echo "inbox_exchange_ok=$inbox_ex"
+      args:
+        executable: /bin/bash
+      no_log: true
+
+    - name: 断言 RabbitMQ 业务 vhost 已存在（防 nodename 漂移丢状态）
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ acps_compose_project_prefix }}-rabbitmq-1"
+          - rabbitmqctl
+          - list_vhosts
+          - --silent
+      register: _rmq_vhosts
+      changed_when: false
+      failed_when: >-
+        (rabbitmq_vhost | default('acps')) not in (_rmq_vhosts.stdout_lines | default([]))
+
+    - name: 开放 rabbitmq 广告端口（firewalld/ufw；与 host 同构）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: open_advertise_ports.yml
+      vars:
+        acps_open_ports:
+          - "{{ rabbitmq_amqps_port }}"
+          - "{{ rabbitmq_mgmt_port }}"
+
+- name: host 分支：OS 包承载 RabbitMQ + 插件 + TLS（本设计 §5.5 / §6.4）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

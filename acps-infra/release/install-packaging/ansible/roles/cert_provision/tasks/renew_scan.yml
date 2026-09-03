@@ -1,0 +1,177 @@
+---
+# 扫描已启用的叶子证书 profile；设置 acps_cert_renew_due_profiles。
+# 输入：acps_cert_renew_before_days、acps_force_cert_renew、可选
+# acps_cert_renew_profiles（列表过滤；空/省略 = 全部已启用）。
+# 可选按 profile 强制：acps_force_cert_renew_<profile_with_underscores>。
+
+- name: 构建 renew candidate metadata
+  ansible.builtin.set_fact:
+    _renew_all_meta:
+      - profile: registry-9002
+        enabled: "{{ registry_server_enabled | bool }}"
+        outdir: registry-server-9002
+        marker: server.pem
+        target_group: registry_server
+        target_rel: certs/registry_server/server.pem
+        compose_services: registry_server_mtls
+      - profile: redis
+        enabled: "{{ redis_enabled | bool }}"
+        outdir: redis
+        marker: redis-server.pem
+        target_group: redis
+        target_rel: certs/redis/redis-server.pem
+        compose_services: redis
+      - profile: rabbitmq
+        enabled: "{{ rabbitmq_enabled | bool }}"
+        outdir: rabbitmq
+        marker: rabbitmq-server.pem
+        target_group: rabbitmq
+        target_rel: certs/rabbitmq/rabbitmq-server.pem
+        compose_services: rabbitmq
+      - profile: mq-auth-server
+        enabled: "{{ mq_auth_server_enabled | bool }}"
+        outdir: mq-auth-server
+        marker: server.pem
+        target_group: mq_auth_server
+        target_rel: certs/mq_auth_server/server.pem
+        compose_services: mq_auth_server
+      - profile: demo-partner
+        enabled: "{{ demo_partner_enabled | bool }}"
+        outdir: demo-partner
+        marker: ""
+        target_group: demo_partner
+        target_rel: components/demo_partner/partners/online
+        compose_services: demo_partner
+        demo_glob: true
+      - profile: demo-leader
+        enabled: "{{ demo_leader_enabled | bool }}"
+        outdir: demo-leader
+        marker: client.pem
+        target_group: demo_leader
+        target_rel: components/demo_leader/leader/atr/client.pem
+        compose_services: "demo_leader demo_leader_web"
+
+- name: Select enabled candidates
+  ansible.builtin.set_fact:
+    _renew_enabled: "{{ _renew_all_meta | selectattr('enabled') | list }}"
+
+- name: 应用 optional profile filter
+  ansible.builtin.set_fact:
+    _renew_candidates: >-
+      {{
+        _renew_enabled
+        if (acps_cert_renew_profiles | default([]) | length) == 0
+        else (_renew_enabled | selectattr('profile', 'in', acps_cert_renew_profiles) | list)
+      }}
+
+- name: Scan notAfter / force for each candidate
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    export ACPS_FORCE_PROFILE="{{ lookup('vars', 'acps_force_cert_renew_' + (item.profile | replace('-', '_')), default=false) | bool | lower }}"
+    CONTROL="{{ acps_control_root }}"
+    DAYS="{{ acps_cert_renew_before_days | int }}"
+    FORCE_GLOBAL="{{ acps_force_cert_renew | bool | lower }}"
+    PROFILE="{{ item.profile }}"
+    OUTDIR="{{ item.outdir }}"
+    MARKER="{{ item.marker }}"
+    TARGET_ROOT="{% if (groups[item.target_group] | default([])) | length > 0 %}{{ hostvars[(groups[item.target_group] | first)].acps_runtime_root | default(acps_runtime_root) }}{% endif %}"
+    TARGET_REL="{{ item.target_rel }}"
+    DEMO_GLOB="{{ item.demo_glob | default(false) | bool | lower }}"
+
+    "$PY" - "$CONTROL" "$OUTDIR" "$MARKER" "$TARGET_ROOT" "$TARGET_REL" "$DEMO_GLOB" "$DAYS" "$FORCE_GLOBAL" "$PROFILE" <<'PY'
+    import json, os, subprocess, sys
+    from datetime import datetime, timezone, timedelta
+    from pathlib import Path
+
+    control, outdir, marker, target_root, target_rel, demo_glob, days_s, force_g, profile = sys.argv[1:10]
+    days = int(days_s)
+    force = force_g.lower() in ("1", "true", "yes") or os.environ.get(
+        "ACPS_FORCE_PROFILE", "false"
+    ).lower() in ("1", "true", "yes")
+    now = datetime.now(timezone.utc)
+    window = timedelta(days=days)
+
+    def not_after_pem(path: Path) -> datetime:
+        out = subprocess.check_output(
+            ["openssl", "x509", "-enddate", "-noout", "-in", str(path)],
+            text=True,
+        ).strip()
+        raw = out.split("=", 1)[1].strip()
+        for fmt in ("%b %d %H:%M:%S %Y %Z", "%b %d %H:%M:%S %Y GMT"):
+            try:
+                return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
+            except ValueError:
+                continue
+        raise RuntimeError(f"cannot parse notAfter={raw!r} from {path}")
+
+    def collect_pems() -> list[Path]:
+        paths: list[Path] = []
+        ctrl = Path(control) / "work" / "certs" / outdir
+        if demo_glob == "true":
+            stage = Path(control) / "work" / "staging" / "demo-partner" / "partners" / "online"
+            if stage.is_dir():
+                paths.extend(sorted(stage.glob("*/server.pem")))
+            if not paths and target_root:
+                t = Path(target_root) / target_rel
+                if t.is_dir():
+                    paths.extend(sorted(t.glob("*/server.pem")))
+            return paths
+        if marker:
+            c = ctrl / marker
+            if c.is_file():
+                paths.append(c)
+            elif target_root:
+                t = Path(target_root) / target_rel
+                if t.is_file():
+                    paths.append(t)
+        return paths
+
+    pems = collect_pems()
+    if force:
+        reason, due, earliest = "force", True, None
+    elif not pems:
+        reason, due, earliest = "missing", True, None
+    else:
+        dates = [not_after_pem(p) for p in pems]
+        earliest = min(dates)
+        due = (earliest - now) <= window
+        reason = "due" if due else "skip"
+    print(
+        json.dumps(
+            {
+                "profile": profile,
+                "due": due,
+                "reason": reason,
+                "not_after": earliest.isoformat() if earliest else None,
+                "pem_count": len(pems),
+            },
+            ensure_ascii=False,
+        )
+    )
+    PY
+  args:
+    executable: /bin/bash
+  loop: "{{ _renew_candidates }}"
+  loop_control:
+    label: "{{ item.profile }}"
+  register: _renew_scan_results
+  changed_when: false
+
+- name: Collect due profiles and scan report
+  ansible.builtin.set_fact:
+    acps_cert_renew_scan_report: "{{ _renew_scan_results.results | map(attribute='stdout') | map('from_json') | list }}"
+    acps_cert_renew_due_profiles: >-
+      {{
+        _renew_scan_results.results
+        | map(attribute='stdout')
+        | map('from_json')
+        | selectattr('due')
+        | map(attribute='profile')
+        | list
+      }}
+    acps_cert_renew_meta_by_profile: "{{ dict(_renew_candidates | map(attribute='profile') | zip(_renew_candidates)) }}"
+
+- name: Show renew scan report
+  ansible.builtin.debug:
+    var: acps_cert_renew_scan_report

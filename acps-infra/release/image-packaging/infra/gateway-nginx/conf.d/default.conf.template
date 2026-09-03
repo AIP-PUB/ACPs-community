@@ -1,0 +1,23 @@
+# 最小默认反向代理模板（gateway-nginx 派生镜像内置默认能力，非生产最终配置）。
+#
+# 使用官方 nginx 镜像内建的 /etc/nginx/templates/*.template -> envsubst -> conf.d/*
+# 机制（容器启动时由官方 docker-entrypoint.sh 自动渲染，见
+# https://hub.docker.com/_/nginx "Using environment variables in nginx configuration"）。
+# 只提供最小健康检查 server block 作为起点；真实拓扑路由规则、域名、证书、上游服务
+# 应由安装阶段覆盖这份模板或挂载自己的 conf.d 配置，不应该依赖这里的默认内容
+# 直接用于生产（ ：基础设施镜像不内置生产环境最终配置）。
+
+server {
+    listen 80 default_server;
+    server_name _;
+
+    location /health {
+        access_log off;
+        return 200 "ok\n";
+        add_header Content-Type text/plain;
+    }
+
+    location / {
+        return 404;
+    }
+}

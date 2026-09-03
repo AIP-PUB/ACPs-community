@@ -346,6 +346,91 @@ class TestCancelAgentSubmissionAsync:
 
 
 class TestProcessAgentApprovalAsync:
+    async def test_approve_pending_agent_applies_provider_before_mark_processed(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        staff = _build_staff_user()
+        agent = _build_agent(status=ApprovalStatus.PENDING, aic="already-has-aic")
+        session = DummyAsyncSession()
+        events: list[str] = []
+
+        monkeypatch.setattr(agent_service, "get_agent_async", AsyncMock(return_value=agent))
+        monkeypatch.setattr(agent_service, "get_user_async", AsyncMock(return_value=staff))
+
+        async def fake_apply_verified_provider_snapshot_async(*args: object, **kwargs: object) -> bool:
+            del args, kwargs
+            events.append("provider")
+            return False
+
+        def fake_mark_agent_processed(*args: object, **kwargs: object) -> None:
+            del args, kwargs
+            events.append("mark")
+            agent.approval_status = ApprovalStatus.APPROVED
+            agent.processed_by_id = staff.id
+
+        monkeypatch.setattr(
+            agent_service,
+            "apply_verified_provider_snapshot_async",
+            fake_apply_verified_provider_snapshot_async,
+        )
+        monkeypatch.setattr(agent_service, "_mark_agent_processed", fake_mark_agent_processed)
+
+        await agent_service.process_agent_approval_async(_as_async_session(session), agent.id, staff.id, approve=True)
+
+        assert events == ["provider", "mark"]
+
+    async def test_provider_snapshot_failure_keeps_agent_pending(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        staff = _build_staff_user()
+        agent = _build_agent(status=ApprovalStatus.PENDING)
+        session = DummyAsyncSession()
+        monkeypatch.setattr(agent_service, "get_agent_async", AsyncMock(return_value=agent))
+        monkeypatch.setattr(agent_service, "get_user_async", AsyncMock(return_value=staff))
+
+        async def fake_apply_verified_provider_snapshot_async(*args: object, **kwargs: object) -> bool:
+            del args, kwargs
+            raise AgentError(
+                status_code=409,
+                error_name=AgentErrorCode.INVALID_ACS,
+                error_msg="provider snapshot failed",
+            )
+
+        monkeypatch.setattr(
+            agent_service,
+            "apply_verified_provider_snapshot_async",
+            fake_apply_verified_provider_snapshot_async,
+        )
+
+        with pytest.raises(AgentError) as exc_info:
+            await agent_service.process_agent_approval_async(
+                _as_async_session(session), agent.id, staff.id, approve=True
+            )
+
+        assert exc_info.value.error_name == AgentErrorCode.INVALID_ACS
+        assert agent.approval_status == ApprovalStatus.PENDING
+
+    async def test_approve_existing_aic_updates_changelog_when_provider_changes(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        staff = _build_staff_user()
+        agent = _build_agent(status=ApprovalStatus.PENDING, aic="already-has-aic")
+        agent.acs = {"provider": {"name": "trusted"}}
+        session = DummyAsyncSession()
+        update_mock = AsyncMock()
+        monkeypatch.setattr(agent_service, "get_agent_async", AsyncMock(return_value=agent))
+        monkeypatch.setattr(agent_service, "get_user_async", AsyncMock(return_value=staff))
+        monkeypatch.setattr(agent_service, "apply_verified_provider_snapshot_async", AsyncMock(return_value=True))
+        monkeypatch.setattr(agent_service, "update_agent_with_changelog_async", update_mock)
+
+        result = await agent_service.process_agent_approval_async(
+            _as_async_session(session), agent.id, staff.id, approve=True
+        )
+
+        assert result.approval_status == ApprovalStatus.APPROVED
+        update_mock.assert_awaited_once_with(_as_async_session(session), agent, {"acs": agent.acs})
+        assert session.flushed is True
+
     async def test_approve_pending_agent(self, monkeypatch: pytest.MonkeyPatch) -> None:
         staff = _build_staff_user()
         agent = _build_agent(status=ApprovalStatus.PENDING, aic="already-has-aic")
@@ -680,7 +765,7 @@ class TestUpdateAgentAcsDataAsync:
 
 class TestRegisterEntityAsync:
     async def test_successful_registration_adds_agent_and_flushes(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        ontology_aic = aic_module.generate_ontology_aic()
+        ontology_aic = aic_module.generate_ontology_aic(manager_code="1", provider_code="00001")
         entity_aic = aic_module.generate_entity_aic_from_ontology(ontology_aic)
         assert entity_aic is not None
 

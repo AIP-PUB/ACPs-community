@@ -1,0 +1,155 @@
+# 确保 AMP Kafka topics（host 模式：本地 rpk，无 Docker）。
+# 与 ensure_amp_topics.yml（image/docker exec）及 monitor-server runbook 对齐。
+---
+- name: 放宽 Redpanda 存储告警空闲阈值百分比（host rpk）
+  ansible.builtin.command:
+    argv:
+      - "{{ _redpanda_rpk }}"
+      - cluster
+      - config
+      - set
+      - storage_space_alert_free_threshold_percent
+      - "0"
+  register: _rp_disk_pct
+  changed_when: "'Successfully updated' in (_rp_disk_pct.stdout | default(''))"
+  failed_when: false
+
+- name: 将 Redpanda storage_min_free_bytes 放宽到平台最小值（host rpk）
+  ansible.builtin.command:
+    argv:
+      - "{{ _redpanda_rpk }}"
+      - cluster
+      - config
+      - set
+      - storage_min_free_bytes
+      - "10485760"
+  register: _rp_disk_min
+  changed_when: "'Successfully updated' in (_rp_disk_min.stdout | default(''))"
+  failed_when: false
+
+- name: 等待 Redpanda rpk 可用（host）
+  ansible.builtin.command:
+    argv:
+      - "{{ _redpanda_rpk }}"
+      - cluster
+      - health
+  register: _rp_health_topics
+  retries: 30
+  delay: 2
+  until: >-
+    (_rp_health_topics.rc | default(1)) == 0
+    or (
+      'Nodes down:                       []' in (_rp_health_topics.stdout | default(''))
+      and 'Leaderless partitions (0)' in (_rp_health_topics.stdout | default(''))
+      and 'Controller ID:' in (_rp_health_topics.stdout | default(''))
+    )
+  changed_when: false
+  failed_when: >-
+    not (
+      (_rp_health_topics.rc | default(1)) == 0
+      or (
+        'Nodes down:                       []' in (_rp_health_topics.stdout | default(''))
+        and 'Leaderless partitions (0)' in (_rp_health_topics.stdout | default(''))
+        and 'Controller ID:' in (_rp_health_topics.stdout | default(''))
+      )
+    )
+
+- name: 确保 amp.* topics（+ DLQ / alive-delta；host rpk）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    RPK='{{ _redpanda_rpk }}'
+    # host 仅暴露广告 Kafka 端口（默认 19092），非容器内 9092。
+    rpk() { "$RPK" -X "brokers=127.0.0.1:{{ redpanda_kafka_port }}" "$@"; }
+
+    create_topic() {
+      local name="$1" parts="$2"
+      shift 2
+      local args=(-p "$parts" -r 1)
+      local kv
+      for kv in "$@"; do
+        args+=(-c "$kv")
+      done
+      if rpk topic list 2>/dev/null | awk 'NR>1 {print $1}' | grep -qx "$name"; then
+        return 0
+      fi
+      rpk topic create "$name" "${args[@]}"
+    }
+
+    ensure_partitions() {
+      local name="$1" want="$2"
+      local cur
+      cur="$(rpk topic describe "$name" -p 2>/dev/null | awk '/^[[:space:]]*[0-9]+[[:space:]]/ {c++} END {print c+0}')"
+      if [[ -z "$cur" || "$cur" -lt 1 ]]; then
+        cur=0
+      fi
+      if [[ "$cur" -lt "$want" ]]; then
+        local add=$((want - cur))
+        rpk topic add-partitions "$name" -n "$add"
+      fi
+    }
+
+    set_log_append_time() {
+      rpk topic alter-config "$1" --set message.timestamp.type=LogAppendTime >/dev/null
+    }
+
+    create_topic amp.audit 3 "retention.ms=259200000"
+    create_topic amp.audit.dlq 1 "retention.ms=604800000"
+
+    create_topic amp.heartbeat 1 "retention.ms=604800000" "message.timestamp.type=LogAppendTime"
+    create_topic amp.heartbeat.alive-delta 1 "retention.ms=604800000"
+    create_topic amp.heartbeat.dlq 1 "retention.ms=604800000"
+
+    create_topic amp.metrics 1 "retention.ms=604800000" "message.timestamp.type=LogAppendTime"
+    create_topic amp.metrics.dlq 1 "retention.ms=604800000"
+
+    create_topic amp.access 4 "retention.ms=604800000" "message.timestamp.type=LogAppendTime"
+    create_topic amp.access.dlq 1 "retention.ms=604800000"
+
+    create_topic amp.message 4 "retention.ms=604800000" "message.timestamp.type=LogAppendTime"
+    create_topic amp.message.dlq 1 "retention.ms=604800000"
+
+    create_topic amp.system 4 "retention.ms=604800000" "message.timestamp.type=LogAppendTime"
+    create_topic amp.system.dlq 1 "retention.ms=604800000"
+
+    set_log_append_time amp.heartbeat
+    set_log_append_time amp.metrics
+    set_log_append_time amp.access
+    set_log_append_time amp.message
+    set_log_append_time amp.system
+
+    ensure_partitions amp.audit 3
+    ensure_partitions amp.access 4
+    ensure_partitions amp.message 4
+    ensure_partitions amp.system 4
+    ensure_partitions amp.heartbeat 1
+    ensure_partitions amp.metrics 1
+    ensure_partitions amp.heartbeat.alive-delta 1
+
+    echo "AMP_TOPICS_OK"
+    rpk topic list
+  args:
+    executable: /bin/bash
+  register: _rp_amp_topics
+  changed_when: "'Created' in (_rp_amp_topics.stdout | default('')) or 'added' in (_rp_amp_topics.stdout | default(''))"
+
+- name: 断言六个 amp.* 主 topic 存在（host）
+  ansible.builtin.assert:
+    that:
+      - "'amp.audit' in _rp_amp_topics.stdout"
+      - "'amp.access' in _rp_amp_topics.stdout"
+      - "'amp.message' in _rp_amp_topics.stdout"
+      - "'amp.metrics' in _rp_amp_topics.stdout"
+      - "'amp.heartbeat' in _rp_amp_topics.stdout"
+      - "'amp.system' in _rp_amp_topics.stdout"
+      - "'amp.audit.dlq' in _rp_amp_topics.stdout"
+      - "'amp.access.dlq' in _rp_amp_topics.stdout"
+      - "'amp.message.dlq' in _rp_amp_topics.stdout"
+      - "'amp.metrics.dlq' in _rp_amp_topics.stdout"
+      - "'amp.heartbeat.dlq' in _rp_amp_topics.stdout"
+      - "'amp.system.dlq' in _rp_amp_topics.stdout"
+      - "'amp.heartbeat.alive-delta' in _rp_amp_topics.stdout"
+    fail_msg: >-
+      Redpanda AMP topic ensure incomplete on {{ inventory_hostname }} (host rpk).
+      rpk={{ _redpanda_rpk }}
+      out={{ _rp_amp_topics.stdout | default('') }}
+      err={{ _rp_amp_topics.stderr | default('') }}

@@ -1,0 +1,36 @@
+---
+# upgrade_one_component_image.yml — 单组件升级主体（image-mode）
+#
+# 由 upgrade_one_component.yml 按 acps_deploy_mode=image 分派。
+# 语义须与 H4 前字节级行为一致（不得回归）。
+#
+# 期望（play vars，由分派层绑定）：
+#   acps_upgrade_component_key / acps_upgrade_role / acps_component_key
+#   _acps_upgrade_components
+#
+# 流程：save_previous →（migrate 钩子占位）→ role（stage/render/migrate/recreate/health）
+# → commit_state。role 路径使用 acps_skip_state_commit，使 commit 在 health 后执行。
+
+- name: save_previous_state before cutover
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: save_previous_state.yml
+
+- name: 迁移钩子占位
+  ansible.builtin.debug:
+    msg: >-
+      migrate_if_needed for {{ acps_component_key }}: component role runs alembic when
+      applicable; extra release-note migrate hooks reserved here (no-op placeholder).
+
+- name: 应用组件 role（stage/render/recreate/health；跳过 role 中途 commit）
+  ansible.builtin.include_role:
+    name: "{{ acps_upgrade_role }}"
+
+- name: role 后重新绑定组件 key（stage_artifact 可能 set_fact 相同 key）
+  ansible.builtin.set_fact:
+    acps_component_key: "{{ acps_upgrade_component_key }}"
+
+- name: commit_state after health
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: commit_state.yml

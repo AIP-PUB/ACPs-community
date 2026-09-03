@@ -1,0 +1,70 @@
+# config/testing.toml — 测试环境覆盖配置
+
+[server]
+reload = false
+
+[database]
+pool_size = 2
+max_overflow = 5
+
+[logging]
+level = "WARNING"
+format = "console"
+
+[redis]
+url = "redis://localhost:6379/3"   # 逻辑库 3 = monitor-server 测试
+
+[heartbeat]
+silence_threshold_seconds = 2
+evict_after_seconds = 6
+refresh_emit_interval_seconds = 1
+silent_scan_interval_seconds = 1
+evict_scan_interval_seconds = 3
+scan_batch_size = 50
+snapshot_share_window_seconds = 0   # 禁用快照缓存，确保 E2E 测试每次取到最新数据
+
+[metrics]
+raw_retention_days = 1
+downsample_retention_days = 7
+lagging_threshold_ms = 5000
+snapshot_ttl_seconds = 30
+snapshot_fallback_lookback = "PT1M"
+capacity_default_lookback = "PT1M"
+
+[message]
+raw_retention_days = 1
+lifecycle_retention_days = 7
+destination_state_retention_days = 7
+destination_stats_retention_days = 7
+raw_archive_retention_days = 7
+lagging_threshold_ms = 120000
+lagging_response_mode = "503"
+insert_batch_interval_seconds = 1
+lifecycle_compact_interval_seconds = 5
+destination_stats_compact_interval_seconds = 5
+state_collect_interval_seconds = 5
+raw_log_enabled = true
+query_timeout_seconds = 30
+state_collector_enabled = true
+reliability_enabled = true
+destination_enabled = true
+
+[access]
+raw_retention_days = 1
+archive_retention_days = 7
+topology_retention_days = 7
+lagging_threshold_ms = 5000
+lagging_response_mode = "partial"
+insert_batch_interval_seconds = 1
+dedup_window_hours = 1
+trace_max_duration_hours = 1
+query_timeout_seconds = 30
+
+[system]
+# 测试环境：短周期 + 零保守裕量 + 严格降级模式
+bulk_index_batch_interval_seconds = 1    # 快速触发批次（便于测试）
+index_number_of_replicas = 0             # 单节点 OpenSearch 避免 yellow
+lagging_threshold_ms = 5000              # 低阈值便于测试降级
+lagging_response_mode = "503"            # 严格降级，便于断言 503
+freshness_reorder_margin_ms = 0          # 零裕量，便于断言水位精确值
+query_timeout_seconds = 30

@@ -8,6 +8,7 @@ import click
 
 from acps_cli.ca.unified import admin_ca_group, cert_group
 from acps_cli.discovery.unified import admin_discovery_group, discover_group
+from acps_cli.monitor.unified import monitor_group
 from acps_cli.mq.unified import admin_mq_group
 from acps_cli.registry.unified import (
     admin_auth_group,
@@ -17,6 +18,7 @@ from acps_cli.registry.unified import (
     cert_eab_group,
     entity_group,
 )
+from acps_cli.shared.flexible_group import FlexibleGroup
 from acps_cli.shared.runtime import initialize_root_runtime
 
 
@@ -33,7 +35,7 @@ def _build_placeholder_command(name: str, help_text: str, command_path: str) -> 
 
 
 def _build_group(name: str, help_text: str, children: Iterable[click.Command]) -> click.Group:
-    group = click.Group(name=name, help=help_text)
+    group = FlexibleGroup(name=name, help=help_text)
     for child in children:
         group.add_command(child)
     return group
@@ -280,7 +282,7 @@ def _build_admin_group() -> click.Group:
     )
 
 
-@click.group()
+@click.group(cls=FlexibleGroup)
 @click.option("--config", "config_path", default=None, help="Path to acps-cli.toml config file.")
 @click.option("--verbose", is_flag=True, help="Enable verbose logging.")
 @click.pass_context
@@ -294,6 +296,7 @@ main.add_command(agent_group)
 main.add_command(entity_group)
 main.add_command(cert_group)
 main.add_command(discover_group)
+main.add_command(monitor_group)
 main.add_command(_build_admin_group())
 
 

@@ -26,6 +26,7 @@ from app.acme.service import (
 )
 
 _stub = cast("Any", SimpleNamespace)
+_rsa_jwk = {"kty": "RSA", "n": "AQAB", "e": "AQAB"}
 
 
 @pytest.mark.asyncio
@@ -95,7 +96,7 @@ async def test_get_account_from_request_paths(monkeypatch: pytest.MonkeyPatch) -
     account = await get_account_from_request({"kid": "https://ca/acct/1"}, service)
     assert account is active_account
 
-    account2 = await get_account_from_request({"jwk": {"kty": "RSA"}}, service)
+    account2 = await get_account_from_request({"jwk": _rsa_jwk}, service)
     assert account2 is active_account
 
 
@@ -118,12 +119,12 @@ async def test_get_account_by_jwk_behaviors(monkeypatch: pytest.MonkeyPatch) -> 
     service = _stub(get_account_by_key_id=AsyncMock(return_value=active_account))
     monkeypatch.setattr(JWKService, "compute_jwk_thumbprint", staticmethod(lambda _jwk: "kid-1"))
 
-    assert await get_account_by_jwk({"jwk": {"kty": "RSA"}}, service) is active_account
+    assert await get_account_by_jwk({"jwk": _rsa_jwk}, service) is active_account
     assert await get_account_by_jwk({"jwk": "not-dict"}, service) is None
 
     service.get_account_by_key_id = AsyncMock(return_value=deactivated_account)
     with pytest.raises(AcmeException):
-        await get_account_by_jwk({"jwk": {"kty": "RSA"}}, service)
+        await get_account_by_jwk({"jwk": _rsa_jwk}, service)
 
 
 def test_ensure_account_is_active_raises_for_deactivated() -> None:

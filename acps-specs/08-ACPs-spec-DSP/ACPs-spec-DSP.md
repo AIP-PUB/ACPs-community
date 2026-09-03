@@ -1,12 +1,12 @@
 [首页](../README.md)
 
-DSP：数据同步协议（ACPs-spec-DSP-v02.01）
+DSP：数据同步协议（ACPs-spec-DSP-v02.02）
 
 # 1. 文档定义
 
-本文档为 ACPs 智能体协作协议体系中的数据同步协议（Data Synchronization Protocol, DSP）标准定义，版本号 v02.01。
+本文档为 ACPs 智能体协作协议体系中的数据同步协议（Data Synchronization Protocol, DSP）标准定义，版本号 v02.02。
 
-文档全称为 ACPs-spec-DSP-v02.01。
+文档全称为 ACPs-spec-DSP-v02.02。
 
 文档编写者：禹可（北京邮电大学），胡晓峰（北京邮电大学），郭小练（北京邮电大学），宋昊哲（北京邮电大学），马镝（北京邮电大学），李珂（北京邮电大学），刘军（北京邮电大学），陈科良（北京邮电大学）。
 

@@ -1,0 +1,377 @@
+---
+# stage_artifact_host_vendor_bundle.yml
+# host 模式 vendor_bundle 制品落地（本设计 §5.5 / H4 §2.2 / §4.2）：
+#   release-manifest.toml [vendor.<component>] 解析 → 控制节点 artifacts/vendor/
+#   校验 checksum（manifest.sha256 非空时）→ 分发 → 解包 → 规范化到约定 runtime 根
+#   → 写入 marker，供 role 渲染配置/systemd。
+#
+# 期望（调用方 vars）：
+#   acps_component_key  （必填）release-manifest [vendor.*] key，如 keycloak / redpanda
+#   acps_host_release_dest （可选）升级时显式版本目录
+#                          {vendor_home}/releases/<ver>；未设时：若已有
+#                          current→releases/ 则经 current 写入，否则仍为扁平
+#                          vendor_bundle_install_roots 根（首装兼容）
+#
+# 出参 facts：
+#   acps_vendor_install_dest — 实际写入/解包目录（可能为 releases/<ver>）
+#   acps_vendor_stage_dest   — 同上（与 install_dest 对齐，供显式引用）
+#   acps_vendor_unit_root    — systemd WorkingDirectory/ExecStart 根：经 current
+#                              （升级后）或扁平根（首装）
+#
+# 幂等：落地根下 .installed_vendor_bundle marker 记录归档文件名；归档未变且
+# marker 文件存在且 bin 标记可执行时跳过（除非 acps_force_vendor_reinstall=true）。
+#
+# 各 vendor 的 bin 标记（解包后定位 home 根）见 _vendor_bundle_bin_markers；
+# 未登记组件退化为「单层顶目录」启发式（仍须唯一命中）。
+#
+# 禁止：清空 acps_data_root / 厂商 data 目录（解包仅替换 install dest 树）。
+
+- name: 拒绝在 skip 标志下执行 host vendor_bundle stage（防御）
+  when: acps_skip_stage_artifact | default(false) | bool
+  ansible.builtin.fail:
+    msg: >-
+      stage_artifact_host_vendor_bundle.yml refused: acps_skip_stage_artifact=true
+      (component={{ acps_component_key | default('?') }}). stage_artifact.yml should
+      have short-circuited; refuse to unpack into current/previous tree.
+
+- name: 要求 acps_component_key 已定义（vendor_bundle）
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - (acps_component_key | string | length) > 0
+    fail_msg: "stage_artifact_host_vendor_bundle.yml requires acps_component_key"
+
+- name: 补齐 acps_os_id（防御：glibc228 选型依赖）
+  ansible.builtin.include_tasks: resolve_acps_os_facts.yml
+
+- name: 从 release-manifest.toml 解析 vendor 制品
+  ansible.builtin.command:
+    argv:
+      - "{{ acps_tools_python | default('python3') }}"
+      - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+      - "--manifest"
+      - "{{ acps_manifest_path }}"
+      - "--table"
+      - vendor
+      - "--component"
+      - "{{ acps_component_key }}"
+  register: _vendor_manifest_lookup
+  changed_when: false
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_become: false
+
+- name: 记录 vendor manifest facts
+  ansible.builtin.set_fact:
+    acps_component_key: "{{ acps_component_key }}"
+    acps_vendor_meta: "{{ _vendor_manifest_lookup.stdout | from_json }}"
+
+- name: 按 acps_os_id 选择 vendor 归档（rocky8/ubuntu20 → file_glibc228，否则 file）
+  vars:
+    _vendor_meta: "{{ _vendor_manifest_lookup.stdout | from_json }}"
+    _glibc228_file: "{{ _vendor_meta.file_glibc228 | default('') | string | trim }}"
+    _use_glibc228: >-
+      {{
+        (acps_os_id | default('')) in ['rocky8', 'ubuntu20']
+        and (_glibc228_file | length) > 0
+      }}
+  ansible.builtin.set_fact:
+    acps_vendor_effective_file: >-
+      {{ _glibc228_file if (_use_glibc228 | bool) else (_vendor_meta.file | string) }}
+    # commit_state.yml 复用 acps_image_meta.file 作为 artifact_id（须为实际落地归档）
+    acps_image_meta: >-
+      {{
+        _vendor_meta | combine({
+          'file': (
+            _glibc228_file if (_use_glibc228 | bool) else (_vendor_meta.file | string)
+          )
+        })
+      }}
+
+- name: 解析 vendor 落地根（扁平 / releases 共用父）
+  ansible.builtin.set_fact:
+    _acps_vendor_home: >-
+      {{
+        (vendor_bundle_install_roots | default({})).get(
+          acps_component_key,
+          acps_runtime_root ~ '/' ~ acps_component_key
+        )
+      }}
+
+- name: 探测 vendor current symlink（决定首装扁平 vs 经 current）
+  ansible.builtin.stat:
+    path: "{{ _acps_vendor_home }}/current"
+  register: _acps_vendor_current_stat
+
+- name: 设置 vendor 落地路径 facts
+  ansible.builtin.set_fact:
+    _acps_vendor_current_is_link: >-
+      {{
+        (_acps_vendor_current_stat.stat.exists | default(false) | bool)
+        and (_acps_vendor_current_stat.stat.islnk | default(false) | bool)
+      }}
+    # 升级传入 acps_host_release_dest → 写入 releases/<ver>；
+    # 否则：已有 current→releases 经 current；扁平首装用 vendor home。
+    _acps_vendor_install_dest: >-
+      {{
+        (acps_host_release_dest | string)
+        if ((acps_host_release_dest | default('') | string | length) > 0)
+        else (
+          (_acps_vendor_home ~ '/current')
+          if (
+            (_acps_vendor_current_stat.stat.exists | default(false) | bool)
+            and (_acps_vendor_current_stat.stat.islnk | default(false) | bool)
+          )
+          else _acps_vendor_home
+        )
+      }}
+    _acps_vendor_archive_control: "{{ acps_artifacts_vendor | default(acps_release_root ~ '/artifacts/vendor') }}/{{ acps_vendor_effective_file }}"
+    _acps_vendor_staging_dir: "{{ acps_runtime_root }}/staging/vendor"
+    _acps_vendor_staged_archive: "{{ acps_runtime_root }}/staging/vendor/{{ acps_vendor_effective_file }}"
+    _acps_vendor_unpack_dir: "{{ acps_runtime_root }}/staging/vendor/unpack-{{ acps_component_key }}"
+    _acps_vendor_bin_marker: "{{ (_vendor_bundle_bin_markers | default({})).get(acps_component_key, '') }}"
+
+- name: 设置 vendor marker 路径
+  ansible.builtin.set_fact:
+    _acps_vendor_marker: "{{ _acps_vendor_install_dest }}/.installed_vendor_bundle"
+
+- name: 检查控制节点 vendor 归档
+  ansible.builtin.stat:
+    path: "{{ _acps_vendor_archive_control }}"
+  register: _host_vendor_archive_stat
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_become: false
+
+- name: 要求控制节点 vendor 归档存在
+  ansible.builtin.assert:
+    that:
+      - _host_vendor_archive_stat.stat.exists
+      - _host_vendor_archive_stat.stat.size | int > 0
+    fail_msg: >-
+      Control-node vendor archive missing/empty: {{ _acps_vendor_archive_control }}.
+      release-manifest.toml [vendor.{{ acps_component_key }}] declares effective file=
+      {{ acps_vendor_effective_file }} (acps_os_id={{ acps_os_id | default('?') }}), but
+      {{ acps_artifacts_vendor | default(acps_release_root ~ '/artifacts/vendor') }}
+      does not contain it. Rebuild with build-install-package.sh --mode host
+      (ensure_vendor_bundle fills .vendor-bundle from baseline-matrix urls),
+      or place the file under artifacts/vendor/ for development.
+
+- name: 构建期校验 vendor sha256（manifest 非空时；host 仅 amd64）
+  when: (acps_vendor_meta.sha256 | default('') | string | trim | length) > 0
+  ansible.builtin.command:
+    argv:
+      - "{{ acps_tools_python | default('python3') }}"
+      - -c
+      - |
+        import hashlib, pathlib, sys
+        path = pathlib.Path(sys.argv[1])
+        expected = sys.argv[2].strip().lower()
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        if digest != expected:
+            print(
+                f"[ERROR] [vendor.{sys.argv[3]}] sha256 mismatch: expected {expected}, got {digest} ({path.name})",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+      - "{{ _acps_vendor_archive_control }}"
+      - "{{ acps_vendor_meta.sha256 }}"
+      - "{{ acps_component_key }}"
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  vars:
+    ansible_become: false
+
+- name: 读取目标已安装 vendor marker（可能不存在）
+  ansible.builtin.slurp:
+    src: "{{ _acps_vendor_marker }}"
+  register: _host_vendor_marker_slurp
+  failed_when: false
+  changed_when: false
+
+- name: 检查目标 vendor bin 标记（可能尚未安装）
+  when: (_acps_vendor_bin_marker | length) > 0
+  ansible.builtin.stat:
+    path: "{{ _acps_vendor_install_dest }}/{{ _acps_vendor_bin_marker }}"
+  register: _host_vendor_bin_stat
+
+- name: 判定是否需要（重）安装 vendor_bundle
+  ansible.builtin.set_fact:
+    _acps_vendor_need_install: >-
+      {{
+        (acps_force_vendor_reinstall | default(false) | bool)
+        or ((_host_vendor_marker_slurp.content | default('') | length) == 0)
+        or ((_host_vendor_marker_slurp.content | b64decode | trim) != (acps_vendor_effective_file | string))
+        or (
+          (_acps_vendor_bin_marker | length) > 0
+          and (not (_host_vendor_bin_stat.stat.exists | default(false)))
+        )
+      }}
+
+- name: （重）安装 vendor_bundle（分发 → 解包 → 规范化 → 属主）
+  when: _acps_vendor_need_install | bool
+  block:
+    - name: 确保远程 vendor staging 目录
+      ansible.builtin.file:
+        path: "{{ _acps_vendor_staging_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: 确保 vendor 版本目录父路径（releases/）
+      when: "'/releases/' in (_acps_vendor_install_dest | string)"
+      ansible.builtin.file:
+        path: "{{ _acps_vendor_install_dest | dirname }}"
+        state: directory
+        mode: "0755"
+        owner: "{{ acps_systemd_user }}"
+        group: "{{ acps_systemd_group }}"
+
+    - name: 向目标主机分发 vendor 归档
+      ansible.builtin.copy:
+        src: "{{ _acps_vendor_archive_control }}"
+        dest: "{{ _acps_vendor_staged_archive }}"
+        mode: "0644"
+
+    - name: 清理旧解包目录
+      ansible.builtin.file:
+        path: "{{ _acps_vendor_unpack_dir }}"
+        state: absent
+
+    - name: 确保解包父目录
+      ansible.builtin.file:
+        path: "{{ _acps_vendor_unpack_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: 解包 vendor 归档到 staging
+      ansible.builtin.unarchive:
+        src: "{{ _acps_vendor_staged_archive }}"
+        dest: "{{ _acps_vendor_unpack_dir }}"
+        remote_src: true
+        extra_opts:
+          - "--no-same-owner"
+
+    # 仅替换 install dest（版本目录或扁平根）；绝不碰 acps_data_root。
+    # 若 dest 为 current 符号链接，解析到真实 releases/<ver> 再替换，避免把
+    # current 变成实目录、破坏 releases 布局。
+    - name: 规范化 vendor 解包树到约定 runtime 根
+      ansible.builtin.shell: |
+        set -euo pipefail
+        unpack_root="$UNPACK_ROOT"
+        dest="$INSTALL_DEST"
+        marker="$BIN_MARKER"
+        if [[ -L "${dest}" ]]; then
+          dest="$(readlink -f "${dest}")"
+        fi
+        tmp="${dest}.staging.$$"
+        rm -rf "${tmp}"
+        src_home=""
+        if [[ -n "${marker}" ]]; then
+          found="$(find "${unpack_root}" -type f -path "*/${marker}" 2>/dev/null | head -n1 || true)"
+          if [[ -z "${found}" ]]; then
+            echo "vendor bin marker ${marker} not found under ${unpack_root}" >&2
+            exit 1
+          fi
+          # Markers under a subdir (e.g. bin/kc.sh): home is parent of that subdir.
+          # Flat markers at home root (e.g. minio): home is dirname of the binary.
+          case "${marker}" in
+            */*)
+              src_home="$(cd "$(dirname "${found}")/.." && pwd)"
+              ;;
+            *)
+              src_home="$(cd "$(dirname "${found}")" && pwd)"
+              ;;
+          esac
+        else
+          tops_count="$(find "${unpack_root}" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+          if [[ "${tops_count}" -eq 1 ]]; then
+            src_home="$(find "${unpack_root}" -mindepth 1 -maxdepth 1 -type d | head -n1)"
+          else
+            echo "cannot infer vendor home under ${unpack_root} (top-level dirs=${tops_count}, no bin marker)" >&2
+            exit 1
+          fi
+        fi
+        mkdir -p "$(dirname "${dest}")"
+        cp -a "${src_home}/." "${tmp}/"
+        rm -rf "${dest}"
+        mv "${tmp}" "${dest}"
+      args:
+        executable: /bin/bash
+      environment:
+        UNPACK_ROOT: "{{ _acps_vendor_unpack_dir }}"
+        INSTALL_DEST: "{{ _acps_vendor_install_dest }}"
+        BIN_MARKER: "{{ _acps_vendor_bin_marker }}"
+
+    - name: 将 vendor 落地目录属主设为 acps systemd 用户
+      become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+      ansible.builtin.file:
+        path: "{{ _acps_vendor_install_dest }}"
+        state: directory
+        owner: "{{ acps_systemd_user }}"
+        group: "{{ acps_systemd_group }}"
+        recurse: true
+
+    - name: 移除已装 vendor 暂存归档（成功后清理）
+      ansible.builtin.file:
+        path: "{{ _acps_vendor_staged_archive }}"
+        state: absent
+
+    - name: 清理 vendor 解包暂存目录
+      ansible.builtin.file:
+        path: "{{ _acps_vendor_unpack_dir }}"
+        state: absent
+
+    - name: 写入已安装 vendor 归档 marker
+      ansible.builtin.copy:
+        content: "{{ acps_vendor_effective_file }}\n"
+        dest: "{{ _acps_vendor_marker }}"
+        mode: "0644"
+        owner: "{{ acps_systemd_user }}"
+        group: "{{ acps_systemd_group }}"
+
+    - name: 记录 vendor_bundle 已重装（供 deploy_host_service 判定是否需重启）
+      ansible.builtin.set_fact:
+        acps_host_vendor_install_changed: true
+
+- name: 解析 unit/runtime 指向（经 current，禁止长期写死 releases/<ver>）
+  ansible.builtin.set_fact:
+    _acps_vendor_unit_root: >-
+      {{
+        (_acps_vendor_home ~ '/current')
+        if (
+          (_acps_vendor_current_is_link | bool)
+          or (acps_host_unit_via_current | default(false) | bool)
+        )
+        else _acps_vendor_install_dest
+      }}
+
+- name: 记录 vendor 落地路径 facts（供 role 渲染配置/systemd）
+  ansible.builtin.set_fact:
+    # 树写入 / 解包目标（升级可为 releases/<ver>）
+    acps_vendor_install_dest: "{{ _acps_vendor_install_dest }}"
+    acps_vendor_stage_dest: "{{ _acps_vendor_install_dest }}"
+    # systemd / 运行时路径经 current（升级后）
+    acps_vendor_unit_root: "{{ _acps_vendor_unit_root }}"
+    acps_host_layout: >-
+      {{
+        'releases'
+        if (
+          (_acps_vendor_current_is_link | bool)
+          or (acps_host_unit_via_current | default(false) | bool)
+          or ((acps_host_release_dest | default('') | string | length) > 0)
+        )
+        else 'flat'
+      }}
+    acps_host_release_path: >-
+      {{
+        (acps_host_release_dest | default(_acps_vendor_install_dest, true) | string)
+        if (
+          (_acps_vendor_current_is_link | bool)
+          or (acps_host_unit_via_current | default(false) | bool)
+          or ((acps_host_release_dest | default('') | string | length) > 0)
+        )
+        else ''
+      }}

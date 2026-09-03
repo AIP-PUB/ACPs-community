@@ -1,0 +1,68 @@
+# image-mode 镜像打包基础镜像 digest 锁定表
+# （； ）
+#
+# 两类索引，只回答"某个 runtime/infra 镜像 id 现在对应哪个 digest"，本身不决定
+# 这次构建要不要产出某个镜像——"要构建哪些目标"由 image-targets.toml 决定
+# （见 image-packaging/image-targets.example.toml）。
+#
+# [python_runtime] 按 "docker_platform,python_tag" 索引，应用镜像 Dockerfile
+# 的 PYTHON_RUNTIME_IMAGE 构建参数从这里解析。
+# [infra_base] 按 "infra_id,docker_platform" 索引，基础设施镜像 Dockerfile
+# 的 FROM 基础镜像从这里解析。
+#
+# 记录约定（与 release/assembly/images.lock 一致）：
+# - 只记录可跨机器 `docker pull`/`docker buildx imagetools inspect` 复现的
+# registry digest，不能提交开发机本地 daemon 的 image id。
+# - 对于官方多架构镜像（单个 repo/tag 下用同一个 manifest-list/index digest
+# 覆盖多个平台），沿用 assembly/images.lock 里 runtime_smoke 表的既有惯例：
+# 同一个 digest 出现在多个 platform key 下，实际拉取哪个平台的内容由
+# `docker buildx build --platform` / `docker run --platform` 决定，不是
+# 由 digest 本身区分。
+# - 如果某个 infra 未来只有单架构镜像，或需要为不同平台使用不同 tag/digest，
+# 直接在对应 platform key 填入不同的值即可，索引结构本身已经支持。
+#
+# 更新方式：
+# docker buildx imagetools inspect <image>:<tag> # 读取 Digest: 字段
+# docker buildx imagetools inspect <image>:<tag> --raw | jq.
+
+[python_runtime]
+# 与 release/assembly/images.lock 的 [runtime_smoke] 表使用同一个 digest：
+# 应用最终发布包在装配阶段已经用这个镜像做过 wheelhouse 离线安装 + import 校验，
+# 镜像打包阶段复用同一个 runtime 基础镜像，行为上与已验证过的 smoke 环境一致。
+"linux/amd64,cp314" = "python:3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1"
+"linux/arm64,cp314" = "python:3.14-slim@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1"
+
+[infra_base]
+# 2026-07-05 通过 `docker buildx imagetools inspect` 读取（详见各行末尾镜像标签）。
+"redis,linux/amd64" = "redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99"
+"redis,linux/arm64" = "redis:7-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99"
+
+"postgres-pgvector,linux/amd64" = "postgres:17-bookworm@sha256:17b6c778de50f4bb9a878c36e736110fbcd9b7020377d6fdfdf20f7c0347e40a"
+"postgres-pgvector,linux/arm64" = "postgres:17-bookworm@sha256:17b6c778de50f4bb9a878c36e736110fbcd9b7020377d6fdfdf20f7c0347e40a"
+
+"rabbitmq,linux/amd64" = "rabbitmq:4.2-management-alpine@sha256:79a3fe4b142973ab4bdd8fe02474eed53ec75d10eb7b85f668ee0d26ee630609"
+"rabbitmq,linux/arm64" = "rabbitmq:4.2-management-alpine@sha256:79a3fe4b142973ab4bdd8fe02474eed53ec75d10eb7b85f668ee0d26ee630609"
+
+"gateway-nginx,linux/amd64" = "nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10"
+"gateway-nginx,linux/arm64" = "nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10"
+
+"keycloak,linux/amd64" = "quay.io/keycloak/keycloak:26.6.3@sha256:9b0330756022422149aa6502eb2def8cd47c6e1b000c7c65cdb13e7c0133e992"
+"keycloak,linux/arm64" = "quay.io/keycloak/keycloak:26.6.3@sha256:9b0330756022422149aa6502eb2def8cd47c6e1b000c7c65cdb13e7c0133e992"
+
+"redpanda,linux/amd64" = "redpandadata/redpanda:v26.1.9@sha256:8cb52078690728e2b3d1507fc84eda4c07d4d59bd8fa241e9b1cc7eb7de096c9"
+"redpanda,linux/arm64" = "redpandadata/redpanda:v26.1.9@sha256:8cb52078690728e2b3d1507fc84eda4c07d4d59bd8fa241e9b1cc7eb7de096c9"
+
+"victoria-metrics,linux/amd64" = "victoriametrics/victoria-metrics:v1.111.0@sha256:1676d73b39297a938eb60f0894b44b264152a6a38074fa5de99d9bdc425deb65"
+"victoria-metrics,linux/arm64" = "victoriametrics/victoria-metrics:v1.111.0@sha256:1676d73b39297a938eb60f0894b44b264152a6a38074fa5de99d9bdc425deb65"
+
+"clickhouse,linux/amd64" = "clickhouse/clickhouse-server:25.5-alpine@sha256:b80baf989ba9364dd80bc196e254d4b4e2b8bb371a44aa544b2530698f8ac6f1"
+"clickhouse,linux/arm64" = "clickhouse/clickhouse-server:25.5-alpine@sha256:b80baf989ba9364dd80bc196e254d4b4e2b8bb371a44aa544b2530698f8ac6f1"
+
+"minio,linux/amd64" = "minio/minio:RELEASE.2025-04-22T22-12-26Z@sha256:a1ea29fa28355559ef137d71fc570e508a214ec84ff8083e39bc5428980b015e"
+"minio,linux/arm64" = "minio/minio:RELEASE.2025-04-22T22-12-26Z@sha256:a1ea29fa28355559ef137d71fc570e508a214ec84ff8083e39bc5428980b015e"
+
+"opensearch,linux/amd64" = "opensearchproject/opensearch:2.19.2@sha256:69588c664014fa3d3260ed5dd337f8538fec94790dad00bfbe92301eaaaac240"
+"opensearch,linux/arm64" = "opensearchproject/opensearch:2.19.2@sha256:69588c664014fa3d3260ed5dd337f8538fec94790dad00bfbe92301eaaaac240"
+
+"fluent-bit,linux/amd64" = "fluent/fluent-bit:3.2@sha256:d6dec000c4929a439562525728c708f6e99800d7ddc82efd6aa4f45f3a20b562"
+"fluent-bit,linux/arm64" = "fluent/fluent-bit:3.2@sha256:d6dec000c4929a439562525728c708f6e99800d7ddc82efd6aa4f45f3a20b562"

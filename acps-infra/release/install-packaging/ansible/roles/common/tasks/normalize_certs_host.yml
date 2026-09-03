@@ -1,0 +1,46 @@
+---
+# normalize_certs_host.yml — host 模式证书属主/权限规范化（本设计 §4.4 / §6.3）。
+# 期望：acps_certs_dir、acps_cert_owner_uid、acps_cert_owner_gid
+# （由 resolve_cert_owner.yml host 分支设置：acps_systemd_user 或发行版
+# 服务用户）。
+# 硬约束：只用 chown/setfacl（此处用 ansible.builtin.file 达成等价 chown -R）；
+# 禁止 resolve_image_uid.py、禁止 docker run chown。
+
+- name: 断言 cert owner uid/gid resolved（host）
+  ansible.builtin.assert:
+    that:
+      - acps_cert_owner_uid is defined
+      - acps_cert_owner_gid is defined
+      - (acps_cert_owner_uid | string) | length > 0
+    fail_msg: "acps_cert_owner_uid/gid must be resolved (host: acps_systemd_user 或发行版服务用户) before normalize_certs"
+
+- name: 确保 certs directory exists（host）
+  ansible.builtin.file:
+    path: "{{ acps_certs_dir }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ acps_cert_owner_uid }}"
+    group: "{{ acps_cert_owner_gid }}"
+  become: true
+
+- name: Host 权限收紧（目录 0755 / 私钥 0600 / 证书 0644）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    CERTS="{{ acps_certs_dir }}"
+    find "$CERTS" -type d -exec chmod 0755 {} +
+    find "$CERTS" \( -name '*.key' -o -name '*-key.pem' \) -exec chmod 0600 {} +
+    find "$CERTS" \( -name '*.pem' -o -name '*.crt' -o -name '*.cer' \) ! -name '*.key' ! -name '*-key.pem' -exec chmod 0644 {} +
+  args:
+    executable: /bin/bash
+  become: true
+  register: _host_certs_chmod
+  changed_when: true
+
+- name: Host chown 属主到 acps_cert_owner_uid/gid（禁止 docker 回退）
+  ansible.builtin.file:
+    path: "{{ acps_certs_dir }}"
+    state: directory
+    recurse: true
+    owner: "{{ acps_cert_owner_uid }}"
+    group: "{{ acps_cert_owner_gid }}"
+  become: true

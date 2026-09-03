@@ -1,0 +1,63 @@
+# inventories/hosts.ubuntu22.yml
+# 单机 host 模式示例：Ubuntu 22.04 业务节点（本设计 §1.3）。
+# 全部组件落在 ubuntu22.acps.local；控制节点为本机 Ansible 控制机。
+# 准备 inventories/secrets.yml。SSH 用户与本机无密登录账号对齐。
+
+all:
+  vars:
+    acps_deploy_mode: host
+    ansible_user: huxiaofeng
+    # 多拓扑并行时设独立控制面路径（可覆盖 common/defaults；勿与其它解包目录共用）：
+    # acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control-host-ubuntu22"
+    # become 由 playbook / role 任务显式开启；勿在 inventory 全局设 ansible_become，
+    # 否则会污染控制节点 delegate_to: localhost（macOS 无密 sudo 常失败）。
+  children:
+    postgresql:
+      hosts:
+        ubuntu22.acps.local:
+          ansible_host: ubuntu22.acps.local
+    redis:
+      hosts:
+        ubuntu22.acps.local:
+    rabbitmq:
+      hosts:
+        ubuntu22.acps.local:
+    keycloak:
+      hosts:
+        ubuntu22.acps.local:
+    redpanda:
+      hosts:
+        ubuntu22.acps.local:
+    victoria_metrics:
+      hosts:
+        ubuntu22.acps.local:
+    clickhouse:
+      hosts:
+        ubuntu22.acps.local:
+    minio:
+      hosts:
+        ubuntu22.acps.local:
+    opensearch:
+      hosts:
+        ubuntu22.acps.local:
+    registry_server:
+      hosts:
+        ubuntu22.acps.local:
+    ca_server:
+      hosts:
+        ubuntu22.acps.local:
+    discovery_server:
+      hosts:
+        ubuntu22.acps.local:
+    mq_auth_server:
+      hosts:
+        ubuntu22.acps.local:
+    monitor_server:
+      hosts:
+        ubuntu22.acps.local:
+    demo_partner:
+      hosts:
+        ubuntu22.acps.local:
+    demo_leader:
+      hosts:
+        ubuntu22.acps.local:

@@ -1,11 +1,11 @@
 {
   "aic": "",
   "active": false,
-  "protocolVersion": "02.01",
+  "protocolVersion": "02.02",
   "lastModifiedTime": "2026-05-01T00:00:00+08:00",
   "name": "registry-server-9002-service",
   "description": "registry-server 的 ATR mTLS service，用于承载派生实体自动注册功能。",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "webAppUrl": "",
   "provider": {
     "organization": "ACPs工作组",

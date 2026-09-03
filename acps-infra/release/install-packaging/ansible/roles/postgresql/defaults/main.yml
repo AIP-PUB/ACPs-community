@@ -1,0 +1,4 @@
+---
+# host 模式：PostgreSQL 主版本钉版本（对齐 image 侧 image-inputs.lock 的
+# postgres:17-bookworm，本设计 §1「image ↔ host 版本对齐」原则）。
+postgresql_os_major_version: "17"

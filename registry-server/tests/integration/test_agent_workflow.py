@@ -116,7 +116,8 @@ async def test_agent_lifecycle_create_submit_approve_and_public_read(client, db_
     processed = process_response.json()
     assert processed["approval_status"] == "APPROVED"
     assert processed["aic"]
-    assert processed["process_comments"] == "looks good"
+    aic_parts = processed["aic"].split(".")
+    assert aic_parts[5] == "1"
     assert captured_webhook_types == [["acs"]]
 
     db_session.expire_all()

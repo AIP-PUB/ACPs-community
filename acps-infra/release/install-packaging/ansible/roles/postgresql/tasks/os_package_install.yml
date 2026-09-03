@@ -1,0 +1,259 @@
+---
+# os_package_install.yml — host 模式：ensure_repos + install_packages(含
+# pgvector) + （Rocky）显式 initdb（本设计 §5.5 / §6.4(2)）。
+# 幂等；不清数据目录。可能被 site.yml 早期阶段（暂无，PG 无证书前置依赖）与本
+# role 自身 host 主流程各调用一次；两次执行结果一致。
+
+- name: 加载 OS 系族默认（包名/服务名/数据目录/仓库）
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
+- name: 补齐 acps_os_id / acps_el_major（防御）
+  ansible.builtin.include_tasks: "{{ role_path }}/../common/tasks/resolve_acps_os_facts.yml"
+
+- name: RedHat -- 确保 PGDG 仓库已安装
+  when: ansible_os_family == 'RedHat'
+  become: true
+  block:
+    - name: 检查 PGDG 仓库 RPM 是否已注册
+      ansible.builtin.command:
+        argv: [rpm, -q, pgdg-redhat-repo]
+      register: _pg_pgdg_repo_check
+      changed_when: false
+      failed_when: false
+
+    - name: 检查 PGDG .repo 文件是否存在（RPM 在但 .repo 被删的半清理态）
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/pgdg-redhat-all.repo
+      register: _pg_pgdg_repo_file
+
+    - name: 半清理态时卸掉孤儿 PGDG 仓库 RPM（强制后续重装并重建 .repo）
+      when:
+        - _pg_pgdg_repo_check.rc == 0
+        - not (_pg_pgdg_repo_file.stat.exists | default(false))
+      ansible.builtin.command:
+        argv: [rpm, -e, pgdg-redhat-repo]
+      register: _pg_pgdg_repo_purge
+      changed_when: _pg_pgdg_repo_purge.rc == 0
+      failed_when: false
+
+    - name: 重新探测 PGDG 仓库 RPM（可能刚被卸掉）
+      ansible.builtin.command:
+        argv: [rpm, -q, pgdg-redhat-repo]
+      register: _pg_pgdg_repo_check
+      changed_when: false
+      failed_when: false
+
+    - name: 清理可能残留的本地 PGDG RPM 临时文件（避免 curl 写失败）
+      when: _pg_pgdg_repo_check.rc != 0
+      ansible.builtin.file:
+        path: /tmp/pgdg-redhat-repo-latest.noarch.rpm
+        state: absent
+
+    - name: 下载 PGDG 仓库 RPM 到本地临时文件（curl，见下方说明）
+      # 不用 get_url/dnf(name=URL)：两者都走 ansible module_utils.urls 的
+      # SSLContext.load_verify_locations(cadata=...) 路径，在 RHEL9 系统
+      # Python 3.9 + OpenSSL 3.5.7+（已知升级组合）上触发上游 bug，报
+      # "[ASN1: NOT_ENOUGH_DATA]"（curl/urllib 默认路径不受影响，见
+      # https://github.com/python/cpython/issues/151504）。改用裸 curl 下载，
+      # 不依赖目标机 Python/OpenSSL 具体补丁版本。
+      when: _pg_pgdg_repo_check.rc != 0
+      ansible.builtin.command:
+        argv: [curl, -fsSL, -o, /tmp/pgdg-redhat-repo-latest.noarch.rpm, "{{ postgresql_os_pgdg_repo_rpm }}"]
+      changed_when: true
+
+    - name: 安装 PGDG 仓库 RPM（本地文件）
+      when: _pg_pgdg_repo_check.rc != 0
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/common/tasks/ensure_os_packages.yml"
+      vars:
+        acps_pkg_names: /tmp/pgdg-redhat-repo-latest.noarch.rpm
+        acps_pkg_state: present
+        acps_pkg_disable_gpg_check: true
+
+    - name: 清理临时 RPM 文件
+      when: _pg_pgdg_repo_check.rc != 0
+      ansible.builtin.file:
+        path: /tmp/pgdg-redhat-repo-latest.noarch.rpm
+        state: absent
+
+    - name: 禁用发行版 postgresql dnf 模块（避免与 PGDG 包依赖解析冲突）
+      # -q 会抑制 "Nothing to do" 提示，导致 stdout 恒为空，无法据此判断是否
+      # 真的发生了状态变化；本步骤本身是幂等的防御性设置（多次跑效果一致），
+      # 无需精确 changed 追踪，故固定 changed_when: false。
+      ansible.builtin.command:
+        argv: [dnf, -qy, module, disable, postgresql]
+      register: _pg_module_disable
+      changed_when: false
+      failed_when: false
+      # EL9 minimal 上该模块可能已禁用/不存在，非致命；PGDG 包仍可正确解析。
+
+- name: Debian -- 确保 PGDG apt 仓库已安装
+  when: ansible_os_family == 'Debian'
+  become: true
+  block:
+    - name: 安装 postgresql-common 前置
+      ansible.builtin.apt:
+        name: [postgresql-common, ca-certificates, curl, gnupg]
+        state: present
+        update_cache: true
+
+    - name: 检查 PGDG apt source 是否已配置
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/pgdg.list
+      register: _pg_pgdg_apt_list
+
+    # ubuntu20：live apt.postgresql.org 已移除 focal-pgdg；走 apt-archive（冻结、无持续安全更新）。
+    - name: ubuntu20 -- 配置 PGDG apt-archive（跳过 live 官方脚本）
+      when:
+        - not _pg_pgdg_apt_list.stat.exists
+        - (acps_os_id | default('')) == 'ubuntu20'
+      block:
+        - name: 确保 keyrings 目录
+          ansible.builtin.file:
+            path: /usr/share/keyrings
+            state: directory
+            mode: "0755"
+
+        - name: 检查 PGDG archive keyring
+          ansible.builtin.stat:
+            path: /usr/share/keyrings/postgresql-archive-keyring.gpg
+          register: _pg_archive_key
+
+        - name: 安装 PGDG archive APT key
+          when: not _pg_archive_key.stat.exists
+          ansible.builtin.shell: |
+            set -euo pipefail
+            curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+              | gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg
+            chmod 644 /usr/share/keyrings/postgresql-archive-keyring.gpg
+          args:
+            executable: /bin/bash
+            creates: /usr/share/keyrings/postgresql-archive-keyring.gpg
+
+        - name: 写入 apt-archive focal-pgdg 源
+          ansible.builtin.copy:
+            dest: /etc/apt/sources.list.d/pgdg.list
+            mode: "0644"
+            content: >-
+              deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg]
+              https://apt-archive.postgresql.org/pub/repos/apt focal-pgdg main
+
+    - name: ubuntu22+ -- 运行 PGDG apt 仓库配置官方脚本（仅首次）
+      when:
+        - not _pg_pgdg_apt_list.stat.exists
+        - (acps_os_id | default('')) != 'ubuntu20'
+      ansible.builtin.command:
+        argv: ["/usr/share/postgresql-common/pgdg/apt.postgresql.org.sh", "-y"]
+      register: _pg_pgdg_apt_script
+
+    - name: apt update（新增 PGDG 源后）
+      when: not _pg_pgdg_apt_list.stat.exists
+      ansible.builtin.apt:
+        update_cache: true
+
+- name: 安装/升级 PostgreSQL 包（含 pgvector；upgrade 路径传 acps_os_package_state=latest）
+  ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/common/tasks/ensure_os_packages.yml"
+  vars:
+    acps_pkg_names: "{{ postgresql_os_packages }}"
+    acps_pkg_state: "{{ acps_os_package_state | default('present') }}"
+
+- name: 记录 PostgreSQL 包安装结果
+  ansible.builtin.set_fact:
+    _pg_pkg_install: "{{ _acps_pkg_result }}"
+
+- name: RedHat -- 客户端二进制软链进 /usr/local/bin（PGDG 不写 /usr/bin，见本设计 §6.4(2)）
+  when: ansible_os_family == 'RedHat'
+  become: true
+  ansible.builtin.file:
+    src: "{{ postgresql_os_bin_dir }}/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    state: link
+    force: true
+  loop:
+    - psql
+    - pg_isready
+    - pg_dump
+    - pg_dumpall
+    - pg_restore
+    - createdb
+    - dropdb
+  # acps_psql.sh（S2）以及本 role 后续任务均以裸命令名调用 psql/pg_isready；
+  # RHEL sudoers 默认 secure_path 含 /usr/local/bin，配合本软链即可命中。
+
+- name: RedHat -- 显式 initdb（RPM 包不自动建簇）
+  when:
+    - ansible_os_family == 'RedHat'
+    - postgresql_os_requires_initdb | bool
+  become: true
+  block:
+    - name: 检查数据目录是否已初始化
+      ansible.builtin.stat:
+        path: "{{ postgresql_os_data_dir }}/PG_VERSION"
+      register: _pg_version_marker
+
+    - name: 执行 initdb（仅首次；不覆盖已有数据目录）
+      when: not _pg_version_marker.stat.exists
+      ansible.builtin.command:
+        argv:
+          - "{{ postgresql_os_bin_dir }}/postgresql-{{ postgresql_os_major_version }}-setup"
+          - initdb
+      register: _pg_initdb
+
+# Ubuntu：装包通常自动建簇；若数据目录被 wipe（仅留 config）则需显式 pg_createcluster。
+- name: Debian -- 数据目录缺失时重建 cluster（wipe 后常见）
+  when: ansible_os_family == 'Debian'
+  become: true
+  block:
+    - name: 检查 Debian PG 数据目录是否已初始化
+      ansible.builtin.stat:
+        path: "{{ postgresql_os_data_dir }}/PG_VERSION"
+      register: _pg_deb_version_marker
+
+    - name: pg_createcluster（仅首次；不覆盖已有数据目录）
+      when: not _pg_deb_version_marker.stat.exists
+      ansible.builtin.command:
+        argv:
+          - pg_createcluster
+          - "{{ postgresql_os_major_version }}"
+          - main
+      register: _pg_createcluster
+      # 若 config 残留但 data 已无，pg_createcluster 可能报 already exists —— 先 drop 再 create
+      failed_when: false
+
+    - name: 若 cluster 配置残留则 drop 后重建
+      when:
+        - not _pg_deb_version_marker.stat.exists
+        - (_pg_createcluster.rc | default(0) | int) != 0
+      block:
+        - name: drop 残留 cluster 配置
+          ansible.builtin.command:
+            argv:
+              - pg_dropcluster
+              - --stop
+              - "{{ postgresql_os_major_version }}"
+              - main
+          failed_when: false
+
+        - name: 重建 cluster
+          ansible.builtin.command:
+            argv:
+              - pg_createcluster
+              - "{{ postgresql_os_major_version }}"
+              - main
+          register: _pg_createcluster_retry
+
+    - name: 复检 Debian PG 数据目录（createcluster / drop-recreate 后）
+      when: not _pg_deb_version_marker.stat.exists
+      ansible.builtin.stat:
+        path: "{{ postgresql_os_data_dir }}/PG_VERSION"
+      register: _pg_deb_version_after_create
+
+    - name: 断言 pg_createcluster 成功（数据目录已初始化）
+      when: not _pg_deb_version_marker.stat.exists
+      ansible.builtin.assert:
+        that:
+          - _pg_deb_version_after_create.stat.exists
+        fail_msg: >-
+          pg_createcluster failed for PostgreSQL {{ postgresql_os_major_version }}/main on
+          {{ inventory_hostname }}: {{ postgresql_os_data_dir }}/PG_VERSION missing after
+          create/drop-recreate (first rc={{ _pg_createcluster.rc | default('n/a') }},
+          retry rc={{ _pg_createcluster_retry.rc | default('skipped') }}).

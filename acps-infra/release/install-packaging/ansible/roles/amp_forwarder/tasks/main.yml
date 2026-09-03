@@ -1,0 +1,187 @@
+---
+# amp_forwarder — Fluent Bit：demo AMP jsonl → Redpanda amp.* topics。
+# 在拥有 demo_leader 和/或 demo_partner 的主机运行（共享主机日志目录）。
+
+- name: 禁用时结束： no demo AMP logs on this host
+  when: not (
+      ((demo_leader_enabled | bool) and (inventory_hostname in (groups['demo_leader'] | default([]))))
+      or
+      ((demo_partner_enabled | bool) and (inventory_hostname in (groups['demo_partner'] | default([]))))
+    )
+  ansible.builtin.meta: end_host
+
+- name: 解析 which demo log trees exist on this host
+  ansible.builtin.set_fact:
+    _amp_fw_has_leader: "{{ (demo_leader_enabled | bool) and (inventory_hostname in (groups['demo_leader'] | default([]))) }}"
+    _amp_fw_has_partner: "{{ (demo_partner_enabled | bool) and (inventory_hostname in (groups['demo_partner'] | default([]))) }}"
+    _redpanda_host: "{{ hostvars | acps_group_addr(groups, 'redpanda') }}"
+
+- name: 断言 Redpanda advertise resolved
+  ansible.builtin.assert:
+    that:
+      - (_redpanda_host | string | length) > 0
+    fail_msg: >-
+      amp_forwarder on {{ inventory_hostname }}: cannot resolve Redpanda broker
+      (group redpanda empty or advertise missing). host={{ inventory_hostname }}
+
+- name: image 分支：Compose 承载 amp_forwarder（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 派生 Kafka brokers (B-style; same-host uses docker DNS)
+      ansible.builtin.set_fact:
+        _amp_fw_brokers: >-
+          {{
+            ('redpanda:9092')
+            if (inventory_hostname in (groups['redpanda'] | default([])))
+            else (_redpanda_host ~ ':' ~ (redpanda_kafka_port | string))
+          }}
+        _amp_fw_log_base: /logs
+        _amp_fw_state_dir: /var/lib/fluent-bit
+        _amp_fw_parsers_file: /fluent-bit/etc/parsers.conf
+
+    - name: 断言 Redpanda brokers resolved
+      ansible.builtin.assert:
+        that:
+          - (_amp_fw_brokers | string | length) > 0
+        fail_msg: >-
+          amp_forwarder on {{ inventory_hostname }}: cannot resolve Redpanda broker
+          brokers={{ _amp_fw_brokers | default('') }}
+
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: 确保 demo AMP log dirs exist (shared with demo compose bind mounts)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop: "{{
+          ([acps_log_root ~ '/demo_leader'] if (_amp_fw_has_leader | bool) else [])
+          + ([acps_log_root ~ '/demo_partner'] if (_amp_fw_has_partner | bool) else [])
+        }}"
+
+    - name: 确保 amp_forwarder config and state dirs
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ acps_runtime_root }}/config/amp_forwarder"
+        - "{{ acps_data_root }}/amp_forwarder"
+
+    - name: stage fluent-bit image (AMP Forwarder; from image-packaging)
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: fluent_bit
+        acps_artifact_kind: vendor_bundle
+
+    - name: 绑定 amp_forwarder compose image tag
+      ansible.builtin.set_fact:
+        amp_forwarder_image: "{{ acps_effective_image_tag }}"
+
+    - name: 渲染 fluent-bit parsers.conf
+      ansible.builtin.template:
+        src: parsers.conf.j2
+        dest: "{{ acps_runtime_root }}/config/amp_forwarder/parsers.conf"
+        mode: "0644"
+      register: _amp_fw_parsers_render
+
+    - name: 渲染 fluent-bit.conf
+      ansible.builtin.template:
+        src: fluent-bit.conf.j2
+        dest: "{{ acps_runtime_root }}/config/amp_forwarder/fluent-bit.conf"
+        mode: "0644"
+      register: _amp_fw_conf_render
+
+    - name: 渲染 amp_forwarder compose
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/amp_forwarder.yml"
+        mode: "0644"
+      register: _amp_fw_compose_render
+
+    - name: 计算 amp_forwarder 配置 digest（conf/parsers；无 TLS 叶证时等同 B16「材料」）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: tls_material_digest.yml
+      vars:
+        acps_tls_digest_dir: "{{ acps_runtime_root }}/config/amp_forwarder"
+        acps_tls_digest_files:
+          - fluent-bit.conf
+          - parsers.conf
+        acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/amp-forwarder-conf.sha256"
+        acps_tls_digest_persist: false
+
+    - name: 解析本轮上游 broker bounce
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: resolve_tls_upstream_bounce.yml
+
+    - name: 判定 amp_forwarder 是否应 force recreate
+      ansible.builtin.set_fact:
+        _amp_fw_force_recreate: >-
+          {{
+            (_amp_fw_parsers_render is changed)
+            or (_amp_fw_conf_render is changed)
+            or (_amp_fw_compose_render is changed)
+            or (_tls_material_digest_changed | default(false) | bool)
+            or (_acps_redis_bounced_this_run | default(false) | bool)
+            or (acps_force_amp_forwarder_restart | default(false) | bool)
+          }}
+
+    - name: 部署 amp_forwarder
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: amp_forwarder
+        acps_compose_force_recreate: "{{ _amp_fw_force_recreate | bool }}"
+
+    - name: 持久化 amp_forwarder 配置 digest（仅 recreate 后）
+      when: _amp_fw_force_recreate | bool
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: tls_material_digest.yml
+      vars:
+        acps_tls_digest_dir: "{{ acps_runtime_root }}/config/amp_forwarder"
+        acps_tls_digest_files:
+          - fluent-bit.conf
+          - parsers.conf
+        acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/amp-forwarder-conf.sha256"
+        acps_tls_digest_persist: true
+
+    - name: 等待 amp_forwarder container running
+      ansible.builtin.shell: |
+        set -euo pipefail
+        name="{{ acps_compose_project_prefix }}-amp_forwarder-1"
+        alt="{{ acps_compose_project_prefix }}_amp_forwarder_1"
+        for n in "$name" "$alt"; do
+          st=$(docker inspect -f '{% raw %}{{.State.Status}}{% endraw %}' "$n" 2>/dev/null || true)
+          if [[ "$st" == "running" ]]; then
+            echo "running:$n"
+            exit 0
+          fi
+        done
+        ids=$(docker ps -q --filter "name=amp_forwarder" || true)
+        if [[ -n "$ids" ]]; then
+          echo "running:filter"
+          exit 0
+        fi
+        echo "amp_forwarder not running on {{ inventory_hostname }}; logs={{ acps_log_root }}/demo_* brokers={{ _amp_fw_brokers }}" >&2
+        docker ps -a --filter "name=amp_forwarder" || true
+        exit 1
+      args:
+        executable: /bin/bash
+      register: _amp_fw_wait
+      retries: 15
+      delay: 2
+      until: _amp_fw_wait is succeeded
+      changed_when: false
+
+- name: host 分支：fluent-bit vendor_bundle + systemd（本设计 §5.5 / §8.2.1）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

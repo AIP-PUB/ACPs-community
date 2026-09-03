@@ -1,0 +1,43 @@
+{
+  "aic": "",
+  "active": false,
+  "protocolVersion": "02.02",
+  "lastModifiedTime": "2026-03-11T21:45:59.609051+08:00",
+  "name": "旅游助理智能体",
+  "description": "旅游助理：作为Leader Agent，负责分析用户的多维度旅游需求，将复杂的旅规划任务分解为五大维度（城际交通、住宿、城区人文、郊区自然、美食），智能路由到相应的Partner Agent，并整合各Partner的结果生成完整的旅游方案。支持会话管理、需求分析、任务分解、多Agent协调和结果整合。",
+  "version": "1.0.0",
+  "webAppUrl": "http://localhost:9030",
+  "provider": {
+    "organization": "ACPs工作组",
+    "department": "",
+    "url": "https://ioa.pub",
+    "license": "京ICP备2025124884号-4"
+  },
+  "securitySchemes": {
+    "mtls": {
+      "type": "mutualTLS",
+      "description": "智能体间mTLS双向认证"
+    }
+  },
+  "endPoints": [
+    {
+      "url": "amqps://rabbitmq:5671/acps?inbox=inbox_{AIC}",
+      "transport": "AMQP",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "notification": false,
+    "messageQueue": [
+      "rabbitmq:>=4.2"
+    ]
+  },
+  "defaultInputModes": [],
+  "defaultOutputModes": [],
+  "skills": []
+}

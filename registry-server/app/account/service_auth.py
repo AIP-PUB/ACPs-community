@@ -430,7 +430,7 @@ def create_user_token(user: User) -> dict[str, str]:
 
     return {
         "access_token": access_token,
-        "token_type": "bearer",
+        "token_type": "bearer",  # nosec B105 - OAuth token type, not a credential
         "refresh_token": refresh_token,
         "expires_at": expires_at.isoformat(),  # Include expiration time in ISO format with timezone
     }
@@ -506,7 +506,7 @@ async def refresh_access_token(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     error_name=AccountErrorCode.INVALID_REFRESH_TOKEN,
                     error_msg="Invalid refresh token",
-                    input_params={"refresh_token": "***"},
+                    input_params={"refresh_token": "***"},  # nosec B105 - redacted diagnostic placeholder
                 )
             return None
 
@@ -517,7 +517,7 @@ async def refresh_access_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 error_name=AccountErrorCode.INVALID_REFRESH_TOKEN,
                 error_msg="Invalid refresh token",
-                input_params={"refresh_token": "***"},
+                input_params={"refresh_token": "***"},  # nosec B105 - redacted diagnostic placeholder
             ) from None
         return None
 
@@ -540,7 +540,7 @@ async def refresh_access_token(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 error_name=AccountErrorCode.INVALID_REFRESH_TOKEN,
                 error_msg="Invalid refresh token",
-                input_params={"refresh_token": "***"},
+                input_params={"refresh_token": "***"},  # nosec B105 - redacted diagnostic placeholder
             )
         return None
 

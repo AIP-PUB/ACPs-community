@@ -1,0 +1,82 @@
+---
+# 已弃用遗留 business smoke（biz_* 探测）。
+# 产品业务验收为 playbooks/business.yml + role business_acceptance.
+# 仅保留供 smoke.yml acps_smoke_kind=business 兼容别名。
+
+- name: 要求启用 business smoke
+  ansible.builtin.assert:
+    that:
+      - acps_business_smoke_enabled | bool
+    fail_msg: "acps_business_smoke_enabled=false — set true to run business smoke"
+
+- name: 解析默认 business smoke 组
+  ansible.builtin.set_fact:
+    _biz_groups: >-
+      {{
+        (
+          (acps_business_smoke_groups.split(',')
+           if (acps_business_smoke_groups is defined
+               and (acps_business_smoke_groups | string | trim | length) > 0)
+           else (
+             ['biz_core_atr']
+             + (['biz_core_discovery'] if discovery_server_enabled | bool else [])
+             + (['biz_core_mq'] if (mq_auth_server_enabled | bool and rabbitmq_enabled | bool) else [])
+             + (['biz_monitor'] if monitor_server_enabled | bool else [])
+             + (['biz_demo'] if (demo_partner_enabled | bool and demo_leader_enabled | bool) else [])
+             + (['biz_oidc'] if keycloak_enabled | bool else [])
+           ))
+        )
+        | map('trim') | reject('equalto', '') | list
+      }}
+
+- name: 为 smoke 派生 advertise 主机
+  ansible.builtin.set_fact:
+    _reg: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+    _disc: "{{ hostvars | acps_group_addr(groups, 'discovery_server') }}"
+    _mon: "{{ hostvars | acps_group_addr(groups, 'monitor_server') }}"
+    _mq: "{{ hostvars | acps_group_addr(groups, 'mq_auth_server') }}"
+    _partner: "{{ hostvars | acps_group_addr(groups, 'demo_partner') }}"
+    _leader: "{{ hostvars | acps_group_addr(groups, 'demo_leader') }}"
+    _kc: "{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+    # 在控制节点检查 AIC/ACS 文件。优先 T4 staging 镜像
+    # （cert_provision 后始终存在）；回退到本地运行时路径当
+    # 控制节点与业务节点同机时。
+    _partner_root: "{{ acps_control_root }}/work/staging/demo-partner"
+    _leader_root: "{{ acps_control_root }}/work/staging/demo-leader"
+    _oidc_issuer: "http://{{ hostvars | acps_group_addr(groups, 'keycloak') }}:{{ keycloak_port }}/realms/acps-registry"
+
+- name: 运行 business_smoke.py
+  ansible.builtin.command:
+    argv: >-
+      {{
+        [
+          acps_tools_python | default('python3'),
+          acps_release_root ~ '/scripts/business_smoke.py',
+          '--groups', (_biz_groups | join(',')),
+          '--registry-host', _reg,
+          '--registry-port', (registry_server_public_port | string),
+          '--discovery-host', _disc,
+          '--discovery-port', (discovery_server_port | string),
+          '--monitor-host', _mon,
+          '--monitor-port', (monitor_server_port | string),
+          '--mq-host', _mq,
+          '--mq-group-port', (mq_auth_server_group_api_port | string),
+          '--mq-ca-file', acps_control_root ~ '/work/certs/mq-auth-server/acps-root-ca.pem',
+          '--mq-cert-file', acps_control_root ~ '/work/certs/mq-auth-server/client.pem',
+          '--mq-key-file', acps_control_root ~ '/work/certs/mq-auth-server/client.key',
+          '--partner-host', _partner,
+          '--leader-health-url', 'http://' ~ _leader ~ ':' ~ (demo_leader_web_port | default(9030) | string) ~ '/api/v1/health',
+          '--partner-root', _partner_root,
+          '--leader-root', _leader_root,
+          '--user-token-file', acps_control_root ~ '/work/tokens/registry-user.json',
+        ]
+        + (['--oidc-issuer', _oidc_issuer] if keycloak_enabled | bool else [])
+        + (['--monitor-token-file', acps_control_root ~ '/work/tokens/monitor-admin.json']
+           if (keycloak_enabled | bool) else [])
+      }}
+  register: _biz
+  changed_when: false
+
+- name: Business smoke 摘要
+  ansible.builtin.debug:
+    msg: "{{ _biz.stdout_lines | default([]) }}"

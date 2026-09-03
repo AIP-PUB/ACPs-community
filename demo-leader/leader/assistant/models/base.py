@@ -169,13 +169,13 @@ DEFAULT_RECENT_TURNS_KEEP = 5
 HISTORY_COMPRESSION_THRESHOLD = 8
 
 # LLM 调用超时时间（秒）
-LLM_CALL_TIMEOUT_SECONDS = 60
+LLM_CALL_TIMEOUT_SECONDS = 90
 
 # LLM-6 (Aggregation) 单独超时时间（秒）- 输入数据量大，需要更长处理时间
-LLM6_CALL_TIMEOUT_SECONDS = 180
+LLM6_CALL_TIMEOUT_SECONDS = 90
 
-# LLM 调用最大重试次数
-LLM_MAX_RETRIES = 3
+# LLM 调用最大重试次数（不含 OpenAI SDK 自身重试；client 已设 max_retries=0）
+LLM_MAX_RETRIES = 2
 
 
 # =============================================================================

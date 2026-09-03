@@ -74,7 +74,12 @@ class EnhancedAgentDiscoverySystem:
         prompt_file_path: list[str] | tuple[str, ...] | None = None,
     ) -> None:
         # 组件初始化
-        project_root = Path(__file__).resolve().parents[2]
+        # 源码树：__file__ = <repo>/app/discovery/... → parents[2] = <repo>
+        # wheel 安装：__file__ 落在 site-packages/app/discovery/... → parents[2]
+        # 是 site-packages（root 所有、服务用户不可写）。host/image 均以
+        # WorkingDirectory / WORKDIR 为可写根（app-release 落地目录）。
+        _here = Path(__file__).resolve()
+        project_root = Path.cwd() if "site-packages" in _here.parts else _here.parents[2]
         # 数据日志目录初始化
         self.data_log_dir = project_root / "logs" / "data_log"
         self.data_log_dir.mkdir(parents=True, exist_ok=True)
@@ -427,7 +432,21 @@ class EnhancedAgentDiscoverySystem:
             )
 
             if is_cpu_explicit:
-                filtered_skills, _ = await self._apply_cpu_llm_final_selection(query, filtered_skills, limit, log_data)
+                import os as _os
+
+                if (_os.environ.get("DISCOVERY_SKIP_CPU_LLM") or "").strip() in {
+                    "1",
+                    "true",
+                    "TRUE",
+                    "yes",
+                }:
+                    logger.info("步骤5.5 跳过 CPU LLM 终选（DISCOVERY_SKIP_CPU_LLM）")
+                    log_data["process_info"]["cpu_llm_applied"] = False
+                    log_data["process_info"]["cpu_llm_skipped"] = True
+                else:
+                    filtered_skills, _ = await self._apply_cpu_llm_final_selection(
+                        query, filtered_skills, limit, log_data
+                    )
 
             result = self._format_discovery_results(filtered_skills, limit, log_data)
             self._finalize_discovery_success(log_data, result, total_start, is_cpu_explicit, relevance_threshold)

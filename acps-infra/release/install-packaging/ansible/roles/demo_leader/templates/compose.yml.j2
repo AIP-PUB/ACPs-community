@@ -1,0 +1,87 @@
+services:
+  demo_leader:
+    image: {{ acps_effective_image_tag }}
+    environment:
+      ACPS_RUN_ENTRY: demo-leader-api
+      # Image venv lives at /opt/acps/venv; start-leader-api.sh defaults to $BASE_DIR/.venv.
+      PYTHON_BIN: /opt/acps/venv/bin/python
+    env_file:
+      - {{ acps_runtime_root }}/config/demo_leader/.env
+    volumes:
+      # image-packaging app image WORKDIR is /opt/acps/app (ACPS_APP_ROOT).
+      - {{ acps_runtime_root }}/components/demo_leader/leader/config.toml:/opt/acps/app/leader/config.toml:ro,z
+      - {{ acps_runtime_root }}/components/demo_leader/leader/atr:/opt/acps/app/leader/atr:ro,z
+      # Workaround: current demo-leader wheel loads ACS via __file__ → site-packages/leader/atr
+      # (fixed in app source via ACPS_APP_ROOT; remove after next demo-leader image rebuild).
+      - {{ acps_runtime_root }}/components/demo_leader/leader/atr:/opt/acps/venv/lib/python3.14/site-packages/leader/atr:ro,z
+      - {{ acps_runtime_root }}/components/demo_leader/leader/scenario:/opt/acps/app/leader/scenario:ro,z
+      # Host bind for AMP jsonl (amp_forwarder tails this dir).
+      - {{ acps_log_root }}/demo_leader:/opt/acps/app/logs:z
+      # Workaround until rebuilt demo-leader image honors AMP_LOG_DIR
+      # (current wheel still resolves logs via __file__ → site-packages).
+      - {{ acps_log_root }}/demo_leader:/opt/acps/venv/lib/python3.14/site-packages/logs:z
+    expose:
+      - "{{ demo_leader_api_port | default(9031) }}"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:{{ demo_leader_api_port | default(9031) }}/api/v1/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+{% set _acps_extra_hosts = hostvars | acps_compose_extra_hosts(groups) %}
+{% if _acps_extra_hosts %}
+    extra_hosts:
+{% for _eh in _acps_extra_hosts %}
+      - "{{ _eh }}"
+{% endfor %}
+{% endif %}
+    networks:
+      - {{ acps_docker_network }}
+
+  demo_leader_web:
+    image: {{ acps_effective_image_tag }}
+    environment:
+      ACPS_RUN_ENTRY: demo-leader-web
+      PYTHON_BIN: /opt/acps/venv/bin/python
+    env_file:
+      - {{ acps_runtime_root }}/config/demo_leader/web.env
+    ports:
+      - "{{ demo_leader_web_port | default(9030) }}:{{ demo_leader_web_port | default(9030) }}"
+    volumes:
+      - {{ acps_runtime_root }}/components/demo_leader/web_app:/opt/acps/app/web_app:ro,z
+      - {{ acps_runtime_root }}/components/demo_leader/leader/config.toml:/opt/acps/app/leader/config.toml:ro,z
+    depends_on:
+      demo_leader:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:{{ demo_leader_web_port | default(9030) }}/api/v1/health')",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+{% set _acps_extra_hosts = hostvars | acps_compose_extra_hosts(groups) %}
+{% if _acps_extra_hosts %}
+    extra_hosts:
+{% for _eh in _acps_extra_hosts %}
+      - "{{ _eh }}"
+{% endfor %}
+{% endif %}
+    networks:
+      - {{ acps_docker_network }}

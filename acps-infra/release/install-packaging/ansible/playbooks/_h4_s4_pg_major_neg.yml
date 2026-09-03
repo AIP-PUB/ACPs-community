@@ -1,0 +1,67 @@
+---
+# _h4_s4_pg_major_neg.yml — H4 S4 负向门控：PG major 漂移必须失败
+#
+# 本机可复现（无需真实 PG / 业务机）：
+#   ./scripts/h4_s4_pg_major_neg_check.sh
+# 日志默认：/tmp/acps-h4-s4-pg-major-neg.log
+#
+# 注入 acps_pg_installed_major_override=16，期望 postgresql_os_major_version=17
+# → check_postgresql_os_major.yml 必须 fail。
+
+- name: H4 S4 — PG major 漂移负向门控
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    postgresql_os_major_version: "17"
+    acps_pg_installed_major_override: "16"
+    acps_component_key: postgresql
+  tasks:
+    - name: 期望 major 门控失败（漂移 16 vs 17）
+      block:
+        - name: 调用真实 check_postgresql_os_major 任务
+          ansible.builtin.include_role:
+            name: common
+            tasks_from: check_postgresql_os_major.yml
+
+        - name: 若未失败则负向证据破损
+          ansible.builtin.fail:
+            msg: >-
+              H4 S4 negative gate broken: check_postgresql_os_major accepted
+              installed=16 expected=17 (should have failed).
+      rescue:
+        - name: 校验失败信息指向 major / 人工迁移
+          ansible.builtin.assert:
+            that:
+              - (ansible_failed_result.msg | default('') | string) is search('major')
+              - >-
+                (ansible_failed_result.msg | default('') | string) is search('manual')
+                or (ansible_failed_result.msg | default('') | string) is search('pg_upgrade')
+                or (ansible_failed_result.msg | default('') | string) is search('§2.3')
+            fail_msg: >-
+              PG major gate failed but message lacked migration guidance:
+              {{ ansible_failed_result.msg | default('(no msg)') }}
+
+        - name: 负向门控通过
+          ansible.builtin.debug:
+            msg: >-
+              H4 S4 PG major negative gate PASS
+              (installed override=16 vs expected=17 → refused).
+
+- name: H4 S4 — 同 major 正向冒烟（override 对齐应放行）
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    postgresql_os_major_version: "17"
+    acps_pg_installed_major_override: "17"
+    acps_component_key: postgresql
+  tasks:
+    - name: 同 major 应通过门控
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: check_postgresql_os_major.yml
+
+    - name: 宣告同 major 放行
+      ansible.builtin.debug:
+        msg: "H4 S4 PG major same-major smoke PASS (17 vs 17)."

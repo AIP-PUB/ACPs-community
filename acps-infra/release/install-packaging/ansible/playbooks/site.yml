@@ -1,0 +1,383 @@
+---
+# site.yml — 固定安装阶段。tags 与 phase_* 名称对齐。
+# 组件选择：*_enabled / tags。--limit 仅限制主机，不限制组件。
+
+- name: "阶段 0 — Preflight"
+  hosts: all
+  become: true
+  gather_facts: true
+  tags: [phase_0_preflight, always]
+  roles:
+    - role: baseline
+  tasks:
+    - name: 运行共享 preflight 断言
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: preflight_cluster.yml
+
+- name: "阶段 0b — Python 运行时（uv + pinned CPython，控制节点）"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tags: [phase_0_python, phase_0_python_control]
+  roles:
+    - role: install_python
+
+- name: "阶段 0c — Python 运行时（uv + pinned CPython，host 业务机）"
+  hosts: all
+  become: true
+  gather_facts: true
+  tags: [phase_0_python, phase_0_python_business]
+  vars:
+    acps_install_python: "{{ acps_deploy_mode == 'host' }}"
+  roles:
+    - role: install_python
+
+- name: "阶段 1 — PostgreSQL"
+  hosts: postgresql
+  become: true
+  gather_facts: true
+  tags: [phase_1_postgresql]
+  roles:
+    - role: postgresql
+
+- name: "阶段 2 — Keycloak（可选）"
+  hosts: keycloak
+  become: true
+  gather_facts: true
+  tags: [phase_2_keycloak]
+  roles:
+    - role: keycloak
+
+- name: "阶段 3 — Registry 公网平面（9001）"
+  hosts: registry_server
+  become: true
+  gather_facts: true
+  tags: [phase_3_registry_public]
+  vars:
+    registry_server_enable_mtls_listener: false
+  roles:
+    - role: registry_server
+
+- name: "阶段 4 — CA"
+  hosts: ca_server
+  become: true
+  gather_facts: true
+  tags: [phase_4_ca]
+  roles:
+    - role: ca_server
+
+# 控制面 play 使用 hosts: localhost + connection: local。
+# 不要将 connection:local 绑定到业务 inventory_hostname（会导致 become/路径错误）。
+
+- name: "阶段 5 — 控制节点 acps-cli"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tags: [phase_5_acps_cli]
+  roles:
+    - role: control_acps_cli
+
+- name: "阶段 6 — Registry mTLS（T1 + 9002）"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tags: [phase_6_registry_mtls]
+  tasks:
+    - name: 签发 registry-9002 证书
+      ansible.builtin.include_role:
+        name: cert_provision
+      vars:
+        cert_provision_profile: registry-9002
+
+- name: "阶段 6b — Registry 双端口重建"
+  hosts: registry_server
+  become: true
+  gather_facts: true
+  tags: [phase_6_registry_mtls]
+  vars:
+    registry_server_enable_mtls_listener: true
+    # B9：本阶段成功条件含 advertise:9002 mTLS 握手
+    registry_server_require_mtls_health: true
+  roles:
+    - role: registry_server
+
+- name: "阶段 7 — Discovery"
+  hosts: discovery_server
+  become: true
+  gather_facts: true
+  tags: [phase_7_discovery]
+  roles:
+    - role: discovery_server
+
+- name: "阶段 7b — Redis OS 包预装（host：先建系统账号供证书属主规范化用）"
+  hosts: redis
+  become: true
+  gather_facts: true
+  tags: [phase_8_redis_rabbitmq]
+  tasks:
+    - name: 非 host 模式或 redis 未启用时跳过（image 侧无需预建本机账号）
+      when: not (acps_deploy_mode == 'host' and (redis_enabled | bool))
+      ansible.builtin.meta: end_host
+    - name: 预装 Redis OS 包（仅 ensure_repos+install_packages，建立 redis 系统账号；
+        完整配置/启动在阶段 8b 执行，本步骤幂等可重入）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: redis
+        acps_artifact_kind: os_package
+
+- name: "阶段 7c — RabbitMQ OS 包预装（host：先建系统账号供证书属主规范化用）"
+  hosts: rabbitmq
+  become: true
+  gather_facts: true
+  tags: [phase_8_redis_rabbitmq]
+  tasks:
+    - name: 非 host 模式或 rabbitmq 未启用时跳过（image 侧无需预建本机账号）
+      when: not (acps_deploy_mode == 'host' and (rabbitmq_enabled | bool))
+      ansible.builtin.meta: end_host
+    - name: 预装 RabbitMQ OS 包 + erlang（仅 ensure_repos+install_packages，建立
+        rabbitmq 系统账号；完整配置/启动在阶段 8c 执行，本步骤幂等可重入）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: rabbitmq
+        acps_artifact_kind: os_package
+
+- name: "阶段 8a — Redis/RabbitMQ 证书（T2）"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tags: [phase_8_redis_rabbitmq]
+  tasks:
+    - name: 签发 redis 证书
+      when: redis_enabled | bool
+      ansible.builtin.include_role:
+        name: cert_provision
+      vars:
+        cert_provision_profile: redis
+    - name: 签发 rabbitmq 证书
+      when: rabbitmq_enabled | bool
+      ansible.builtin.include_role:
+        name: cert_provision
+      vars:
+        cert_provision_profile: rabbitmq
+
+- name: "阶段 8b — Redis"
+  hosts: redis
+  become: true
+  gather_facts: true
+  tags: [phase_8_redis_rabbitmq]
+  roles:
+    - role: redis
+
+- name: "阶段 8c — RabbitMQ"
+  hosts: rabbitmq
+  become: true
+  gather_facts: true
+  tags: [phase_8_redis_rabbitmq]
+  roles:
+    - role: rabbitmq
+
+- name: "阶段 9a — mq-auth 证书（T3）"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tags: [phase_9_mq_auth]
+  tasks:
+    - name: 签发 mq-auth-server 证书
+      when: mq_auth_server_enabled | bool
+      ansible.builtin.include_role:
+        name: cert_provision
+      vars:
+        cert_provision_profile: mq-auth-server
+
+- name: "阶段 9b — mq-auth-server"
+  hosts: mq_auth_server
+  become: true
+  gather_facts: true
+  tags: [phase_9_mq_auth]
+  roles:
+    - role: mq_auth_server
+
+- name: "阶段 10a — Redpanda"
+  hosts: redpanda
+  become: true
+  gather_facts: true
+  tags: [phase_10_monitor_amp]
+  roles:
+    - role: redpanda
+
+- name: "阶段 10b — VictoriaMetrics"
+  hosts: victoria_metrics
+  become: true
+  gather_facts: true
+  tags: [phase_10_monitor_amp]
+  roles:
+    - role: victoria_metrics
+
+- name: "阶段 10c — ClickHouse"
+  hosts: clickhouse
+  become: true
+  gather_facts: true
+  tags: [phase_10_monitor_amp]
+  roles:
+    - role: clickhouse
+
+- name: "阶段 10d — MinIO"
+  hosts: minio
+  become: true
+  gather_facts: true
+  tags: [phase_10_monitor_amp]
+  roles:
+    - role: minio
+
+- name: "阶段 10e — OpenSearch"
+  hosts: opensearch
+  become: true
+  gather_facts: true
+  tags: [phase_10_monitor_amp]
+  roles:
+    - role: opensearch
+
+- name: "阶段 10f — Monitor server"
+  hosts: monitor_server
+  become: true
+  gather_facts: true
+  tags: [phase_10_monitor_amp]
+  roles:
+    - role: monitor_server
+
+- name: "阶段 11 — 核心基础 smoke 摘要"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tags: [phase_11_smoke_basic]
+  vars:
+    # Demo 在阶段 12–13 部署；site 中途不要探测它们。
+    acps_smoke_include_demo: false
+  roles:
+    - role: smoke_basic
+
+- name: "阶段 12a — T4 demo-partner 证书（ACS pull/bootstrap/push）"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tags: [phase_12_demo_partner]
+  tasks:
+    - name: 签发 demo-partner 证书 (T4)
+      when: demo_partner_enabled | bool
+      ansible.builtin.include_role:
+        name: cert_provision
+      vars:
+        cert_provision_profile: demo-partner
+
+- name: "阶段 12b — demo-partner 部署"
+  hosts: demo_partner
+  become: true
+  gather_facts: true
+  tags: [phase_12_demo_partner]
+  roles:
+    - role: demo_partner
+
+- name: "阶段 13a — T4 demo-leader 证书"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tags: [phase_13_demo_leader]
+  tasks:
+    - name: 签发 demo-leader 证书 (T4)
+      when: demo_leader_enabled | bool
+      ansible.builtin.include_role:
+        name: cert_provision
+      vars:
+        cert_provision_profile: demo-leader
+
+# 独立 play：避免 cert_provision 内任何 meta 影响 issuer 提交。
+- name: "阶段 13a2 — 提交 issuer pending / 清除 force"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tags: [phase_13_demo_leader]
+  tasks:
+    - name: 提交 issuer pending 指纹并清除 .force-cert-renew
+      ansible.builtin.include_role:
+        name: cert_provision
+        tasks_from: clear_force_cert_renew.yml
+
+- name: "阶段 13b — demo-leader 部署"
+  hosts: demo_leader
+  become: true
+  gather_facts: true
+  tags: [phase_13_demo_leader]
+  roles:
+    - role: demo_leader
+
+- name: "阶段 13c — 含 demo 的基础 smoke（启用时）"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tags: [phase_13_demo_leader, phase_11_smoke_basic]
+  vars:
+    acps_smoke_include_demo: true
+  tasks:
+    - name: 重新运行含 demo 探测的基础 smoke
+      when: (demo_partner_enabled | bool) or (demo_leader_enabled | bool)
+      ansible.builtin.include_role:
+        name: smoke_basic
+
+# Demo 部署后启动 AMP Forwarder（尾随主机 AMP 日志目录 → Redpanda）。
+# 幂等；未启用 demo_leader/demo_partner 的主机无操作。
+- name: "阶段 14 — AMP Forwarder（demo AMP jsonl → Redpanda）"
+  hosts: demo_leader:demo_partner
+  become: true
+  gather_facts: true
+  tags: [phase_14_amp_forwarder]
+  roles:
+    - role: amp_forwarder
+
+# Forwarder 之后，等待 Discovery alive 视图中 ≥1 个 AIC（D2 路径）。
+# 需覆盖 Leader+Partner。切勿将 Monitor heartbeat API 作为通过条件。
+- name: "阶段 14b — Monitor→Discovery alive-sync AIC smoke"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tags: [phase_14_amp_forwarder, phase_14b_alive_sync]
+  tasks:
+    - name: demo 启用时以 min aliveCount=1 探测 alive-sync
+      when:
+        - discovery_server_enabled | bool
+        - monitor_server_enabled | bool
+        - (demo_leader_enabled | bool) or (demo_partner_enabled | bool)
+      ansible.builtin.include_role:
+        name: smoke_basic
+        tasks_from: alive_sync.yml
+      vars:
+        acps_smoke_alive_sync_min_alive: 1
+
+# site.yml 不强制业务验收。产品路径为可选
+# 在 demo + Forwarder 之后运行 playbooks/business.yml。遗留 phase_*_smoke_business tags
+# 保留为无操作别名，避免旧 --tags 调用报错；它们不再
+# 运行 smoke_business / biz_*。
+- name: "阶段 15 — 提示可选业务验收"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tags:
+    - phase_15_business_hint
+    - phase_15_smoke_business
+    - phase_14_smoke_business
+  tasks:
+    - name: demo 启用时提示运行 business.yml
+      when:
+        - demo_partner_enabled | bool
+        - demo_leader_enabled | bool
+      ansible.builtin.debug:
+        msg: >-
+          Install finished without post-demo business acceptance (optional).
+          To run the fixed A–D pipeline: ansible-playbook -i inventories/hosts.yml
+          playbooks/business.yml -e @inventories/secrets.yml
+          (requires demo_partner_enabled and demo_leader_enabled).
+          Do not use acps_smoke_kind=business / biz_* as the product path.

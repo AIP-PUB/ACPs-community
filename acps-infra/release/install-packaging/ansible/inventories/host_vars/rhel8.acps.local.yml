@@ -1,0 +1,7 @@
+# 四 OS 混部 / 单机 Rocky8 共用：业务机广告名与 Ansible 连接。
+# ansible-core ≥2.16 要求托管节点 Python ≥3.8；Rocky 8 默认 python3 常为 3.6。
+
+ansible_host: rhel8.acps.local
+acps_advertise_host: rhel8.acps.local
+ansible_user: huxiaofeng
+ansible_python_interpreter: /usr/bin/python3.8

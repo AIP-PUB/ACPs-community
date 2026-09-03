@@ -1,0 +1,9 @@
+# 多机 — app 业务节点 host_vars 示例。
+# 复制为 inventories/host_vars/<inventory 主机名>.yml（与 hosts.yml 中 FQDN 一致）。
+
+ansible_host: acps-app.example
+acps_advertise_host: acps-app.example
+ansible_user: deploy
+ansible_python_interpreter: /usr/bin/python3
+# 默认路径：/opt/acps、/var/lib/acps、/var/log/acps
+# 确保 ansible_user 可写或任务内 become。

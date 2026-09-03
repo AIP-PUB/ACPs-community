@@ -1,0 +1,13 @@
+services:
+  victoria_metrics:
+    image: {{ acps_effective_image_tag }}
+    command:
+      - -storageDataPath=/victoria-metrics-data
+      - -httpListenAddr=:8428
+    ports:
+      - "{{ victoria_metrics_port }}:8428"
+    volumes:
+      - {{ acps_data_root }}/victoria_metrics:/victoria-metrics-data:z
+    restart: unless-stopped
+    networks:
+      - {{ acps_docker_network }}

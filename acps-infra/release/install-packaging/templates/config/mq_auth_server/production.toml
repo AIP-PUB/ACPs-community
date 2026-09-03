@@ -1,0 +1,5 @@
+# config/production.toml — 生产环境覆盖配置
+
+[cache]
+local_ttl_seconds = 30
+group_acl_key_ttl_seconds = 604800

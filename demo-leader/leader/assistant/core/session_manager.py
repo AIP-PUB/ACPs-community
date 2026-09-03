@@ -131,7 +131,8 @@ class SessionManager:
                         expired_sessions.append(session)
                         del self._sessions[session_id]
                         logger.debug(f"Cleaned up expired session: {session_id}")
-                except Exception:
+                except (AttributeError, TypeError, ValueError) as exc:
+                    logger.warning("Skipping session with invalid touched_at timestamp: %s", exc)
                     continue
 
         # 解散群组（在锁外执行异步操作）
@@ -153,6 +154,11 @@ class SessionManager:
         base_scenario: ScenarioRuntime,
         ttl_seconds: int = DEFAULT_SESSION_TTL_SECONDS,
         group_id: str | None = None,
+        user_id: str | None = None,
+        principal_issuer: str | None = None,
+        principal_subject: str | None = None,
+        principal_username: str | None = None,
+        principal_email: str | None = None,
     ) -> Session:
         """
         创建新的 Session。
@@ -162,6 +168,7 @@ class SessionManager:
             base_scenario: 基础场景配置
             ttl_seconds: TTL 秒数
             group_id: 群组 ID（群组模式时由调用者传入）
+            user_id: 绑定到 session 的真人 principal_id（可选）
 
         Returns:
             新创建的 Session
@@ -173,6 +180,11 @@ class SessionManager:
         session = Session(
             session_id=session_id,
             mode=mode,
+            user_id=user_id,
+            principal_issuer=principal_issuer,
+            principal_subject=principal_subject,
+            principal_username=principal_username,
+            principal_email=principal_email,
             created_at=now,
             updated_at=now,
             touched_at=now,
@@ -221,8 +233,8 @@ class SessionManager:
                     del self._sessions[session_id]
                     logger.debug(f"Session expired on access: {session_id}")
                     return None
-            except Exception:
-                pass
+            except (AttributeError, TypeError, ValueError) as exc:
+                logger.debug("Unable to parse session touched_at timestamp: %s", exc)
 
             return session
 

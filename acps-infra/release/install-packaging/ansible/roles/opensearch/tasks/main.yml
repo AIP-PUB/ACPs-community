@@ -1,0 +1,76 @@
+---
+- name: monitor 禁用时结束
+  when: not (monitor_server_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 OpenSearch（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: stage opensearch 镜像
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: opensearch
+        acps_artifact_kind: vendor_bundle
+
+    - name: 解析 opensearch 镜像用户以设置数据目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: resolve_cert_owner.yml
+      vars:
+        acps_cert_owner_user: ""
+
+    - name: 规范化 opensearch 数据目录所有权
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: normalize_data_dir.yml
+      vars:
+        acps_data_dir: "{{ acps_data_root }}/opensearch"
+
+    - name: 渲染 compose
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/opensearch.yml"
+        mode: "0644"
+
+    - name: 部署 opensearch
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: opensearch
+        acps_compose_force_recreate: false
+
+    - name: 等待端口
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ opensearch_http_port }}"
+        timeout: 180
+
+    - name: 等待 OpenSearch HTTP 就绪
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ opensearch_http_port }}/"
+        method: GET
+        status_code: [200]
+      register: _os_ready
+      retries: 40
+      delay: 3
+      until: _os_ready is succeeded
+
+    - name: 开放 opensearch 广告端口（firewalld/ufw；与 host 同构）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: open_advertise_ports.yml
+      vars:
+        acps_open_ports:
+          - "{{ opensearch_http_port }}"
+
+- name: host 分支：官方 tarball + bundled JDK + systemd（本设计 §5.5 / §8.2.1 / Step 16）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

@@ -501,10 +501,10 @@ just qa
 
 |关键词|全称|缩写|参考文档|服务/SDK说明|
 |----|----|----|----|----|
-|智能体身份码|Agent Identity Code|AIC|[ACPS-spec-AIC.md](../../acps-specs/02-ACPs-spec-AIC/ACPs-spec-AIC.md)|[acps-sdk:aic](../../acps-sdk/acps_sdk/aic/README.md)|
-|智能体能力描述|Agent Capability Specification|ACS|[ACPS-spec-ACS.md](../../acps-specs/03-ACPs-spec-ACS/ACPs-spec-ACS.md)|[acps-sdk:acs](../../acps-sdk/acps_sdk/acs/README.md)|
-|智能体可信注册|Agent Trusted Registration|ATR|[ACPS-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR.md)|[registry-server](../../registry-server/README.md)|
-|智能体身份证书|Certificate of Agent Identity|CAI|[ACPS-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR.md)|[ca-server](../../ca-server/README.md)|
+|智能体身份码|Agent Identity Code|AIC|[ACPs-spec-AIC.md](../../acps-specs/02-ACPs-spec-AIC/ACPs-spec-AIC.md)|[acps-sdk:aic](../../acps-sdk/acps_sdk/aic/README.md)|
+|智能体能力描述|Agent Capability Specification|ACS|[ACPs-spec-ACS.md](../../acps-specs/03-ACPs-spec-ACS/ACPs-spec-ACS.md)|[acps-sdk:acs](../../acps-sdk/acps_sdk/acs/README.md)|
+|智能体可信注册|Agent Trusted Registration|ATR|[ACPs-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR.md)|[registry-server](../../registry-server/README.md)|
+|智能体身份证书|Certificate of Agent Identity|CAI|[ACPs-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR.md)|[ca-server](../../ca-server/README.md)|
 
 > 注：发现服务（discovery-server）自动从注册服务（registry-server）处获得智能体的ACS信息，了解这个过程可以参考 [ACPs-spec-DSP.md](../../acps-specs/08-ACPs-spec-DSP/ACPs-spec-DSP.md)  
 
@@ -619,3 +619,10 @@ curl -X 'POST' \
 ```
 
 发现过程实现可参考 `demo-leader`
+
+---
+
+## 4. 再下一步：可观测性（AMP）
+
+AIP 解决「智能体怎么协作」；若还要让协作过程可被查询（访问日志、心跳存活、审计等），请阅读 [在 Agent 中接入 AMP 可观测性](./amp-agent-observability.md)。  
+那篇只讲开发者如何写 Emitter、如何查询，不讲如何搭建 AMP 基础架构。

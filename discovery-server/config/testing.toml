@@ -5,3 +5,6 @@ uvicorn_log_level = "warning"
 [logging]
 level = "WARNING"
 format = "console"
+
+[alive_sync]
+enabled = false

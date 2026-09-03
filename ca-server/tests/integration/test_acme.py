@@ -217,7 +217,7 @@ def _create_test_certificate() -> tuple[rsa.RSAPrivateKey, bytes, str, str]:
     subject = issuer = x509.Name(
         [
             x509.NameAttribute(x509.NameOID.COMMON_NAME, "revoke-test-agent"),
-            x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, "ACPS Test"),
+            x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, "ACPs Test"),
         ]
     )
     now = beijing_now()
@@ -279,7 +279,7 @@ async def _create_revoke_test_context(async_db_session) -> _RevokeContext:
         serial_number=serial_number,
         certificate_pem=cert_pem,
         status=CertificateStatus.VALID,
-        subject={"CN": "revoke-test-agent", "O": "ACPS Test"},
+        subject={"CN": "revoke-test-agent", "O": "ACPs Test"},
         not_before=issued_at - timedelta(minutes=1),
         not_after=issued_at + timedelta(days=30),
         aic=account.aic,
@@ -1600,6 +1600,36 @@ class TestCertificateIssuing:
         except Exception as e:
             pytest.fail(f"ECDSA P-256 should be allowed, but got error: {e}")
 
+    def test_validate_csr_ed25519_allowed(self) -> None:
+        """Ed25519 CSR 应通过校验（RFC 8410 白名单）。"""
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.x509.oid import NameOID
+
+        private_key = Ed25519PrivateKey.generate()
+        subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "agent-ed25519")])
+        csr = x509.CertificateSigningRequestBuilder().subject_name(subject).sign(private_key, None)
+
+        try:
+            self.ca_manager._validate_csr_public_key(csr)
+        except Exception as e:
+            pytest.fail(f"Ed25519 should be allowed, but got error: {e}")
+
+    def test_sign_certificate_ed25519_key_usage(self) -> None:
+        """Ed25519 签发的证书：KeyUsage 只含 digitalSignature，不含 keyEncipherment（RFC 8410 §3）。"""
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.x509.oid import NameOID
+
+        private_key = Ed25519PrivateKey.generate()
+        subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "TESTAGENT-ED25519")])
+        csr = x509.CertificateSigningRequestBuilder().subject_name(subject).sign(private_key, None)
+
+        cert_pem = self.ca_manager.sign_certificate(csr, ["TESTAGENT-ED25519"])
+        cert = x509.load_pem_x509_certificate(cert_pem.encode())
+
+        key_usage = cert.extensions.get_extension_for_class(x509.KeyUsage).value
+        assert key_usage.digital_signature is True, "Ed25519 证书必须有 digitalSignature"
+        assert key_usage.key_encipherment is False, "Ed25519 证书不得有 keyEncipherment（RFC 8410 §3）"
+
     async def test_single_agent_certificate_generation(self) -> None:
         """测试单Agent证书生成"""
         import secrets
@@ -2518,7 +2548,7 @@ class TestAcmeApiUsageFlow:
                 "active": True,
                 "name": "Server Auth Test Agent",
                 "version": "1.0.0",
-                "provider": {"organization": "ACPS Test", "countryCode": "CN"},
+                "provider": {"organization": "ACPs Test", "countryCode": "CN"},
                 "securitySchemes": {"mtls": {"type": "mutualTLS"}},
                 "endPoints": [
                     {

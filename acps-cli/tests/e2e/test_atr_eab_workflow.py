@@ -220,6 +220,12 @@ def _write_entity_payload_file(work_dir: Path, ontology_aic: str) -> Path:
                         "security": [],
                     }
                 ],
+                "certificate": {
+                    "altNames": {
+                        "dns": [f"entity-{ontology_aic.split('.')[-1]}.example.com"],
+                    },
+                    "requestedValidity": 365,
+                },
             },
             ensure_ascii=False,
             indent=2,
@@ -328,6 +334,9 @@ class TestFullAtrEabWorkflow:
         assert isinstance(register_data.get("aic"), str) and register_data["aic"]
         assert register_data["entity"]["ontologyAic"] == ontology_aic
         assert register_data["entity"]["entityMeta"]["scenario"] == "e2e"
+        assert register_data["entity"]["certificate"]["altNames"]["dns"] == [
+            f"entity-{ontology_aic.split('.')[-1]}.example.com"
+        ]
 
 
 class TestRegistrationCheckWorkflow:

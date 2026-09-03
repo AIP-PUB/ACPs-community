@@ -1,0 +1,28 @@
+services:
+  mq_auth_server:
+    image: {{ acps_effective_image_tag }}
+    environment:
+      APP_ENV: production
+    env_file:
+      - {{ acps_runtime_root }}/config/mq_auth_server/.env
+    ports:
+      - "{{ mq_auth_server_group_api_port }}:9007"
+      - "{{ mq_auth_server_auth_api_port }}:9008"
+    volumes:
+      - {{ acps_runtime_root }}/config/mq_auth_server:/opt/acps/app/config:ro,z
+      - {{ acps_runtime_root }}/certs/mq_auth_server:/certs:ro,z
+    restart: unless-stopped
+{% set _acps_extra_hosts = hostvars | acps_compose_extra_hosts(groups) %}
+{% if _acps_extra_hosts %}
+    extra_hosts:
+{% for _eh in _acps_extra_hosts %}
+      - "{{ _eh }}"
+{% endfor %}
+{% endif %}
+    # Cert profile name / SAN uses mq-auth-server (hyphen); compose service is
+    # mq_auth_server (underscore). Alias so RabbitMQ auth_http and peers can use
+    # the hyphen form that matches leaf SAN DNS.
+    networks:
+      {{ acps_docker_network }}:
+        aliases:
+          - mq-auth-server

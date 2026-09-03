@@ -103,7 +103,7 @@ def _get_openapi_version() -> str:
     try:
         return version("mq-auth-server")
     except PackageNotFoundError:
-        return "2.1.0"
+        return "2.2.0"
 
 
 def _build_app_metadata(listener_name: ListenerName) -> tuple[str, str]:

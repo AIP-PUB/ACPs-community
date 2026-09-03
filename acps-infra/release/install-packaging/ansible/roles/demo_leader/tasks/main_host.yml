@@ -1,0 +1,286 @@
+---
+# demo_leader/tasks/main_host.yml — host 模式：app_release venv/systemd（API + Web）
+# （本设计 §8.1 / Step 17）。Web 入口自带 /api/v1/ 反代；runtime-config backendBase=''。
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: stage demo_leader app_release
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: demo_leader
+    acps_artifact_kind: app_release
+    acps_host_app_pip_packages: ["demo-leader"]
+
+- name: 派生对等主机
+  ansible.builtin.set_fact:
+    _advertise: "{{ acps_advertise_host | default(ansible_host) | default('127.0.0.1') }}"
+    _rmq_host: "{{ hostvars | acps_group_addr(groups, 'rabbitmq') }}"
+    _registry_host: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+    _ca_host: "{{ hostvars | acps_group_addr(groups, 'ca_server') }}"
+    _discovery_host: "{{ hostvars | acps_group_addr(groups, 'discovery_server') }}"
+    _mq_host: "{{ hostvars | acps_group_addr(groups, 'mq_auth_server') }}"
+    _keycloak_host: "{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+    _keycloak_public_host: "{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+
+- name: 准备 demo_leader 运行时目录
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+  loop:
+    - "{{ acps_runtime_root }}/config/demo_leader"
+    - "{{ acps_runtime_root }}/components/demo_leader"
+    - "{{ acps_runtime_root }}/components/demo_leader/leader"
+    - "{{ acps_runtime_root }}/components/demo_leader/web_app"
+
+- name: 展开 demo_leader 树（leader/scenario + web_app 静态资源）
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0644"
+    force: "{{ item.force | default(false) }}"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+  loop:
+    - { src: "{{ acps_release_root }}/templates/demo_leader/leader/", dest: "{{ acps_runtime_root }}/components/demo_leader/leader/", force: false }
+    - { src: "{{ acps_release_root }}/templates/demo_leader/web_app/", dest: "{{ acps_runtime_root }}/components/demo_leader/web_app/", force: false }
+
+- name: 渲染 demo_leader web runtime-config.js（backendBase='' 同源）
+  ansible.builtin.template:
+    src: runtime-config.js.j2
+    dest: "{{ acps_runtime_root }}/components/demo_leader/web_app/runtime-config.js"
+    mode: "0644"
+    force: true
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 demo_leader host 应用单元（API：app.env + systemd）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_app_unit.yml
+  vars:
+    acps_compose_service_name: demo_leader
+    acps_host_install_dest: "{{ acps_host_app_install_dest }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/demo_leader/app.env"
+    acps_host_env_template_abs: "{{ playbook_dir }}/../roles/demo_leader/templates/env.host.j2"
+    acps_host_component_id: demo-leader-api
+
+- name: 渲染 demo_leader_web host 应用单元（静态 Web + /api 反代）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_app_unit.yml
+  vars:
+    acps_compose_service_name: demo_leader_web
+    acps_host_install_dest: "{{ acps_host_app_install_dest }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/demo_leader/web.env"
+    acps_host_env_template_abs: "{{ playbook_dir }}/../roles/demo_leader/templates/env.web.host.j2"
+    acps_host_component_id: demo-leader-web
+
+- name: 断言 leader ACS bootstrapped
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ACS="{{ acps_runtime_root }}/components/demo_leader/leader/atr/acs.json"
+    PY="{{ ansible_python_interpreter | default('python3') }}"
+    aic=$("$PY" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("aic") or "")' "$ACS")
+    test -n "${aic}"
+    for f in client.pem client.key trust-bundle.pem; do
+      test -f "{{ acps_runtime_root }}/components/demo_leader/leader/atr/$f"
+    done
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: stage ACS rewrite/assert scripts
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_acs_rewrite_scripts.yml
+
+- name: 重写 leader scenario/ATR ACS 全部端点（HTTPS + AMQP + altNames；host）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ acps_runtime_root }}/components/demo_leader/leader"
+    RMQ_DNS="{{ _rmq_host }}"
+    ADV="{{ _advertise }}"
+    PARTNER_ADV="{{ hostvars | acps_group_addr(groups, 'demo_partner') }}"
+    PY="{{ ansible_python_interpreter | default('python3') }}"
+    SCRIPT="{{ acps_runtime_root }}/staging/rewrite_acs_endpoints.py"
+    "$PY" "$SCRIPT" "$ROOT/atr/acs.json" --advertise-host "$ADV" --amqp-host "$RMQ_DNS"
+    if [[ -d "$ROOT/scenario" ]]; then
+      "$PY" "$SCRIPT" "$ROOT/scenario" --advertise-host "$PARTNER_ADV" --amqp-host "$RMQ_DNS"
+    fi
+  args:
+    executable: /bin/bash
+
+- name: 断言 leader ACS（host：禁止 Compose DNS）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ ansible_python_interpreter | default('python3') }}"
+    SCRIPT="{{ acps_runtime_root }}/staging/assert_acs_endpoints.py"
+    ROOT="{{ acps_runtime_root }}/components/demo_leader/leader"
+    PARTNER_ADV="{{ hostvars | acps_group_addr(groups, 'demo_partner') }}"
+    "$PY" "$SCRIPT" "$ROOT/atr" --advertise-host "{{ _advertise }}" --forbid-compose-dns
+    if [[ -d "$ROOT/scenario" ]]; then
+      "$PY" "$SCRIPT" "$ROOT/scenario" --advertise-host "$PARTNER_ADV" --forbid-compose-dns
+    fi
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: 为集群广告地址重写 leader config.toml（rabbitmq / management / auth_service）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    CFG="{{ acps_runtime_root }}/components/demo_leader/leader/config.toml"
+    RMQ_DNS="{{ _rmq_host }}"
+    MQ_AUTH="{{ _mq_host }}"
+    MQ_PORT="{{ mq_auth_server_group_api_port }}"
+    MGMT_PORT="{{ rabbitmq_mgmt_port | default(15672) }}"
+    PY="{{ ansible_python_interpreter | default('python3') }}"
+    "$PY" - "$CFG" "$RMQ_DNS" "$MQ_AUTH" "$MQ_PORT" "$MGMT_PORT" <<'PY'
+    import re, sys
+    from pathlib import Path
+    path = Path(sys.argv[1])
+    rmq, mq_auth, mq_port, mgmt_port = sys.argv[2:6]
+    text = path.read_text(encoding="utf-8")
+    section = None
+    out = []
+    for line in text.splitlines(keepends=True):
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            section = stripped[1:-1].strip()
+            out.append(line)
+            continue
+        if section == "rabbitmq" and re.match(r"^host\s*=", stripped):
+            out.append(f'host = "{rmq}"\n')
+            continue
+        if section == "rabbitmq" and re.match(r"^auth_service_url\s*=", stripped):
+            out.append(f'auth_service_url = "https://{mq_auth}:{mq_port}"\n')
+            continue
+        if section == "rabbitmq.management" and re.match(r"^host\s*=", stripped):
+            out.append(f'host = "{rmq}"\n')
+            continue
+        if section == "rabbitmq.management" and re.match(r"^port\s*=", stripped):
+            out.append(f"port = {mgmt_port}\n")
+            continue
+        out.append(line)
+    path.write_text("".join(out), encoding="utf-8")
+    print(f"rewrote_config_toml {path}")
+    PY
+  args:
+    executable: /bin/bash
+
+- name: 解析 demo_leader 属主以设置证书所有权
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+
+- name: host 分支：将 demo_leader 证书所有权规范化为 acps_systemd_user
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ acps_runtime_root }}/components/demo_leader/leader"
+    UID_GID="{{ acps_cert_owner_uid }}:{{ acps_cert_owner_gid }}"
+    chown -R "$UID_GID" "$ROOT"
+    find "$ROOT/atr" -type f \( -name '*.key' -o -name '*.pem' \) -exec chmod 600 {} \;
+    find "$ROOT/atr" -type f -name 'trust-bundle.pem' -exec chmod 644 {} \;
+  args:
+    executable: /bin/bash
+  become: true
+
+- name: 确保 demo_leader AMP 日志目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_data_dir.yml
+  vars:
+    acps_data_dir: "{{ acps_log_root }}/demo_leader"
+    acps_data_dir_mode: "0755"
+
+- name: 解析本轮上游 broker bounce
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_tls_upstream_bounce.yml
+
+- name: 检查 demo_leader 单元是否已 active（首装补起）
+  become: true
+  ansible.builtin.command:
+    argv: [systemctl, is-active, "{{ item }}"]
+  loop:
+    - acps-demo_leader.service
+    - acps-demo_leader_web.service
+  register: _demo_leader_pre_active
+  changed_when: false
+  failed_when: false
+
+- name: 判定 demo_leader 是否应 force recreate/restart
+  ansible.builtin.set_fact:
+    _demo_leader_force_recreate: >-
+      {{
+        (_acps_rabbitmq_bounced_this_run | default(false) | bool)
+        or (
+          _demo_leader_pre_active.results
+          | map(attribute='stdout')
+          | map('trim')
+          | select('ne', 'active')
+          | list
+          | length > 0
+        )
+        or (acps_force_demo_leader_restart | default(false) | bool)
+      }}
+
+- name: 部署 demo_leader API（host：systemd）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: demo_leader
+    acps_compose_force_recreate: "{{ _demo_leader_force_recreate | bool }}"
+
+- name: 部署 demo_leader_web（host：systemd）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: demo_leader_web
+    acps_compose_force_recreate: "{{ _demo_leader_force_recreate | bool }}"
+
+- name: 开放 demo_leader 广告端口（host firewalld/ufw）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ demo_leader_api_port | default(9031) }}"
+      - "{{ demo_leader_web_port | default(9030) }}"
+
+- name: 等待 demo_leader API health
+  ansible.builtin.command:
+    argv:
+      - curl
+      - -fsS
+      - --max-time
+      - "10"
+      - "http://127.0.0.1:{{ demo_leader_api_port | default(9031) }}/api/v1/health"
+  register: _leader_api_health
+  retries: 30
+  delay: 3
+  until: _leader_api_health.rc == 0
+  changed_when: false
+
+- name: 等待 demo_leader web 同源 /api/v1/health（经 webserver 反代）
+  ansible.builtin.command:
+    argv:
+      - curl
+      - -fsS
+      - --max-time
+      - "10"
+      - "http://127.0.0.1:{{ demo_leader_web_port | default(9030) }}/api/v1/health"
+  register: _leader_web_health
+  retries: 30
+  delay: 3
+  until: _leader_web_health.rc == 0
+  changed_when: false

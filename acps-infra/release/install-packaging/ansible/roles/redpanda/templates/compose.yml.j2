@@ -1,0 +1,27 @@
+services:
+  redpanda:
+    image: {{ acps_effective_image_tag }}
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --reserve-memory
+      - 0M
+      - --node-id
+      - "0"
+      - --check=false
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://redpanda:9092,external://{{ hostvars | acps_group_addr(groups, 'redpanda') }}:{{ redpanda_kafka_port }}
+    ports:
+      - "{{ redpanda_kafka_port }}:19092"
+    volumes:
+      - {{ acps_data_root }}/redpanda:/var/lib/redpanda/data:z
+    restart: unless-stopped
+    networks:
+      - {{ acps_docker_network }}

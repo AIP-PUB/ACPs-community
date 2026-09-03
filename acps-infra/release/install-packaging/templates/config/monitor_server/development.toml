@@ -1,0 +1,46 @@
+# config/development.toml — 开发环境覆盖配置
+
+[server]
+reload = false
+uvicorn_log_level = "debug"
+
+[database]
+pool_size = 2
+max_overflow = 5
+
+[logging]
+level = "DEBUG"
+format = "console"
+
+[cors]
+enabled = true
+origins = ["*"]
+allow_credentials = true
+
+[atr]
+# 验签模式：true = Mock（从本地 audit_keys.json 取公钥），false = CA（向 ca-server 实时查询）
+# 文档 （基础流程）使用 mock_mode = true；（CA 模式）使用 mock_mode = false
+mock_mode = true
+ca_base_url = "http://localhost:9003"
+
+[metrics]
+# 开发环境可适当调大滞后阈值（VictoriaMetrics 本地启动后需热身）
+lagging_threshold_ms = 300000
+
+[access]
+# 开发环境：适当宽松阈值，方便本地调试
+lagging_threshold_ms = 300000
+# ClickHouse 连接指向本地 dev-infra：CLICKHOUSE_HOST/PORT 通过环境变量注入
+
+[message]
+# 开发环境：启用 Reliability / Destination Profile，方便本地联调
+reliability_enabled = true
+destination_enabled = true
+state_collector_enabled = true
+lagging_threshold_ms = 300000
+
+[system]
+# 开发环境：OpenSearch 指向本地 dev-infra（OPENSEARCH_HOSTS 可通过环境变量覆盖）
+writer_enabled = true
+query_enabled = true
+lagging_threshold_ms = 300000

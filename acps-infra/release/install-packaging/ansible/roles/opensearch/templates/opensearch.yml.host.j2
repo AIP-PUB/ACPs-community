@@ -1,0 +1,9 @@
+# OpenSearch host-mode config (本设计 §8.2.1 / Step 16)
+cluster.name: acps-opensearch
+node.name: "{{ inventory_hostname }}"
+path.data: {{ acps_data_root }}/opensearch
+path.logs: {{ acps_log_root }}/opensearch
+network.host: 0.0.0.0
+http.port: {{ opensearch_http_port }}
+discovery.type: single-node
+plugins.security.disabled: true

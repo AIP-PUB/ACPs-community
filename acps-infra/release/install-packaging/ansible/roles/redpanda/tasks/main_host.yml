@@ -1,0 +1,182 @@
+---
+# redpanda/tasks/main_host.yml — host 模式：官方 tarball vendor_bundle + rpk tune + systemd
+# （本设计 §5.5 / §8.2.1）。数据目录：{{ acps_data_root }}/redpanda
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: stage redpanda vendor_bundle
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: redpanda
+    acps_artifact_kind: vendor_bundle
+
+# 官方 tarball 的 bin 包装脚本与 ELF interpreter 硬编码 /opt/redpanda；
+# 落地目录为 {{ acps_runtime_root }}/redpanda，故建兼容符号链接。
+- name: 兼容链接 /opt/redpanda → vendor unit 根（经 current）
+  ansible.builtin.file:
+    src: "{{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}"
+    dest: /opt/redpanda
+    state: link
+    force: true
+  become: true
+
+- name: 派生 redpanda 广告地址
+  ansible.builtin.set_fact:
+    _redpanda_advertise_host: "{{ acps_advertise_host | default(ansible_host) | default('127.0.0.1') }}"
+    _redpanda_rpk: "{{ acps_vendor_install_dest }}/bin/rpk"
+
+# Kafka advertised 主机名须在本机可解析（否则 rpk topic create 经 metadata 二次 dial 失败）。
+# 部分发行版 /etc/hosts 把 FQDN 仅绑到 ::1，且局域网 DNS 无该名。
+- name: 确保 advertise 主机名有本机 IPv4 /etc/hosts 条目
+  when:
+    - _redpanda_advertise_host is match('^[A-Za-z]')
+    - ansible_default_ipv4.address is defined
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '^\s*\d+\.\d+\.\d+\.\d+\s+.*\b{{ _redpanda_advertise_host | regex_escape }}\b'
+    line: "{{ ansible_default_ipv4.address }} {{ _redpanda_advertise_host }}"
+    state: present
+  become: true
+
+- name: 解析 redpanda 数据目录属主（host：acps 系统账号）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+  vars:
+    acps_cert_owner_user: ""
+
+- name: 规范化 redpanda 数据目录属主
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_data_dir.yml
+  vars:
+    acps_data_dir: "{{ acps_data_root }}/redpanda"
+
+- name: 准备 redpanda 配置目录
+  ansible.builtin.file:
+    path: "{{ acps_runtime_root }}/config/redpanda"
+    state: directory
+    mode: "0755"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 redpanda.yaml（host）
+  ansible.builtin.template:
+    src: redpanda.yaml.host.j2
+    dest: "{{ acps_runtime_root }}/config/redpanda/redpanda.yaml"
+    mode: "0644"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 redpanda EnvironmentFile（占位，供 systemd 契约）
+  ansible.builtin.copy:
+    content: |
+      # redpanda host mode — primary config in redpanda.yaml; file kept for systemd contract.
+    dest: "{{ acps_runtime_root }}/config/redpanda/.env"
+    mode: "0600"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: Redpanda seastar tuning（rpk redpanda tune，本设计 §8.2.1）
+  ansible.builtin.command:
+    argv:
+      - "{{ _redpanda_rpk }}"
+      - redpanda
+      - tune
+      - all
+  become: true
+  register: _rp_tune
+  changed_when: "'Successfully' in (_rp_tune.stdout | default(''))"
+  failed_when: false
+
+- name: 渲染 redpanda systemd 单元
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_systemd.yml
+  vars:
+    acps_compose_service_name: redpanda
+    acps_host_install_dest: "{{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/redpanda/.env"
+    acps_host_entrypoint: >-
+      {{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}/bin/rpk redpanda start
+      --config {{ acps_runtime_root }}/config/redpanda/redpanda.yaml
+      --overprovisioned
+      --smp 1
+      --memory 1G
+      --reserve-memory 0M
+      --check=false
+    acps_host_unit_description: "ACPS Redpanda (host vendor_bundle)"
+
+- name: Rocky SELinux：redpanda 数据/配置目录打标签
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: selinux_restore_path.yml
+  vars:
+    acps_selinux_path: "{{ acps_data_root }}/redpanda"
+
+- name: Rocky SELinux：redpanda 配置目录打标签
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: selinux_restore_path.yml
+  vars:
+    acps_selinux_path: "{{ acps_runtime_root }}/config/redpanda"
+
+- name: 开放 redpanda 广告端口（firewalld/ufw，幂等）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ redpanda_kafka_port }}"
+
+- name: 部署 redpanda（systemd enable --now）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: redpanda
+    acps_component_key: redpanda
+    acps_compose_force_recreate: false
+
+- name: 等待 redpanda Kafka 端口
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ redpanda_kafka_port }}"
+    timeout: 180
+
+- name: 健康检查：rpk cluster health（本设计 §8.2.1）
+  ansible.builtin.command:
+    argv:
+      - "{{ _redpanda_rpk }}"
+      - cluster
+      - health
+  register: _rp_health
+  retries: 30
+  delay: 2
+  until: >-
+    (_rp_health.rc | default(1)) == 0
+    or (
+      'Nodes down:                       []' in (_rp_health.stdout | default(''))
+      and 'Leaderless partitions (0)' in (_rp_health.stdout | default(''))
+      and 'Controller ID:' in (_rp_health.stdout | default(''))
+    )
+  changed_when: false
+  failed_when: >-
+    not (
+      (_rp_health.rc | default(1)) == 0
+      or (
+        'Nodes down:                       []' in (_rp_health.stdout | default(''))
+        and 'Leaderless partitions (0)' in (_rp_health.stdout | default(''))
+        and 'Controller ID:' in (_rp_health.stdout | default(''))
+      )
+    )
+
+- name: 确保 AMP Kafka topics（host：本地 rpk）
+  ansible.builtin.include_tasks: ensure_amp_topics_host.yml

@@ -113,10 +113,15 @@ class AdminResetOtherUserPassword(BaseModel):
     current_password: str
 
 
+class AicProviderCodeUpdate(BaseModel):
+    aic_provider_code: str = Field(min_length=1, max_length=6)
+
+
 class UserResponse(UserBase):
     id: uuid.UUID
     is_active: bool
     roles: list[str]  # List of role names as strings
+    aic_provider_code: str | None = None
     created_at: datetime
     updated_at: datetime
     token_expires_at: datetime | None = None
@@ -140,9 +145,21 @@ class UserResponse(UserBase):
     @field_validator("roles", mode="before")
     @classmethod
     def extract_role_names(cls, v: Any) -> Any:
-        if v and isinstance(v, list):
+        if v and isinstance(v, list) and not isinstance(v[0], str):
             return [role.name for role in v]
         return v
+
+
+class ExternalPrincipalSummary(BaseModel):
+    provider: str
+    issuer: str
+    principal_id: str
+    username: str | None = None
+    email: EmailStr | None = None
+
+
+class CurrentUserResponse(UserResponse):
+    external_principal: ExternalPrincipalSummary | None = None
 
 
 class UserListResponse(BaseModel):

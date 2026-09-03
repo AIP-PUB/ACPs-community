@@ -12,13 +12,13 @@
 
 | 项目 | 类型 | 本地开发入口 | 主要外部依赖 |
 | --- | --- | --- | --- |
-| `registry-server` | 核心服务 | `just app bootstrap` / `just app` | PostgreSQL、本地 mTLS 证书 |
-| `ca-server` | 核心服务 | `just app bootstrap` / `just app` | PostgreSQL、CA 证书材料 |
-| `discovery-server` | 核心服务 | `just app bootstrap` / `just app` | PostgreSQL / pgvector、embedding / LLM 配置 |
-| `mq-auth-server` | 核心服务 | `just app bootstrap` / `just app` | Redis、RabbitMQ、本地 mTLS 证书 |
-| `demo-partner` | 示例应用 | `just app bootstrap` / `just app` | RabbitMQ、LLM 配置、本地 mTLS 证书 |
-| `demo-leader` | 示例应用 | `just app bootstrap` / `just app` | RabbitMQ、LLM 配置、`demo-partner` |
-| `acps-cli` | CLI / 联调工具 | `just dev bootstrap` | 本地 dev-infra、可选后端服务 |
+| `registry-server` | 核心服务 | `just dev start` | PostgreSQL、本地 mTLS 证书 |
+| `ca-server` | 核心服务 | `just dev start` | PostgreSQL、CA 证书材料 |
+| `discovery-server` | 核心服务 | `just dev start` | PostgreSQL / pgvector、embedding / LLM 配置 |
+| `mq-auth-server` | 核心服务 | `just dev start` | Redis、RabbitMQ、本地 mTLS 证书 |
+| `demo-partner` | 示例应用 | `just dev start` | RabbitMQ、LLM 配置、本地 mTLS 证书 |
+| `demo-leader` | 示例应用 | `just dev start` | RabbitMQ、LLM 配置、`demo-partner` |
+| `acps-cli` | CLI / 联调工具 | `just dev bootstrap` | 本地 dev-infra、可选后端服务（本仓无长期运行服务） |
 
 `acps-sdk` 当前没有统一 `Justfile`，开发方式仍以 `uv sync`、`uv build` 等 Python 包常规命令为主。
 
@@ -31,19 +31,18 @@
 | `help` | 查看命令说明 | `just`、`just help` |
 | `infra` | 管理共享开发依赖 | `just infra up postgres`、`just infra status`、`just infra logs rabbitmq --follow` |
 | `prep` | 准备或修复本仓环境 | `just prep env`、`just prep sync`、`just prep hooks`、`just prep certs`、`just prep migrate test` |
-| `doctor` | 只读环境检查 | `just doctor` |
-| `app` | 本地应用生命周期 | `just app bootstrap`、`just app`、`just app start fg`、`just app stop` |
-| `test` | 测试入口 | `just test bootstrap`、`just test unit`、`just test integration`、`just test e2e`、`just test` |
-| `qa` | 格式化、lint、类型和审计 | `just qa`、`just qa fmt`、`just qa type`、`just qa full` |
-| `package` | wheel 运行包构建 | `just package wheel`、`just package wheel offline` |
+| `dev` | 开发环境检查与本地应用生命周期 | `just dev check`、`just dev start`、`just dev start fg`、`just dev stop`（可选 `just dev bootstrap` 只预热） |
+| `test` | 测试入口 | `just test check`、`just test bootstrap`、`just test unit`、`just test integration`、`just test e2e`、`just test` |
+| `qa` | 格式化、lint、类型和审计 | `just qa`、`just qa fmt`、`just qa type`、`just qa lint` |
+| `package` | wheel 运行包构建 | `just package check`、`just package bootstrap`、`just package wheel` |
 
 可以把它理解成一条从轻到重的链路：
 
 ```text
-infra -> prep -> doctor -> app -> test -> qa
+infra -> prep -> dev -> test -> qa
 ```
 
-`infra` 准备共享依赖，`prep` 准备本仓环境，`doctor` 做只读检查，`app` 启动本地服务，`test` 执行分层验证，`qa` 做提交前质量检查。`package` 属于交付阶段命令，开发时只在需要验证运行包时使用。
+`infra` 准备共享依赖，`prep` 准备本仓环境，`dev check` 做只读检查，`dev start/stop` 管理本地服务，`test` 执行分层验证，`qa` 做提交前质量检查。`package` 用于构建运行包，开发时只在需要验证制品时使用。
 
 ## 4. 第一次进入仓库怎么做
 
@@ -53,11 +52,10 @@ infra -> prep -> doctor -> app -> test -> qa
 cp .env.example .env
 # 按 README 修改 .env 中的数据库、token、证书、LLM、RabbitMQ 等配置
 
-just app bootstrap
-just app
+just dev start
 ```
 
-`just app bootstrap` 通常会串起以下动作：
+`just dev start` 启动前会自动完成环境准备（也可单独执行 `just dev bootstrap` 只预热、不启动），通常包括：
 
 - 启动本仓需要的共享依赖，例如 PostgreSQL、Redis、RabbitMQ。
 - 生成 `.env`，如果文件已经存在则保留。
@@ -66,13 +64,13 @@ just app
 - 按需从 `../acps-infra/dev-infra/dev-cert.sh` 准备本地开发证书。
 - 对有数据库的服务执行开发库迁移。
 
-`acps-cli` 是例外：它是纯 CLI 工具，没有 `just app` domain。第一次进入 `acps-cli` 时使用：
+`acps-cli` 也使用统一的 `dev` domain，但它没有本地服务运行时。第一次进入 `acps-cli` 时使用：
 
 ```bash
 just dev bootstrap
 ```
 
-它会准备 CLI 自身环境，并启动共享 `postgres`、`redis`、`rabbitmq` 依赖，供后续测试夹具或手工联调使用。
+它会准备 CLI 自身环境，并启动共享 `postgres`、`redis`、`rabbitmq` 依赖，供后续测试夹具或手工联调使用；日常检查使用 `just dev check`，而不是 `just dev start`。
 
 ## 5. `infra`：共享依赖只从一个入口管理
 
@@ -89,7 +87,7 @@ just infra down
 
 不同项目默认需要的共享依赖不同：
 
-| 项目 | `bootstrap` 默认依赖 |
+| 项目 | `just dev start` / `bootstrap` 默认依赖 |
 | --- | --- |
 | `registry-server`、`ca-server`、`discovery-server` | `postgres` |
 | `mq-auth-server` | `redis rabbitmq` |
@@ -100,7 +98,7 @@ just infra down
 
 ## 6. `prep`：局部准备和局部修复
 
-`prep` 是 bootstrap 的可拆分版本，适合在环境某一块坏掉时单独修复：
+`prep` 是环境准备的可拆分入口，适合在某一块坏掉时单独修复：
 
 | 命令 | 作用 |
 | --- | --- |
@@ -123,9 +121,9 @@ just infra down
 - `mq-auth-server`、`demo-partner`、`demo-leader` 没有业务数据库，`prep migrate` 对它们是 no-op 或不存在。
 - 有数据库的服务应区分开发库和测试库，测试库不要指向开发库。
 
-## 7. `doctor`：先检查，再启动或联调
+## 7. `dev check`：先检查，再启动或联调
 
-`just doctor` 是只读检查入口，通常不会修复环境。它的价值是把“为什么服务启动不了、测试跑不起来”提前讲清楚。
+`just dev check` 是只读检查入口，通常不会修复环境。它的价值是把“为什么服务启动不了、测试跑不起来”提前讲清楚。
 
 常见检查包括：
 
@@ -140,33 +138,31 @@ just infra down
 推荐习惯：
 
 ```bash
-just doctor
+just dev check
 ```
 
 在手工联调前先跑一次。如果它失败，优先按输出修复环境，而不是直接进入 `uv run pytest` 或手工启动服务。
 
-## 8. `app`：本地服务生命周期
+## 8. `dev`：本地服务生命周期
 
 服务类项目的常用本地启动命令是：
 
 ```bash
-just app bootstrap
-just app
+just dev start
 ```
 
-`just app` 通常等价于 `just app start`，默认后台启动。常用动作如下：
+`just dev start` 默认后台启动，并会按需自动准备环境。常用动作如下：
 
 | 命令 | 说明 |
 | --- | --- |
-| `just app start` | 后台启动服务，日志写入 `logs/` |
-| `just app start bg` | 显式后台启动 |
-| `just app start fg` | 前台启动，适合调试 |
-| `just app stop` | 停止后台实例 |
-| `just app status` | 查看后台实例状态 |
-| `just app logs` | 查看最近日志 |
-| `just app logs follow` | 持续跟随日志 |
-| `just app restart` | 重启后台实例 |
-| `just app smoke` | `demo-leader` 专用，本地基础 smoke |
+| `just dev start` | 后台启动服务，日志写入 `logs/` |
+| `just dev start bg` | 显式后台启动 |
+| `just dev start fg` | 前台启动，适合调试 |
+| `just dev stop` | 停止后台实例 |
+| `just dev status` | 查看后台实例状态 |
+| `just dev logs` | 查看最近日志 |
+| `just dev logs follow` | 持续跟随日志 |
+| `just dev restart` | 重启后台实例 |
 
 各服务默认端口：
 
@@ -176,7 +172,7 @@ just app
 | `ca-server` | `http://localhost:9003` |
 | `discovery-server` | `http://localhost:9005` |
 | `mq-auth-server` | Group API `https://localhost:9007`，Auth API `https://localhost:9008` |
-| `demo-leader` | Web UI `http://localhost:9010`，Leader API `http://localhost:9011` |
+| `demo-leader` | Web UI `http://localhost:9030`，Leader API `http://localhost:9031` |
 | `demo-partner` | 多 Agent 端口，默认范围常见为 `9021-9025` |
 
 前台启动适合看热重载和异常栈；后台启动适合配合 CLI、e2e 或浏览器手工联调。
@@ -255,7 +251,7 @@ just test e2e
 
 ### 9.4. `acps-cli` 的联调测试模式
 
-`acps-cli` 是真实跨服务联调的收口仓库。推荐流程：
+`acps-cli` 是真实跨服务联调的主入口仓库。推荐流程：
 
 ```bash
 cd acps-cli
@@ -280,7 +276,7 @@ just qa
 fix -> precommit
 ```
 
-也就是先格式化并自动修复 Ruff 问题，再运行 pre-commit。部分服务还把 `audit` 加入默认 all，或者提供更完整的只读检查：
+也就是先格式化并自动修复 Ruff 问题，再运行 pre-commit。部分服务还把 `audit` 加入默认 all，或者提供 `lint` / `type` / `security` 等只读子入口，供你按需组合成门禁：
 
 | 命令 | 说明 |
 | --- | --- |
@@ -292,7 +288,6 @@ fix -> precommit
 | `just qa type-tests` | 检查测试代码 |
 | `just qa security` | Bandit 安全扫描，部分项目提供 |
 | `just qa audit` | pip-audit 依赖审计，部分项目提供 |
-| `just qa full` | 更完整的只读质量门禁，常见为 lint、type、security 的组合 |
 | `just qa precommit` | 运行 `pre-commit run --all-files` |
 
 日常开发建议：
@@ -305,11 +300,11 @@ fix -> precommit
 
 | 项目 | 需要特别注意的点 |
 | --- | --- |
-| `registry-server` | 双平面运行，`9001` public API、`9002` mTLS API；本仓测试不承载真实跨服务联调；`qa full` 包含 lint、类型和 security |
+| `registry-server` | 双平面运行，`9001` public API、`9002` mTLS API；本仓测试不承载真实跨服务联调；只读门禁请组合 `qa lint` / `qa type-app` / `qa type-tests` / `qa security` |
 | `ca-server` | 本地开发证书材料来自 `../acps-infra/dev-infra`；默认可 mock `registry-server`；跨服务证书链路归 `acps-cli/tests/e2e/` |
 | `discovery-server` | 有 CPU / GPU 运行模式；`prep seed` / `reseed` 管理样本 ACS；标准 integration / e2e 未指定模式时会依次跑 CPU 和 GPU |
 | `mq-auth-server` | 无数据库；依赖 Redis、RabbitMQ 和 mTLS；`prep migrate` 显式 skip；e2e 会使用临时本地 HTTPS listener |
 | `demo-partner` | 多 Agent、多端口；集成测试依赖 LLM 配置；e2e 验证运行中的 Partner API 和任务状态机 |
 | `demo-leader` | Leader API + Web UI 双进程；集成测试通常需要先启动 `demo-partner`；`test integration` 默认文件级并行 |
-| `acps-cli` | 没有 `just app`；是跨服务联调 e2e 的主入口；默认地址缺服务时测试夹具可自动托管兄弟服务 |
+| `acps-cli` | 没有 `just dev start`；是跨服务联调 e2e 的主入口；默认地址缺服务时测试夹具可自动托管兄弟服务 |
 | `acps-sdk` | 当前没有统一 `Justfile`；使用 `uv sync`、`uv build`、`uv publish` 等 Python 包命令 |

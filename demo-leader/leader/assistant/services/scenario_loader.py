@@ -232,7 +232,7 @@ class ScenarioLoader:
                 content = f.read()
 
             data = tomllib.loads(content.decode("utf-8"))
-            config_digest = hashlib.md5(content).hexdigest()[:8]
+            config_digest = hashlib.md5(content, usedforsecurity=False).hexdigest()[:8]
 
             # 展平嵌套结构为 "section.key" 格式
             prompts = self._flatten_prompts(data)

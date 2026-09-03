@@ -1,0 +1,39 @@
+---
+# resolve_cert_owner_host.yml — host 模式属主解析（本设计 §4.4 / §6.3）。
+# 默认取 acps_systemd_user；若调用方按现有约定传 acps_cert_owner_user
+# （发行版自带服务用户，如 postgres/redis/rabbitmq/clickhouse），则覆盖为该
+# 用户。uid/gid 均取自目标机*本地系统账号*（getent），不解析镜像 USER。
+# 硬约束（本设计 §4.4 / §6.3）：host 分支禁止 resolve_image_uid.py、
+# 禁止 docker run chown。
+#
+# 期望（可选）：acps_cert_owner_user — 非空时覆盖默认 acps_systemd_user。
+# 设置：acps_cert_owner_uid / acps_cert_owner_gid（数字）、
+# acps_cert_owner_user_name（解析出的用户名，供 chown/setfacl 复用）。
+
+- name: 解析 host cert owner 用户名（默认 acps_systemd_user）
+  ansible.builtin.set_fact:
+    _cert_owner_user_name: "{{ (acps_cert_owner_user | default('') | trim) or acps_systemd_user }}"
+
+- name: getent 查询 owner 用户（目标机本地账号，非镜像 USER）
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ _cert_owner_user_name }}"
+    fail_key: false
+  register: _cert_owner_getent
+
+- name: 断言 owner 用户已存在于目标机
+  ansible.builtin.assert:
+    that:
+      - (ansible_facts.getent_passwd[_cert_owner_user_name] | default(None)) is not none
+    fail_msg: >-
+      host cert owner user '{{ _cert_owner_user_name }}' 在目标机不存在
+      （getent passwd 未命中）。host 模式属主须来自目标机本地系统账号
+      （acps_systemd_user 或发行版服务用户，如 postgres/redis/rabbitmq），
+      须由对应安装步骤先创建该账号；禁止回退 resolve_image_uid.py /
+      docker run chown（本设计 §4.4 / §6.3）。
+
+- name: 设置 cert owner facts（host，数字 uid/gid 取自目标机账号）
+  ansible.builtin.set_fact:
+    acps_cert_owner_uid: "{{ ansible_facts.getent_passwd[_cert_owner_user_name][1] }}"
+    acps_cert_owner_gid: "{{ ansible_facts.getent_passwd[_cert_owner_user_name][2] }}"
+    acps_cert_owner_user_name: "{{ _cert_owner_user_name }}"

@@ -22,6 +22,7 @@ if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -483,6 +484,198 @@ class TestBackgroundExecutor:
 
         finally:
             await task_execution_manager.stop()
+
+    @pytest.mark.asyncio
+    async def test_cancel_task_and_wait_waits_for_background_task_shutdown(self):
+        """测试 cancel_task_and_wait 会等待后台协程退出。"""
+        task_execution_manager = TaskExecutionManager()
+        await task_execution_manager.start()
+
+        background_executor = BackgroundExecutor(
+            task_execution_manager=task_execution_manager,
+        )
+
+        async def long_running() -> None:
+            await asyncio.sleep(100)
+
+        task = asyncio.create_task(long_running())
+        background_executor._running_tasks["task-001"] = task
+
+        try:
+            await asyncio.sleep(0)
+            result = await background_executor.cancel_task_and_wait("task-001", timeout=1.0)
+
+            assert result is True
+            assert task.done() is True
+            assert task.cancelled() is True
+        finally:
+            await task_execution_manager.stop()
+
+    def test_update_partner_tasks_skips_stale_active_task(self):
+        """旧任务的后台回写不应覆盖当前 active_task。"""
+        from acps_sdk.aip.aip_base_model import TaskState
+        from assistant.core.executor import ExecutionPhase, ExecutionResult, PartnerExecutionResult
+        from assistant.models import (
+            ActiveTaskStatus,
+            ExecutionMode,
+            ScenarioRuntime,
+            Session,
+            UserResult,
+            UserResultType,
+        )
+        from assistant.models.base import now_iso
+        from assistant.models.task import ActiveTask, PartnerSelection, PartnerTask, PlanningResult
+
+        now = now_iso()
+        session = Session(
+            session_id="session-stale-update",
+            mode=ExecutionMode.DIRECT_RPC,
+            created_at=now,
+            updated_at=now,
+            touched_at=now,
+            ttl_seconds=3600,
+            expires_at=(datetime.now(UTC) + timedelta(hours=1)).isoformat(),
+            base_scenario=ScenarioRuntime(
+                id="base",
+                kind="base",
+                version="1.0.0",
+                loaded_at=now,
+            ),
+            user_result=UserResult(
+                type=UserResultType.PENDING,
+                data_items=[],
+                updated_at=now,
+            ),
+        )
+        session.active_task = ActiveTask(
+            active_task_id="task-current",
+            created_at=now,
+            external_status=ActiveTaskStatus.RUNNING,
+            partner_tasks={
+                "partner-current": PartnerTask(
+                    partnerAic="partner-current",
+                    aipTaskId="task-current:partner-current",
+                    state=TaskState.Accepted,
+                )
+            },
+        )
+
+        planning_result = PlanningResult(
+            created_at=now,
+            scenario_id="travel",
+            user_query="帮我安排旅行",
+            selected_partners={
+                "hotel": [
+                    PartnerSelection(
+                        partner_aic="partner-stale",
+                        skill_id="search_hotel",
+                        reason="酒店推荐",
+                        instruction_text="搜索酒店",
+                    )
+                ]
+            },
+        )
+        execution_result = ExecutionResult(
+            phase=ExecutionPhase.POLLING,
+            partner_results={
+                "partner-stale": PartnerExecutionResult(
+                    partner_aic="partner-stale",
+                    dimension_id="hotel",
+                    state=TaskState.Working,
+                )
+            },
+        )
+
+        background_executor = BackgroundExecutor()
+
+        background_executor._update_partner_tasks_from_execution(
+            session,
+            execution_result,
+            planning_result,
+            task_id="task-stale",
+        )
+
+        assert set(session.active_task.partner_tasks) == {"partner-current"}
+
+    def test_update_partner_tasks_accepts_current_active_task(self):
+        """当前任务的 partner 状态应正常同步到 session。"""
+        from acps_sdk.aip.aip_base_model import TaskState
+        from assistant.core.executor import ExecutionPhase, ExecutionResult, PartnerExecutionResult
+        from assistant.models import (
+            ActiveTaskStatus,
+            ExecutionMode,
+            ScenarioRuntime,
+            Session,
+            UserResult,
+            UserResultType,
+        )
+        from assistant.models.base import now_iso
+        from assistant.models.task import ActiveTask, PartnerSelection, PlanningResult
+
+        now = now_iso()
+        session = Session(
+            session_id="session-current-update",
+            mode=ExecutionMode.DIRECT_RPC,
+            created_at=now,
+            updated_at=now,
+            touched_at=now,
+            ttl_seconds=3600,
+            expires_at=(datetime.now(UTC) + timedelta(hours=1)).isoformat(),
+            base_scenario=ScenarioRuntime(
+                id="base",
+                kind="base",
+                version="1.0.0",
+                loaded_at=now,
+            ),
+            user_result=UserResult(
+                type=UserResultType.PENDING,
+                data_items=[],
+                updated_at=now,
+            ),
+        )
+        session.active_task = ActiveTask(
+            active_task_id="task-current",
+            created_at=now,
+            external_status=ActiveTaskStatus.RUNNING,
+            partner_tasks={},
+        )
+
+        planning_result = PlanningResult(
+            created_at=now,
+            scenario_id="travel",
+            user_query="帮我安排旅行",
+            selected_partners={
+                "hotel": [
+                    PartnerSelection(
+                        partner_aic="partner-current",
+                        skill_id="search_hotel",
+                        reason="酒店推荐",
+                        instruction_text="搜索酒店",
+                    )
+                ]
+            },
+        )
+        execution_result = ExecutionResult(
+            phase=ExecutionPhase.POLLING,
+            partner_results={
+                "partner-current": PartnerExecutionResult(
+                    partner_aic="partner-current",
+                    dimension_id="hotel",
+                    state=TaskState.Working,
+                )
+            },
+        )
+
+        background_executor = BackgroundExecutor()
+
+        background_executor._update_partner_tasks_from_execution(
+            session,
+            execution_result,
+            planning_result,
+            task_id="task-current",
+        )
+
+        assert session.active_task.partner_tasks["partner-current"].state == TaskState.Working
 
 
 class TestTaskExecutionModel:

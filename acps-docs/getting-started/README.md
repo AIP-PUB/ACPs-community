@@ -2,19 +2,27 @@
 
 # ACPs 快速开始
 
-本文是 ACPs 的入口说明，用来帮助你判断自己应该走哪条路径：本地开发测试、Docker 单机 standalone 打包部署，或基于 wheel 包的通用部署。各路径的详细步骤已经拆到独立文档中维护，本文只保留路线和最小命令。
+本文是 ACPs 的入口说明，用来帮助你判断自己应该走哪条路径：本地开发测试，或部署一套环境。部署又分**手工部署**（基础流程）和 **Ansible 安装包部署**（同一套流程的自动化）两种执行方式。各路径的详细步骤已拆到独立文档；本文只保留路线和最小命令。
 
-## 1. 先理解三类工作
+概念总览见 [`acps-infra/README.md`](../../acps-infra/README.md)。
 
-ACPs 的日常工作可以分成三类：
+## 1. 先理解几类工作
 
 | 目标 | 适合对象 | 详细文档 |
 | --- | --- | --- |
 | 本地开发与测试 | 修改服务、SDK、CLI、demo 代码的开发者 | [开发与测试总览](../development/development-testing-overview.md) |
-| Docker 单机 standalone 打包与部署 | 需要交付一套同机 Docker 离线包的构建者和部署者 | [Docker 打包指南](../deployment-docker/docker-standalone-packaging-guide.md)、[Docker 安装指南](../deployment-docker/docker-standalone-installation-guide.md) |
-| wheel/native 打包与部署 | 不使用 Docker 编排、按运行包部署到普通环境的部署者 | [通用 wheel/native 打包部署总览](../deployment-general/general-packaging-deployment-guide.md) |
+| **开发 Agent（AIP）** | 写 Leader / Partner 业务逻辑 | [AIP 开发教程](../tutorials/agent-development.md) |
+| **Agent 可观测性（AMP）** | 在 Agent 里打 AMP 日志并查询 | [AMP 可观测性教程](../tutorials/amp-agent-observability.md) |
+| **手工部署（基础流程）** | 想弄清部署到底做了什么，或目标环境不能用 Docker / 操作系统不在支持矩阵内 | [从应用薄包手工部署](../tutorials/manual-deploy-from-app-thin-package.md) |
+| **安装包 Ansible 部署** | 交付 image-mode 或 host-mode 环境的构建者 / 部署者 | [组装安装包](../tutorials/install-package-build.md)、[Ansible 部署](../tutorials/install-package-ansible-deploy.md)、[三节点](../tutorials/install-package-ansible-deploy-3nodes.md) |
+| **验收/重装前清场** | 同一批机器要从零再装（破坏数据） | [清场教程](../tutorials/install-package-clean-slate.md) |
+| **安装后日常运维** | 已经装好的环境：续签 / trust / 升级 / 回滚 | [日常运维](../tutorials/install-package-day2-ops.md) |
 
-如果你只是想开始参与开发，优先读开发测试文档。如果你已经要交付环境，再根据目标部署形态选择 Docker standalone 或 wheel/native 文档。
+**部署要做的事**（手工和自动化都是这一套）：装依赖 → 铺配置 → 迁移数据库 → 签发证书 → 按顺序拉起进程 → 探活。逐步命令见[手工部署](../tutorials/manual-deploy-from-app-thin-package.md)。
+
+**Ansible 自动化**：组装 `acps-image-install-*` / `acps-host-install-*` → 控制节点跑 `ansible-playbook playbooks/site.yml` → 装完后用 `renew-certs.yml` / `refresh-trust-bundle.yml` / `upgrade.yml` / `rollback.yml`（**不要**用完整 `site.yml` 当日常升级）。它额外解决多机编排、操作系统差异适配和幂等升级回滚。
+
+如果你只是想开始参与开发，优先读开发测试文档。要交付环境：目标机在支持矩阵内、又是多机，用 Ansible 安装包最省事；环境特殊或想先看清每一步，走手工部署。
 
 ## 2. 本地开发测试怎么开始
 
@@ -34,78 +42,49 @@ acps/
   acps-docs/
 ```
 
-多数 Python 服务项目统一使用 `uv` 管理 Python 与依赖，使用 `just` 收口开发、测试、质量检查命令。第一次进入某个服务项目时，一般是：
+多数 Python 服务项目统一使用 `uv` 管理 Python 与依赖，使用 `just` 统一开发、测试、质量检查命令。第一次进入某个服务项目时，一般是：
 
 ```bash
 cp .env.example .env
 # 按项目需要填写数据库、LLM、RabbitMQ、证书等配置
 
-just app bootstrap
-just app
+just dev start
 ```
 
 常用检查与测试命令：
 
 ```bash
-just doctor
+just dev check
 just test unit
 just test integration
 just test e2e
 just qa
 ```
 
-这些命令在不同项目里的细节略有差异，但整体模型一致：`infra -> prep -> doctor -> app -> test -> qa`。完整解释请看 [开发与测试总览](../development/development-testing-overview.md)。
+这些命令在不同项目里的细节略有差异，但整体模型一致：`infra -> prep -> dev -> test -> qa`。完整解释请看 [开发与测试总览](../development/development-testing-overview.md)。
 
-## 3. Docker 单机 standalone 怎么做
+## 3. 用安装包部署
 
-Docker 单机部署面向“把一套完整 demo 系统打成一个离线包，并在同一台目标机上安装”的场景。最终交付物形如：
-
-```text
-acps-demo-standalone-{version}-{platform}.tar
-```
-
-构建机上进入 `acps-infra` 执行顶层打包脚本：
+产品路径是组装安装包后在控制节点跑 Ansible：
 
 ```bash
-cd acps-infra
-bash scripts/release-standalone/build.sh 2.1.0
+# 组装（在 acps-infra/release/install-packaging）
+./scripts/build-install-package.sh --mode image --target-platform linux/amd64   # 或 --mode host …
+# 控制节点解包后：
+cd "$PKG/ansible"
+cp inventories/hosts.example.yml inventories/hosts.yml   # 或多机 hosts-multi.example.yml
+cp inventories/secrets.example.yml inventories/secrets.yml
+ansible-playbook -i inventories/hosts.yml playbooks/site.yml -e @inventories/secrets.yml
+ansible-playbook -i inventories/hosts.yml playbooks/business.yml -e @inventories/secrets.yml   # demo 双开后
 ```
 
-目标机上解包、准备顶层 `.env`，再执行安装：
+逐步说明见 [组装安装包](../tutorials/install-package-build.md) 与 [Ansible 部署教程](../tutorials/install-package-ansible-deploy.md)。  
+同一批机器要「从零再装」见 [清场教程](../tutorials/install-package-clean-slate.md)。  
+装完后的续签 / trust / 升级 / 回滚见 [日常运维教程](../tutorials/install-package-day2-ops.md)。
 
-```bash
-tar xf acps-demo-standalone-{version}-{platform}.tar
-cd acps-demo-standalone-{version}-{platform}
-cp .env.example .env
-# 编辑 .env
-bash install.sh
-```
+## 4. 开发智能体从哪里继续
 
-Linux 目标机通常需要：
+环境准备好之后，如果你的目标是开发 Leader / Partner 智能体，请继续阅读 [AIP 开发教程](../tutorials/agent-development.md)。  
+若还要让 Agent 的运行情况可被 Monitor / Discovery 看见，请再读 [AMP 可观测性教程](../tutorials/amp-agent-observability.md)。
 
-```bash
-sudo bash install.sh
-```
-
-Docker standalone 的重要原则是：普通部署者只操作顶层 tar 包、顶层 `.env`、`install.sh` 和 `upgrade.sh`，不进入各组件目录单独部署。打包阶段看 [Docker 打包指南](../deployment-docker/docker-standalone-packaging-guide.md)，安装和升级阶段看 [Docker 安装指南](../deployment-docker/docker-standalone-installation-guide.md)。
-
-## 4. wheel/native 部署怎么做
-
-wheel/native 部署面向“不依赖 Docker 编排、按 Python wheel 运行包和原生基础设施部署”的场景。它通常需要自己准备：
-
-- Python 运行环境
-- PostgreSQL
-- RabbitMQ
-- Redis
-- 各服务的 wheel 运行包
-- 证书、配置、systemd 或等价进程管理
-
-整体顺序建议从 [通用 wheel/native 打包部署总览](../deployment-general/general-packaging-deployment-guide.md) 开始读。PostgreSQL、RabbitMQ、Redis 的原生安装细节分别在同目录的基础服务文档中维护。
-
-这条路径更适合需要控制目标机进程、基础服务和网络策略的部署环境；如果只是快速交付一套同机 demo 系统，优先考虑 Docker standalone。
-
-## 5. 开发智能体从哪里继续
-
-环境准备好之后，如果你的目标是开发 Leader / Partner 智能体，请继续阅读 [AIP 开发教程](../tutorials/agent-development.md)。
-
-新版教程只讲代码和协议理解，不再重复开发环境搭建、打包、部署步骤。环境、测试和部署问题分别回到本文上面的三类文档中查。
+教程只讲代码和协议理解，不再重复开发环境搭建、打包、部署步骤。环境、测试和部署问题分别回到本文上面的文档中查。

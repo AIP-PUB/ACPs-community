@@ -8,7 +8,9 @@
 
 from __future__ import annotations
 
+import json
 import tomllib
+from collections.abc import Iterable
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -73,6 +75,26 @@ def _validate_timezone_name(value: str) -> str:
     return normalized
 
 
+def _parse_string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        normalized = value.strip()
+        if not normalized:
+            return []
+        if normalized.startswith("["):
+            try:
+                parsed = json.loads(normalized)
+            except json.JSONDecodeError:
+                parsed = None
+            else:
+                return _parse_string_list(parsed)
+        return [item.strip() for item in normalized.split(",") if item.strip()]
+    if isinstance(value, Iterable) and not isinstance(value, (bytes, bytearray, dict, str)):
+        return [str(item).strip() for item in value if str(item).strip()]
+    raise ValueError("value must be a string or iterable of strings")
+
+
 class Settings(BaseSettings):
     """应用设置。环境变量承载敏感数据与少量部署覆写，TOML 承载非敏感业务配置。"""
 
@@ -121,6 +143,32 @@ class Settings(BaseSettings):
         validation_alias="REGISTRY_SERVER_ENABLE_MTLS_LISTENER",
     )
     mtls_port_override: int | None = Field(default=None, validation_alias="REGISTRY_SERVER_MTLS_PORT")
+    oidc_enabled_override: bool | None = Field(default=None, validation_alias="REGISTRY_OIDC_ENABLED")
+    oidc_issuer_override: str | None = Field(default=None, validation_alias="REGISTRY_OIDC_ISSUER")
+    oidc_audience_override: str | None = Field(default=None, validation_alias="REGISTRY_OIDC_AUDIENCE")
+    oidc_allowed_azp_override: str | None = Field(default=None, validation_alias="REGISTRY_OIDC_ALLOWED_AZP")
+    oidc_client_id_override: str | None = Field(default=None, validation_alias="REGISTRY_OIDC_CLIENT_ID")
+    oidc_algorithms_override: str | None = Field(default=None, validation_alias="REGISTRY_OIDC_ALGORITHMS")
+    oidc_jwks_cache_ttl_seconds_override: int | None = Field(
+        default=None,
+        validation_alias="REGISTRY_OIDC_JWKS_CACHE_TTL_SECONDS",
+    )
+    oidc_discovery_cache_ttl_seconds_override: int | None = Field(
+        default=None,
+        validation_alias="REGISTRY_OIDC_DISCOVERY_CACHE_TTL_SECONDS",
+    )
+    oidc_leeway_seconds_override: int | None = Field(
+        default=None,
+        validation_alias="REGISTRY_OIDC_LEEWAY_SECONDS",
+    )
+    oidc_require_https_override: bool | None = Field(
+        default=None,
+        validation_alias="REGISTRY_OIDC_REQUIRE_HTTPS",
+    )
+    oidc_role_source_client_id_override: str | None = Field(
+        default=None,
+        validation_alias="REGISTRY_OIDC_ROLE_SOURCE_CLIENT_ID",
+    )
 
     # ── TOML 配置（运行时从文件加载） ──
     _toml: dict[str, Any] = {}
@@ -128,6 +176,11 @@ class Settings(BaseSettings):
     def model_post_init(self, __context: Any) -> None:
         """加载并合并 TOML 配置。"""
         object.__setattr__(self, "_toml", load_toml_config(self.app_env))
+        # 启动即校验 AIC 配置，避免带着非法第5/6级或序列号长度进入运行态
+        _ = self.aic_protocol_version
+        _ = self.aic_arsp_code
+        _ = self.aic_ontology_serial_len
+        _ = self.aic_instance_serial_len
 
     # ── validators ──
 
@@ -172,6 +225,65 @@ class Settings(BaseSettings):
         if isinstance(v, str) and not v.strip():
             return None
         return v
+
+    @property
+    def aic_arsp_code(self) -> str:
+        """本 Registry 作为 ARSP 的序号（AIC 第6级）。每次从 TOML 读取并规范化。"""
+        from app.utils.aic import normalize_aic_level_code
+
+        aic_section = self._toml.get("aic")
+        if not isinstance(aic_section, dict) or "arsp_code" not in aic_section:
+            raise ValueError("config [aic].arsp_code is required")
+        raw = aic_section["arsp_code"]
+        if not isinstance(raw, str):
+            raise ValueError("config [aic].arsp_code must be a string")
+        try:
+            return normalize_aic_level_code(raw)
+        except ValueError as exc:
+            raise ValueError(f"Invalid [aic].arsp_code: {raw!r}") from exc
+
+    @property
+    def aic_protocol_version(self) -> str:
+        """AIC 第5级版本号。每次从 TOML 读取并规范化；缺省为 ``1``。"""
+        from app.utils.aic import PROTOCOL_VERSION, normalize_aic_protocol_version
+
+        aic_section = self._toml.get("aic")
+        if not isinstance(aic_section, dict) or "protocol_version" not in aic_section:
+            return PROTOCOL_VERSION
+        raw = aic_section["protocol_version"]
+        if isinstance(raw, bool) or not isinstance(raw, str | int):
+            raise ValueError("config [aic].protocol_version must be a string or integer")
+        try:
+            return normalize_aic_protocol_version(str(raw))
+        except ValueError as exc:
+            raise ValueError(f"Invalid [aic].protocol_version: {raw!r}") from exc
+
+    def _aic_serial_len(self, key: str, *, default: int) -> int:
+        """读取 [aic] 下的序列号长度；缺省则用历史默认 6 位。"""
+        from app.utils.aic import validate_aic_serial_len
+
+        aic_section = self._toml.get("aic")
+        if not isinstance(aic_section, dict) or key not in aic_section:
+            return default
+        raw = aic_section[key]
+        try:
+            return validate_aic_serial_len(raw, name=f"[aic].{key}")
+        except ValueError as exc:
+            raise ValueError(f"Invalid [aic].{key}: {raw!r}") from exc
+
+    @property
+    def aic_ontology_serial_len(self) -> int:
+        """AIC 第8级本体序列号自动生成长度。每次从 TOML 读取。"""
+        from app.utils.aic import DEFAULT_ONTOLOGY_SERIAL_LEN
+
+        return self._aic_serial_len("ontology_serial_len", default=DEFAULT_ONTOLOGY_SERIAL_LEN)
+
+    @property
+    def aic_instance_serial_len(self) -> int:
+        """AIC 第9级实体序列号自动生成长度。每次从 TOML 读取。"""
+        from app.utils.aic import DEFAULT_INSTANCE_SERIAL_LEN
+
+        return self._aic_serial_len("instance_serial_len", default=DEFAULT_INSTANCE_SERIAL_LEN)
 
     @property
     def api_v1_str(self) -> str:
@@ -420,7 +532,7 @@ class Settings(BaseSettings):
 
     @property
     def uvicorn_host(self) -> str:
-        return str(self._toml.get("server", {}).get("host", "0.0.0.0"))  # noqa: S104
+        return str(self._toml.get("server", {}).get("host", "0.0.0.0"))  # noqa: S104  # nosec B104 - configurable server bind address
 
     @property
     def uvicorn_port(self) -> int:
@@ -457,6 +569,72 @@ class Settings(BaseSettings):
         if self.email_password_override is not None:
             return self.email_password_override
         return str(self._toml.get("smtp", {}).get("email_password", ""))
+
+    @property
+    def oidc_enabled(self) -> bool:
+        if self.oidc_enabled_override is not None:
+            return self.oidc_enabled_override
+        return bool(self._toml.get("oidc", {}).get("enabled", False))
+
+    @property
+    def oidc_issuer(self) -> str:
+        if self.oidc_issuer_override is not None:
+            return self.oidc_issuer_override.strip()
+        return str(self._toml.get("oidc", {}).get("issuer", "")).strip()
+
+    @property
+    def oidc_audience(self) -> str:
+        if self.oidc_audience_override is not None:
+            return self.oidc_audience_override.strip()
+        return str(self._toml.get("oidc", {}).get("audience", "registry-api")).strip()
+
+    @property
+    def oidc_allowed_azp(self) -> list[str]:
+        if self.oidc_allowed_azp_override is not None:
+            return _parse_string_list(self.oidc_allowed_azp_override)
+        return _parse_string_list(self._toml.get("oidc", {}).get("allowed_azp", []))
+
+    @property
+    def oidc_client_id(self) -> str:
+        if self.oidc_client_id_override is not None:
+            return self.oidc_client_id_override.strip()
+        return str(self._toml.get("oidc", {}).get("client_id", self.oidc_audience)).strip()
+
+    @property
+    def oidc_algorithms(self) -> list[str]:
+        if self.oidc_algorithms_override is not None:
+            return _parse_string_list(self.oidc_algorithms_override)
+        return _parse_string_list(self._toml.get("oidc", {}).get("algorithms", ["EdDSA"]))
+
+    @property
+    def oidc_jwks_cache_ttl_seconds(self) -> int:
+        if self.oidc_jwks_cache_ttl_seconds_override is not None:
+            return int(self.oidc_jwks_cache_ttl_seconds_override)
+        return int(self._toml.get("oidc", {}).get("jwks_cache_ttl_seconds", 300))
+
+    @property
+    def oidc_discovery_cache_ttl_seconds(self) -> int:
+        if self.oidc_discovery_cache_ttl_seconds_override is not None:
+            return int(self.oidc_discovery_cache_ttl_seconds_override)
+        return int(self._toml.get("oidc", {}).get("discovery_cache_ttl_seconds", 300))
+
+    @property
+    def oidc_leeway_seconds(self) -> int:
+        if self.oidc_leeway_seconds_override is not None:
+            return int(self.oidc_leeway_seconds_override)
+        return int(self._toml.get("oidc", {}).get("leeway_seconds", 30))
+
+    @property
+    def oidc_require_https(self) -> bool:
+        if self.oidc_require_https_override is not None:
+            return self.oidc_require_https_override
+        return bool(self._toml.get("oidc", {}).get("require_https", True))
+
+    @property
+    def oidc_role_source_client_id(self) -> str:
+        if self.oidc_role_source_client_id_override is not None:
+            return self.oidc_role_source_client_id_override.strip()
+        return str(self._toml.get("oidc", {}).get("role_source_client_id", self.oidc_audience)).strip()
 
 
 @lru_cache

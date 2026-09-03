@@ -16,6 +16,13 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
     CREATE USER discovery WITH PASSWORD 'discovery';
     CREATE DATABASE agent_discovery OWNER discovery;
     CREATE DATABASE agent_discovery_test OWNER discovery;
+
+    CREATE USER monitor WITH PASSWORD 'monitor';
+    CREATE DATABASE agent_monitor OWNER monitor;
+    CREATE DATABASE agent_monitor_test OWNER monitor;
+
+    CREATE USER keycloak WITH PASSWORD 'keycloak';
+    CREATE DATABASE keycloak OWNER keycloak;
 EOSQL
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname agent_discovery <<-EOSQL
@@ -26,4 +33,4 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname agent_discovery_tes
     CREATE EXTENSION IF NOT EXISTS vector;
 EOSQL
 
-echo "ACPs 开发数据库初始化完成：agent_registry, agent_registry_test, agent_ca, agent_ca_test, agent_discovery, agent_discovery_test（含 discovery pgvector 扩展）"
+echo "ACPs 开发数据库初始化完成：agent_registry, agent_registry_test, agent_ca, agent_ca_test, agent_discovery, agent_discovery_test, agent_monitor, agent_monitor_test, keycloak（含 discovery pgvector 扩展）"

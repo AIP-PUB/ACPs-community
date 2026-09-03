@@ -1,0 +1,25 @@
+[server]
+reload = false
+uvicorn_log_level = "warning"
+
+[logging]
+level = "INFO"
+format = "json"
+
+[app]
+docs_enabled = false
+
+[ca]
+acme_directory_url = "http://{{ _ca_host }}:{{ ca_server_port }}/acps-atr-v2/acme"
+ocsp_responder_url = "http://{{ _ca_host }}:{{ ca_server_port }}/acps-atr-v2/ocsp"
+crl_distribution_point_url = "http://{{ _ca_host }}:{{ ca_server_port }}/acps-atr-v2/crl/current"
+cert_path = "certs/ca.crt"
+key_path = "certs/ca.key"
+chain_path = "certs/ca-chain.pem"
+trust_bundle_path = "certs/trust-bundle.pem"
+
+{% set _reg_connect = 'registry_server' if (acps_deploy_mode == 'image' and inventory_hostname in (groups['registry_server'] | default([]))) else _registry_host %}
+[registry_server]
+mock = false
+url = "http://{{ _reg_connect }}:{{ registry_server_public_port }}/acps-atr-v2"
+timeout = 10

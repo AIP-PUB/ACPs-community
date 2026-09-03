@@ -10,7 +10,9 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 from cryptography import x509
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 
+from acps_cli.ca.keys import generate_private_key, load_private_key, save_private_key
 from acps_cli.main import main as cli_main
 from tests.e2e.conftest import make_acs_file
 
@@ -235,6 +237,83 @@ def _refresh_crl(runner: CliRunner, *, ca_conf: Path) -> dict[str, object]:
 
 class TestCaLifecycleWorkflow:
     """验证 cert 生命周期主命令可组成完整闭环。"""
+
+    def test_account_key_rollover_defaults_to_ed25519_and_keeps_account_usable(
+        self,
+        work_dir: Path,
+        reg_conf: Path,
+        admin_conf: Path,
+        ca_conf: Path,
+        user_credentials: tuple[str, str],
+        admin_credentials: tuple[str, str],
+    ) -> None:
+        runner = CliRunner()
+        legacy_account_key_path = work_dir / "keyfiles" / "accounts" / "account.key"
+        save_private_key(generate_private_key("ec"), str(legacy_account_key_path))
+
+        issued = _issue_approved_agent_certificate(
+            runner,
+            work_dir=work_dir,
+            reg_conf=reg_conf,
+            admin_conf=admin_conf,
+            ca_conf=ca_conf,
+            user_credentials=user_credentials,
+            admin_credentials=admin_credentials,
+        )
+
+        account_key_path = work_dir / "keyfiles" / "accounts" / f"{issued.aic}.account.key"
+        assert account_key_path.exists(), f"canonical account key 未生成: {account_key_path}"
+
+        initial_key = load_private_key(str(account_key_path))
+        assert isinstance(
+            initial_key,
+            ec.EllipticCurvePrivateKey,
+        ), "预置 legacy account key 未被用于首次 ACME account 创建"
+        initial_key_pem = account_key_path.read_bytes()
+        initial_serial = _read_first_certificate_serial(issued.cert_path)
+
+        rollover_result = runner.invoke(
+            ca_main,
+            [
+                "--config",
+                str(ca_conf),
+                "cert",
+                "account-key",
+                "rollover",
+                "--aic",
+                issued.aic,
+                "--no-backup",
+            ],
+        )
+        assert rollover_result.exit_code == 0, f"account-key rollover 失败: {rollover_result.output}"
+
+        rolled_key = load_private_key(str(account_key_path))
+        assert isinstance(rolled_key, ed25519.Ed25519PrivateKey), "未显式指定 --key-type 时 rollover 应默认生成 Ed25519"
+        assert account_key_path.read_bytes() != initial_key_pem, "rollover 后 account key 文件内容未变化"
+        assert list(account_key_path.parent.glob(f"{account_key_path.name}.bak-*")) == [], (
+            "--no-backup 不应产生备份文件"
+        )
+
+        renew_result = runner.invoke(
+            ca_main,
+            [
+                "--config",
+                str(ca_conf),
+                "cert",
+                "renew",
+                "--aic",
+                issued.aic,
+                "--eab-file",
+                str(issued.eab_path),
+                "--usage",
+                "clientAuth",
+                "--force",
+            ],
+        )
+        assert renew_result.exit_code == 0, f"rollover 后使用新 account key 续期失败: {renew_result.output}"
+
+        renewed_serial = _read_first_certificate_serial(issued.cert_path)
+        assert renewed_serial != initial_serial, "rollover 后续期未签发新证书"
 
     def test_renew_and_download_crl_assets(
         self,

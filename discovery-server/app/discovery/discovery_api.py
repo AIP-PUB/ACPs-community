@@ -22,6 +22,7 @@ from app.discovery.service import (
     get_forwarder_status_payload,
 )
 from app.discovery.validator import validate_discovery_request
+from app.heartbeat_sync.enrichment import attach_alive_status
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ router = APIRouter()
     response_model=DiscoveryResponse,
     summary="发现 Agent",
     description="""
-    DiscoveryRequest 字段说明【详细结构参考ACPs协议文档 -> ADP：智能体发现过程（ACPs-spec-ADP-v02.01）】：
+    DiscoveryRequest 字段说明【详细结构参考ACPs协议文档 -> ADP：智能体发现过程（ACPs-spec-ADP-v02.02）】：
 - `type`：查询类型，explicit: 明确查询（默认）,
             exploratory: 探索性查询，用户没有明确目标；
             trending: 热门查询，返回当前流行的智能体；
@@ -80,6 +81,7 @@ async def discover_endpoint(
     validate_discovery_request(request)
 
     response = await discover_request(request, runtime=runtime)
+    await attach_alive_status(response)
     return JSONResponse(content=response.to_dict(), status_code=200)
 
 

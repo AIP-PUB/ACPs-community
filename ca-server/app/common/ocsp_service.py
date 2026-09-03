@@ -7,14 +7,25 @@ from typing import Any
 import structlog
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import dsa, ec, ed448, ed25519, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.x509.ocsp import OCSPResponseBuilder
+from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import func, select
 
 from ..core.ca_manager import get_ca_manager
+from ..core.config import get_settings
+from ..core.crypto_utils import (
+    PrivateKeyTypes,
+    PublicKeyTypes,
+    assert_private_key_matches_certificate,
+    ocsp_responder_key_hash,
+    require_supported_public_key,
+    signature_algorithm_name,
+    x509_signature_algorithm_for,
+)
 from ..ocsp.exception import OCSPProcessingFailedError, OCSPResponderNotFoundError
 from .certificate_model import Certificate, CertificateStatus, RevocationReason
 from .ocsp_model import (
@@ -26,6 +37,49 @@ from .ocsp_model import (
 from .time_utils import beijing_now, format_datetime
 
 logger = structlog.get_logger(__name__)
+
+
+def build_ocsp_responder_certificate(
+    public_key: PublicKeyTypes,
+    ca_cert: x509.Certificate,
+    ca_private_key: PrivateKeyTypes,
+) -> x509.Certificate:
+    """使用当前 CA 签发 OCSP responder 证书。"""
+    now = datetime.now(UTC)
+    builder = (
+        x509.CertificateBuilder()
+        .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Agent CA OCSP Responder")]))
+        .issuer_name(ca_cert.subject)
+        .public_key(public_key)
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=365))
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        .add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                key_encipherment=False,
+                content_commitment=False,
+                data_encipherment=False,
+                key_agreement=False,
+                key_cert_sign=False,
+                crl_sign=False,
+                encipher_only=False,
+                decipher_only=False,
+            ),
+            critical=True,
+        )
+        .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.OCSP_SIGNING]), critical=True)
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(public_key), critical=False)
+        .add_extension(
+            x509.AuthorityKeyIdentifier.from_issuer_public_key(require_supported_public_key(ca_cert.public_key())),
+            critical=False,
+        )
+    )
+    return builder.sign(
+        private_key=ca_private_key,
+        algorithm=x509_signature_algorithm_for(ca_private_key),
+    )
 
 
 class OCSPService:
@@ -74,7 +128,7 @@ class OCSPService:
             cert_status, revocation_time, revocation_reason = self._resolve_certificate_status(certificate)
 
             ca_cert = self._get_ca_certificate_or_raise()
-            responder = await self.get_active_responder()
+            responder = await self.bootstrap_default_responder()
             if not responder:
                 raise OCSPResponderNotFoundError()
 
@@ -89,10 +143,13 @@ class OCSPService:
                 serial_number_int=serial_number_int,
                 request_hash_algorithm=request_hash_algorithm,
             )
-            ocsp_response, response_der = self._sign_ocsp_response(response_builder, responder)
-            responder_key_hash = ocsp_response.responder_key_hash
-            if responder_key_hash is None:
-                raise RuntimeError("OCSP response is missing responder key hash")
+            _ocsp_response, response_der, response_signature_algorithm = self._sign_ocsp_response(
+                response_builder,
+                responder,
+            )
+            responder_key_hash_hex = self._responder_public_key_hash(
+                x509.load_pem_x509_certificate(responder.certificate_pem.encode())
+            )
             processing_time = int((beijing_now() - start_time).total_seconds() * 1000)
             self._persist_ocsp_response(
                 request_record=request_record,
@@ -103,8 +160,9 @@ class OCSPService:
                 revocation_time=revocation_time,
                 revocation_reason=revocation_reason,
                 responder_name=responder.name,
-                responder_key_hash=responder_key_hash.hex(),
+                responder_key_hash=responder_key_hash_hex,
                 response_der=response_der,
+                signature_algorithm=response_signature_algorithm,
                 processing_time=processing_time,
             )
             await self.session.flush()
@@ -219,26 +277,24 @@ class OCSPService:
         self,
         response_builder: OCSPResponseBuilder,
         responder: OCSPResponder,
-    ) -> tuple[x509.ocsp.OCSPResponse, bytes]:
+    ) -> tuple[x509.ocsp.OCSPResponse, bytes, str]:
         """使用 responder 证书与私钥签发 OCSP 响应"""
         responder_private_key = serialization.load_pem_private_key(responder.private_key_pem.encode(), password=None)
         responder_cert = x509.load_pem_x509_certificate(responder.certificate_pem.encode())
         if not isinstance(
-            responder_private_key,
-            (
-                rsa.RSAPrivateKey,
-                dsa.DSAPrivateKey,
-                ec.EllipticCurvePrivateKey,
-                ed25519.Ed25519PrivateKey,
-                ed448.Ed448PrivateKey,
-            ),
+            responder_private_key, (rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey, ed25519.Ed25519PrivateKey)
         ):
             raise ValueError("Unsupported responder private key type")
+        self._validate_responder_profile(responder_cert, responder_private_key)
 
         response_builder = response_builder.responder_id(x509.ocsp.OCSPResponderEncoding.HASH, responder_cert)
         response_builder = response_builder.certificates([responder_cert])
-        ocsp_response = response_builder.sign(private_key=responder_private_key, algorithm=hashes.SHA256())
-        return ocsp_response, ocsp_response.public_bytes(Encoding.DER)
+        algorithm_name = signature_algorithm_name(responder_private_key)
+        ocsp_response = response_builder.sign(
+            private_key=responder_private_key,
+            algorithm=x509_signature_algorithm_for(responder_private_key),
+        )
+        return ocsp_response, ocsp_response.public_bytes(Encoding.DER), algorithm_name
 
     def _persist_ocsp_response(
         self,
@@ -252,6 +308,7 @@ class OCSPService:
         responder_name: str,
         responder_key_hash: str,
         response_der: bytes,
+        signature_algorithm: str,
         processing_time: int,
     ) -> None:
         """持久化 OCSP 响应记录"""
@@ -267,7 +324,7 @@ class OCSPService:
             responder_key_hash=responder_key_hash,
             response_der=response_der,
             response_size=len(response_der),
-            signature_algorithm="SHA256withRSA",
+            signature_algorithm=signature_algorithm,
             processing_time_ms=processing_time,
         )
         self.session.add(response_record)
@@ -305,24 +362,23 @@ class OCSPService:
 
     async def get_responder_info(self) -> dict[str, Any]:
         """获取OCSP响应器信息"""
-        responder = await self.get_active_responder()
+        responder = await self.bootstrap_default_responder()
         if not responder:
             raise OCSPResponderNotFoundError()
 
-        ca_manager = get_ca_manager()
-        ca_cert = ca_manager.ca_cert
-        if ca_cert is None:
-            raise RuntimeError("CA certificate is not initialized")
+        responder_cert = x509.load_pem_x509_certificate(responder.certificate_pem.encode())
+        responder_private_key = serialization.load_pem_private_key(responder.private_key_pem.encode(), password=None)
+        if not isinstance(
+            responder_private_key, (rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey, ed25519.Ed25519PrivateKey)
+        ):
+            raise RuntimeError("Responder private key type is not supported")
+        self._validate_responder_profile(responder_cert, responder_private_key)
 
         return {
             "responder": {
                 "name": responder.name,
-                "key_hash": hashlib.sha1(
-                    ca_cert.public_key().public_bytes(
-                        encoding=serialization.Encoding.DER,
-                        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-                    )
-                ).hexdigest(),
+                "key_hash": self._responder_public_key_hash(responder_cert),
+                "key_fingerprint_sha256": responder_cert.fingerprint(hashes.SHA256()).hex(),
                 "certificate": responder.certificate_pem,
             },
             "service_info": {
@@ -351,7 +407,10 @@ class OCSPService:
         # 验证证书和私钥
         try:
             cert = x509.load_pem_x509_certificate(certificate_pem.encode())
-            _ = serialization.load_pem_private_key(private_key_pem.encode(), password=None)
+            private_key = serialization.load_pem_private_key(private_key_pem.encode(), password=None)
+            if not isinstance(private_key, (rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey, ed25519.Ed25519PrivateKey)):
+                raise ValueError("Unsupported responder private key type")
+            self._validate_responder_profile(cert, private_key)
         except (ValueError, TypeError) as e:
             raise ValueError(f"Invalid certificate or private key: {e!s}") from e
 
@@ -380,6 +439,38 @@ class OCSPService:
         await self.session.refresh(responder)
 
         return responder
+
+    async def bootstrap_default_responder(self) -> OCSPResponder:
+        """确保存在一个默认的活跃 OCSP responder。"""
+        existing = await self.get_active_responder()
+        if existing:
+            cert = x509.load_pem_x509_certificate(existing.certificate_pem.encode())
+            private_key = serialization.load_pem_private_key(existing.private_key_pem.encode(), password=None)
+            if not isinstance(private_key, (rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey, ed25519.Ed25519PrivateKey)):
+                raise RuntimeError("Unsupported responder private key type")
+            self._validate_responder_profile(cert, private_key)
+            return existing
+
+        ca_manager = get_ca_manager()
+        if ca_manager.ca_cert is None or ca_manager.ca_private_key is None:
+            raise RuntimeError("CA certificate or private key is not initialized")
+
+        private_key = ed25519.Ed25519PrivateKey.generate()
+        certificate = build_ocsp_responder_certificate(
+            private_key.public_key(),
+            ca_manager.ca_cert,
+            ca_manager.ca_private_key,
+        )
+        return await self.create_responder(
+            name="Agent CA OCSP Responder",
+            certificate_pem=certificate.public_bytes(Encoding.PEM).decode("utf-8"),
+            private_key_pem=private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            ).decode("utf-8"),
+            endpoints={"primary": get_settings().ocsp_responder_url},
+        )
 
     async def get_ocsp_statistics(self) -> dict[str, Any]:
         """获取OCSP统计信息"""
@@ -588,3 +679,32 @@ class OCSPService:
             results.append(status)
 
         return results
+
+    def _responder_public_key_hash(self, certificate: x509.Certificate) -> str:
+        """返回 responder 证书公钥对应的 byKey hash。"""
+        return ocsp_responder_key_hash(require_supported_public_key(certificate.public_key()))
+
+    def _validate_responder_profile(self, cert: x509.Certificate, private_key: PrivateKeyTypes) -> None:
+        """校验 responder 证书画像与私钥匹配。"""
+        assert_private_key_matches_certificate(private_key, cert)
+
+        try:
+            basic_constraints = cert.extensions.get_extension_for_class(x509.BasicConstraints).value
+        except x509.ExtensionNotFound as exc:
+            raise ValueError("OCSP responder certificate must include BasicConstraints") from exc
+        if basic_constraints.ca:
+            raise ValueError("OCSP responder certificate must not be a CA")
+
+        try:
+            key_usage = cert.extensions.get_extension_for_class(x509.KeyUsage).value
+        except x509.ExtensionNotFound as exc:
+            raise ValueError("OCSP responder certificate must include KeyUsage") from exc
+        if not key_usage.digital_signature:
+            raise ValueError("OCSP responder certificate must allow digitalSignature")
+
+        try:
+            eku = cert.extensions.get_extension_for_class(x509.ExtendedKeyUsage).value
+        except x509.ExtensionNotFound as exc:
+            raise ValueError("OCSP responder certificate must include id-kp-OCSPSigning") from exc
+        if ExtendedKeyUsageOID.OCSP_SIGNING not in eku:
+            raise ValueError("OCSP responder certificate must include id-kp-OCSPSigning")

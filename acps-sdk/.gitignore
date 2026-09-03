@@ -217,6 +217,9 @@ uploads/
 processed/
 temp/
 
+# temporary plans
+plans/
+
 # Celery
 celerybeat-schedule
 celerybeat.pid

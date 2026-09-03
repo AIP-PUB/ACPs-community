@@ -1,6 +1,6 @@
 """ACME 数据库模型：账户、订单、授权、挑战、Nonce、证书签发记录等 ORM 定义"""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any, ClassVar
 
@@ -255,9 +255,9 @@ class AcmeNonce(SQLModel, table=True):
     nonce: str = Field(unique=True, index=True, max_length=255)
     # 是否已使用
     used: bool = Field(default=False)
-    # 过期时间
+    # 过期时间：相对当前时间的 TTL（勿用“当前小时末”，临近 :59 会塌缩到秒级）
     expires: datetime = Field(
-        default_factory=lambda: beijing_now().replace(minute=59, second=59, microsecond=0),
+        default_factory=lambda: beijing_now() + timedelta(hours=1),
         sa_type=_aware_datetime_type(),
     )
 

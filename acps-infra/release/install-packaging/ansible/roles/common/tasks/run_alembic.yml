@@ -1,0 +1,8 @@
+---
+# run_alembic.yml
+# 向后兼容别名：等价于 db_migrate.yml（按 acps_deploy_mode 分派
+# db_migrate_{{mode}}.yml，本设计 §5.3）。新调用方请直接
+# `include_role: {name: common, tasks_from: db_migrate.yml}`；本文件仅为
+# 未迁移调用点保留，行为与直接调用 db_migrate.yml 完全一致。
+- name: 委托给 db_migrate.yml（mode 分派）
+  ansible.builtin.include_tasks: db_migrate.yml

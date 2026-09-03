@@ -1,0 +1,48 @@
+services:
+  demo_partner:
+    image: {{ acps_effective_image_tag }}
+    env_file:
+      - {{ acps_runtime_root }}/config/demo_partner/.env
+    ports:
+      - "{{ demo_partner_port_food | default(9021) }}:9021"
+      - "{{ demo_partner_port_rural | default(9022) }}:9022"
+      - "{{ demo_partner_port_urban | default(9023) }}:9023"
+      - "{{ demo_partner_port_hotel | default(9024) }}:9024"
+      - "{{ demo_partner_port_transport | default(9025) }}:9025"
+    volumes:
+      # image-packaging app image WORKDIR is /opt/acps/app (ACPS_APP_ROOT).
+      - {{ acps_runtime_root }}/components/demo_partner/partners/online:/opt/acps/app/partners/online:ro,z
+      # Host bind for AMP jsonl (amp_forwarder tails this dir).
+      - {{ acps_log_root }}/demo_partner:/opt/acps/app/logs:z
+      # Workaround until rebuilt demo-partner image honors AMP_LOG_DIR
+      # (current wheel still resolves logs via __file__ → site-packages).
+      - {{ acps_log_root }}/demo_partner:/opt/acps/venv/lib/python3.14/site-packages/logs:z
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; [socket.create_connection(('localhost', port), timeout=5).close() for port in (9021, 9022, 9023, 9024, 9025)]",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+{% set _acps_extra_hosts = hostvars | acps_compose_extra_hosts(groups) %}
+{% if _acps_extra_hosts %}
+    extra_hosts:
+{% for _eh in _acps_extra_hosts %}
+      - "{{ _eh }}"
+{% endfor %}
+{% endif %}
+    networks:
+      - {{ acps_docker_network }}

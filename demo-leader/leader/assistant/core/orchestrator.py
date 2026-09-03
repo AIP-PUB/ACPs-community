@@ -18,6 +18,10 @@ from datetime import UTC
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from acps_sdk.amp import AuditAction, AuditActor, AuditBody, AuditResult, AuditTarget
+from acps_sdk.oidc import HumanPrincipal, audit_actor_from_principal
+
+from leader.assistant.amp_setup import LEADER_AIC, LEADER_EMITTER
 from leader.runtime_paths import resolve_leader_dir
 
 from ..api.schemas import (
@@ -59,6 +63,7 @@ from ..models.input_routing import (
     InputRoutingResult,
     PartnerGapInfo,
 )
+from ..security import bind_session_principal
 from ..services.scenario_loader import ScenarioLoader
 from .aggregator import AggregationResult, Aggregator, DegradationInfo, PartnerOutput
 from .background_executor import BackgroundExecutor, get_background_executor
@@ -164,6 +169,7 @@ class Orchestrator:
         background_executor: BackgroundExecutor | None = None,
         leader_aic: str | None = None,
         async_execution: bool = True,
+        identity_binding_enabled: bool | None = None,
     ):
         """
         初始化编排器。
@@ -201,12 +207,20 @@ class Orchestrator:
         self._aggregator = aggregator
         self._history_compressor = history_compressor
         self._task_execution_manager = task_execution_manager
+        # 共享 NotificationExecutor 实例（callback_base_url 配置时创建）
+        self._notification_executor = None
         self._background_executor = background_executor
         self._leader_aic = leader_aic
         self._async_execution = async_execution
+        self._identity_binding_enabled = identity_binding_enabled
         self._started = False
         # 用于防止历史压缩竞态的锁
         self._compression_locks: dict = {}
+
+    @property
+    def notification_executor(self):
+        """返回共享 NotificationExecutor 实例（未配置 callback_base_url 时为 None）。"""
+        return self._notification_executor
 
     async def start(self):
         """
@@ -220,6 +234,9 @@ class Orchestrator:
         from ..config import settings
         from ..llm.client import get_llm_client
         from ..services.scenario_loader import get_scenario_loader
+
+        if self._identity_binding_enabled is None:
+            self._identity_binding_enabled = bool(settings.get("app", {}).get("identity_binding_enabled", True))
 
         # 获取 leader_aic
         if not self._leader_aic:
@@ -247,13 +264,34 @@ class Orchestrator:
 
             self._planner = get_planner(scenario_loader=self._scenario_loader)
 
-        # 创建 Executor
+        # 创建 Executor（AipExecutor 按 Partner ACS 能力位路由到 Stream / RPC / Notification）
         if not self._executor:
             ssl_context = _build_client_ssl_context(settings)
-            self._executor = TaskExecutor(
+            callback_base_url = settings.get("app", {}).get("callback_base_url") or None
+
+            # 若配置了 callback_base_url，创建共享 NotificationExecutor 并供 AipExecutor 使用
+            if callback_base_url and not self._notification_executor:
+                from .notification_executor import NotificationExecutor
+
+                leader_aic = settings.get("app", {}).get("leader_aic", "unknown-leader")
+                self._notification_executor = NotificationExecutor(
+                    partner_base_url="http://placeholder",  # per-task 时用 start_for_partner 覆盖
+                    leader_id=leader_aic,
+                    callback_base_url=callback_base_url,
+                    ssl_context=ssl_context,
+                    identity_binding_enabled=self._identity_binding_enabled,
+                )
+                logger.info("NotificationExecutor created with callback_base_url=%s", callback_base_url)
+
+            from .aip_executor import AipExecutor
+
+            self._executor = AipExecutor(
                 leader_aic=self._leader_aic,
                 config=ExecutorConfig(),
                 ssl_context=ssl_context,
+                callback_base_url=callback_base_url,
+                notification_executor=self._notification_executor,
+                identity_binding_enabled=self._identity_binding_enabled,
             )
 
         # 创建 ClarificationMerger (LLM-3)
@@ -427,7 +465,12 @@ class Orchestrator:
         self._started = False
         logger.info("Orchestrator stopped")
 
-    async def handle_submit(self, request: SubmitRequest) -> SubmitResponse:
+    async def handle_submit(
+        self,
+        request: SubmitRequest,
+        *,
+        principal: HumanPrincipal | None = None,
+    ) -> SubmitResponse:
         """
         处理 /submit 请求。
 
@@ -465,16 +508,23 @@ class Orchestrator:
             client_request_id=request.client_request_id,
             request_hash=request_hash,
             active_task_id=request.active_task_id,
+            principal=principal,
         )
         session_id = session.session_id
         logger.debug(f"[Orchestrator] Session: {session_id[:16]}, new={is_new_session}")
         self._ensure_session_scenario_metadata(session)
 
+        if principal is not None:
+            bind_session_principal(session, principal)
+
         # 2. 记录事件日志（用户输入作为事件记录，对话轮次在最终响应时记录）
         self._session_manager.add_event_log(
             session_id=session_id,
             event_type=EventLogType.USER_SUBMIT,
-            payload={"query": request.query},
+            payload={
+                "query": request.query,
+                **({"principal_id": principal.principal_id} if principal is not None else {}),
+            },
         )
 
         # 4. 获取当前活跃任务
@@ -494,6 +544,33 @@ class Orchestrator:
         logger.debug(
             f"[Orchestrator] <<< LLM-1 completed in {llm1_elapsed:.0f}ms, intent={intent_decision.intent_type.value}"
         )
+
+        # A1: 审计——用户提交请求，意图分析完成
+        try:
+            actor = (
+                audit_actor_from_principal(principal)
+                if principal is not None
+                else AuditActor(
+                    id=request.user_id or "anonymous",
+                    type="human",
+                    name=request.user_id,
+                )
+            )
+            await LEADER_EMITTER.emit(
+                AuditBody(
+                    actor=actor,
+                    action=AuditAction(name="submit_request", type="task_management"),
+                    target=AuditTarget(type="session", id=session.session_id),
+                    result=AuditResult(
+                        status="success",
+                        reason=f"intent={intent_decision.intent_type.value}",
+                    ),
+                ),
+                trace_id=session.session_id,
+                correlation_id=active_task.active_task_id if active_task else None,
+            )
+        except Exception:
+            logger.warning("Audit emit A1 failed", exc_info=True)
 
         # 6. 记录意图决策
         self._session_manager.add_event_log(
@@ -573,6 +650,7 @@ class Orchestrator:
         client_request_id: str | None,
         request_hash: str,
         active_task_id: str | None,
+        principal: HumanPrincipal | None = None,
     ) -> tuple[Session, bool]:
         """
         获取或创建 Session，包含完整校验逻辑。
@@ -657,6 +735,11 @@ class Orchestrator:
             self._session_manager.create_session(
                 mode=execution_mode,
                 base_scenario=self._scenario_loader.base_scenario,
+                user_id=principal.principal_id if principal is not None else None,
+                principal_issuer=principal.issuer if principal is not None else None,
+                principal_subject=principal.subject if principal is not None else None,
+                principal_username=principal.username if principal is not None else None,
+                principal_email=principal.email if principal is not None else None,
             ),
             True,
         )
@@ -1016,6 +1099,8 @@ class Orchestrator:
         # 终止当前活跃任务
         active_task = self._get_active_task(session)
         if active_task:
+            if self._background_executor:
+                await self._background_executor.cancel_task_and_wait(active_task.active_task_id)
             await self._terminate_current_task(session, active_task)
 
         # 创建新的活跃任务
@@ -1138,6 +1223,30 @@ class Orchestrator:
                     )
                     # 保存 session 更新
                     self._session_manager.update_session(session)
+
+                    # A2: 审计——规划完成，partner 已选定
+                    _partner_aics = sorted(
+                        {sel.partner_aic for sels in planning_result.selected_partners.values() for sel in sels}
+                    )
+                    try:
+                        await LEADER_EMITTER.emit(
+                            AuditBody(
+                                actor=AuditActor(id=LEADER_AIC, type="agent"),
+                                action=AuditAction(
+                                    name="plan_partners_selected",
+                                    type="partner_orchestration",
+                                ),
+                                target=AuditTarget(type="task", id=new_task_id),
+                                result=AuditResult(
+                                    status="success",
+                                    reason=f"partners={_partner_aics}",
+                                ),
+                            ),
+                            trace_id=session.session_id,
+                            correlation_id=new_task_id,
+                        )
+                    except Exception:
+                        logger.warning("Audit emit A2 failed", exc_info=True)
 
                     # 提交任务到后台执行
                     self._background_executor.submit_task(
@@ -1269,7 +1378,11 @@ class Orchestrator:
 
                     # 尝试从 last_snapshot 获取详细的 gap 信息
                     if partner_task.last_snapshot and partner_task.last_snapshot.status:
-                        for item in partner_task.last_snapshot.status.data_items or []:
+                        status = partner_task.last_snapshot.status
+                        data_items = getattr(status, "data_items", None)
+                        if data_items is None:
+                            data_items = getattr(status, "dataItems", [])
+                        for item in data_items or []:
                             item_dict = item.model_dump() if hasattr(item, "model_dump") else item
                             if item_dict.get("type") == "text":
                                 text = item_dict.get("text", "")

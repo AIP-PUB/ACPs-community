@@ -182,7 +182,7 @@ class WebHookCreate(BaseModel):
         json_schema_extra={
             "example": {
                 "url": "https://discovery.example.com/webhook/data-change",
-                "secret": "<configured-secret>",
+                "secret": "<configured-secret>",  # nosec B105 - OpenAPI example placeholder
                 "types": ["acs", "dataset"],
                 "events": ["data_change", "retention_cleanup"],
                 "description": "Discovery service webhook",

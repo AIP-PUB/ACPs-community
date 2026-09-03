@@ -1,0 +1,26 @@
+[server]
+reload = false
+uvicorn_log_level = "warning"
+
+[logging]
+level = "INFO"
+format = "json"
+
+[embedding.cpu]
+base_url = "https://www.dmxapi.com/v1/"
+
+[embedding.gpu]
+model_path = "BAAI/bge-m3"
+devices = "mps"
+
+[llm.discovery]
+base_url = "https://www.dmxapi.com/v1/"
+
+[dsp]
+base_url = ""
+
+[dsp.webhook]
+receive_url = ""
+
+[polling]
+server_url = ""

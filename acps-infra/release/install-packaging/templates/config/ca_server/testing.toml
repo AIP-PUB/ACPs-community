@@ -1,0 +1,15 @@
+# config/testing.toml — 测试环境覆盖配置
+
+[server]
+reload = false
+uvicorn_log_level = "warning"
+
+[app]
+docs_enabled = true
+
+[logging]
+level = "WARNING"
+format = "console"
+
+[registry_server]
+mock = true

@@ -52,7 +52,7 @@ partners/
 
 ```bash
 # 启动 Partner 服务
-just app start
+just dev start
 ```
 
 或通过 Python 直接启动：

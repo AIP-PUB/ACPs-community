@@ -701,6 +701,15 @@ def _build_snapshot_table_name(snapshot_id: str) -> str:
     return f"snapshot_{snapshot_id.replace('snap_', '')}"
 
 
+def _validated_snapshot_table_name(table_name: str) -> str:
+    """验证内部生成的快照表名，避免其进入动态 SQL 时携带非法字符。"""
+
+    suffix = table_name.removeprefix("snapshot_")
+    if not suffix or not table_name.startswith("snapshot_") or not suffix.isalnum():
+        raise ValueError(f"非法快照表名：{table_name!r}")
+    return table_name
+
+
 def _build_snapshot_query_filters(types: list[str], from_seq: int | None) -> tuple[str, dict[str, Any]]:
     query_conditions: list[str] = []
     params: dict[str, Any] = {}
@@ -718,31 +727,33 @@ def _build_snapshot_query_filters(types: list[str], from_seq: int | None) -> tup
 
 
 def _build_snapshot_create_table_sql(table_name: str, where_clause: str) -> str:
-    return f"""
-    CREATE TABLE {table_name} AS
-    SELECT
-        COALESCE(a.acs_last_seq, 0) as seq,
-        a.updated_at as ts,
-        'upsert' as op,
-        'acs' as type,
-        a.aic as id,
-        COALESCE(a.acs_version, 1) as version,
-        a.acs as payload
-    FROM agent a
-    WHERE {where_clause}
-        AND a.acs_last_seq <= :current_seq
-    ORDER BY COALESCE(a.acs_last_seq, 0)
-    """
+    safe_table_name = _validated_snapshot_table_name(table_name)
+    return (
+        f"CREATE TABLE {safe_table_name} AS\n"  # nosec B608 - validated internal table name
+        "SELECT\n"
+        "  COALESCE(a.acs_last_seq, 0) AS seq,\n"
+        "  a.updated_at AS ts,\n"
+        "  'upsert' AS op,\n"
+        "  'acs' AS type,\n"
+        "  a.aic AS id,\n"
+        "  COALESCE(a.acs_version, 1) AS version,\n"
+        "  a.acs AS payload\n"
+        "FROM agent a\n"
+        f"WHERE {where_clause}\n"  # nosec B608 - assembled exclusively from fixed predicates
+        "  AND a.acs_last_seq <= :current_seq\n"
+        "ORDER BY COALESCE(a.acs_last_seq, 0)\n"
+    )
 
 
 def _build_snapshot_select_sql(table_name: str, include_offset: bool = False) -> str:
+    safe_table_name = _validated_snapshot_table_name(table_name)
     offset_clause = " OFFSET :offset" if include_offset else ""
-    return f"""
-    SELECT seq, ts, op, type, id, version, payload
-    FROM {table_name}
-    ORDER BY seq
-    LIMIT :limit{offset_clause}
-    """
+    return (
+        "SELECT seq, ts, op, type, id, version, payload\n"
+        f"FROM {safe_table_name}\n"  # nosec B608 - validated internal table name
+        "ORDER BY seq\n"
+        f"LIMIT :limit{offset_clause}\n"  # nosec B608 - offset is selected from a fixed clause
+    )
 
 
 def _build_snapshot_envelopes(rows: Sequence[Any]) -> list[Envelope]:
@@ -868,7 +879,8 @@ async def create_snapshot_async(
         params["current_seq"] = current_seq
         await session.execute(text(create_table_sql), params)
 
-        count_result = await session.execute(text(f"SELECT COUNT(*) FROM {table_name}"))
+        safe_table_name = _validated_snapshot_table_name(table_name)
+        count_result = await session.execute(text(f"SELECT COUNT(*) FROM {safe_table_name}"))  # nosec B608 - validated internal table name
         object_count = count_result.scalar() or 0
         chunk_total = max(1, math.ceil(object_count / limit))
 
@@ -1090,7 +1102,8 @@ def create_snapshot(
         db.execute(text(create_table_sql), params)
 
         # 获取总对象数量
-        count_result = db.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+        safe_table_name = _validated_snapshot_table_name(table_name)
+        count_result = db.execute(text(f"SELECT COUNT(*) FROM {safe_table_name}")).scalar()  # nosec B608 - validated internal table name
         object_count = count_result or 0
 
         # 计算总chunk数量
@@ -1863,7 +1876,7 @@ def send_webhook_notification(
             "X-Webhook-ID": webhook.id,
             "X-Webhook-Signature": signature,
             "X-Webhook-Timestamp": str(timestamp),
-            "User-Agent": "ACPS-DSP-WebHook/1.0",
+            "User-Agent": "ACPs-DSP-WebHook/1.0",
         }
 
         # 如果该webhook-event已在发送中，则跳过本次发送

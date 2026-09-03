@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from app.utils.aic import generate_aic
+from tests.support.aic import generate_aic
 from tests.support.constants import DEFAULT_LOGIN_VALUE
 from tests.support.database import create_agent_with_change_log, create_user
 

@@ -1,0 +1,159 @@
+---
+# db_migrate_host.yml
+# host 模式 Alembic 迁移（本设计 §5.3 / 实施计划 Step 8）：组件 venv 内
+# `python -m alembic upgrade head`，cwd=落地根目录（含软链 config/ 与
+# app-release 保留的 alembic/、alembic.ini —— 布局对齐 image 模式容器
+# /opt/acps/app，故 alembic.ini 的相对 script_location 与
+# app.core.config 的 Path.cwd()/"config" 解析行为一致）。
+#
+# 期望：
+#   acps_component_key      （沿用 stage_artifact_host_app_release.yml 设置的
+#                            host fact）落地根目录派生为
+#                            {{ acps_runtime_root }}/{{ acps_component_key }}
+#   acps_host_migrate_env    （必填）dict，至少含 DATABASE_URL；直接作为本次
+#                            alembic 子进程环境变量（ansible environment:
+#                            精确传值，不经 shell `source app.env`——密码等值中的
+#                            $ / 引号在裸 source 下会被意外展开，不安全）
+
+- name: 要求 db_migrate_host 必填参数
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - (acps_component_key | string | length) > 0
+      - acps_host_migrate_env is defined
+      - (acps_host_migrate_env.DATABASE_URL | default('') | length) > 0
+    fail_msg: >-
+      db_migrate_host.yml requires acps_component_key (set by
+      stage_artifact_host_app_release.yml) and acps_host_migrate_env (dict with
+      at least DATABASE_URL), passed explicitly by the calling role.
+
+# 升级 cutover 闸门：本组件会跑 migrate；deploy_host_service 在 ok 前禁止切 current。
+- name: 标记 cutover 须等 migrate 成功
+  ansible.builtin.set_fact:
+    acps_host_cutover_requires_migrate: true
+    acps_host_db_migrate_ok: false
+
+- name: 设置迁移落地路径
+  ansible.builtin.set_fact:
+    # 升级：优先 staged releases/<ver>（cutover 前对新树跑 migrate）；
+    # 否则经 current / 扁平 install_dest；最后回退组件根。
+    _acps_db_migrate_dest: >-
+      {{
+        acps_host_release_dest
+        | default(
+            acps_host_app_stage_dest
+            | default(
+                acps_host_app_install_dest
+                | default(acps_runtime_root ~ '/' ~ acps_component_key, true),
+                true
+              ),
+            true
+          )
+      }}
+
+- name: 校验 alembic 资源已就位（app-release 保留的 alembic.ini）
+  ansible.builtin.stat:
+    path: "{{ _acps_db_migrate_dest }}/alembic.ini"
+  register: _acps_db_migrate_ini_stat
+
+- name: 要求 alembic.ini 存在
+  ansible.builtin.assert:
+    that:
+      - _acps_db_migrate_ini_stat.stat.exists
+    fail_msg: >-
+      {{ _acps_db_migrate_dest }}/alembic.ini missing. stage_artifact_host_app_release.yml
+      must run with acps_app_keep_app_assets=true before db_migrate_host.yml
+      (component={{ acps_component_key }}). If this component has no Alembic
+      migrations, its role should not call db_migrate.yml at all.
+
+# alembic/env.py 常会 import app.core.config.Settings；仅 DATABASE_URL 不够。
+# 从已渲染的 app.env / .env 解析 KEY=VALUE（不用 shell source，避免 $ 展开），
+# 再与 acps_host_migrate_env 合并（显式值优先）。
+# 注意：必须用目标机 python3，禁止 acps_tools_python（= 控制节点解释器路径）。
+- name: 解析组件 env 文件供迁移子进程使用
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -c
+      - |
+        import json, pathlib, sys
+        env = {}
+        for candidate in sys.argv[1:]:
+            path = pathlib.Path(candidate)
+            if not path.is_file():
+                continue
+            for raw in path.read_text(encoding="utf-8").splitlines():
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                env[key] = value
+            break
+        print(json.dumps(env))
+      - "{{ acps_runtime_root }}/config/{{ acps_component_key }}/app.env"
+      - "{{ acps_runtime_root }}/config/{{ acps_component_key }}/.env"
+  register: _acps_db_migrate_dotenv
+  changed_when: false
+  become: true
+  no_log: true
+
+- name: 合并 env 文件与显式 acps_host_migrate_env（显式优先）
+  ansible.builtin.set_fact:
+    _acps_db_migrate_env_merged: >-
+      {{
+        (_acps_db_migrate_dotenv.stdout | default('{}') | from_json)
+        | combine(acps_host_migrate_env)
+      }}
+  no_log: true
+
+- name: 执行 alembic upgrade head（组件 venv，cwd=落地根目录）
+  ansible.builtin.command:
+    argv:
+      - "{{ _acps_db_migrate_dest }}/venv/bin/python"
+      - -m
+      - alembic
+      - upgrade
+      - head
+  args:
+    chdir: "{{ _acps_db_migrate_dest }}"
+  environment: "{{ _acps_db_migrate_env_merged }}"
+  register: _acps_db_migrate_run
+  changed_when: true
+  no_log: true
+
+# 失败时本 task 已 fail → 不会到达下方 ok / cutover（deploy 在 migrate 之后）。
+- name: 读取 alembic current revision（写入 state.migrate_id）
+  ansible.builtin.command:
+    argv:
+      - "{{ _acps_db_migrate_dest }}/venv/bin/python"
+      - -m
+      - alembic
+      - current
+  args:
+    chdir: "{{ _acps_db_migrate_dest }}"
+  environment: "{{ _acps_db_migrate_env_merged }}"
+  register: _acps_db_migrate_current
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: 标记 migrate 成功并记录 migrate_id（供 commit / 回滚闸门）
+  ansible.builtin.set_fact:
+    acps_host_db_migrate_ok: true
+    acps_host_migrate_id: >-
+      {{
+        (
+          _acps_db_migrate_current.stdout | default('') | trim | regex_findall('^([0-9a-fA-F]+)')
+          | first | default('')
+        )
+        if ((_acps_db_migrate_current.rc | default(1) | int) == 0)
+        else (
+          acps_image_meta.file
+          | default(acps_app_meta.app_release | default(acps_version | default('migrated')), true)
+          | string
+        )
+      }}
+
+- name: 同步 acps_state_migrate_id（兼容旧调用方）
+  ansible.builtin.set_fact:
+    acps_state_migrate_id: "{{ acps_host_migrate_id | string }}"

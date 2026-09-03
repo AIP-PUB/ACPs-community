@@ -1,0 +1,9 @@
+---
+# Recreate / restart one profile's service(s) on one target host after leaf
+# cert renew. 期望： _renew_target_host, _rr (profile meta)
+# 按 mode 分派到独立文件，避免 image shell 中的嵌套引号在 host 路径被 Jinja 误解析。
+
+- name: 按 deploy mode 分派 recreate/restart
+  ansible.builtin.include_role:
+    name: cert_provision
+    tasks_from: "renew_recreate_impl_{{ acps_deploy_mode | default('image') }}.yml"

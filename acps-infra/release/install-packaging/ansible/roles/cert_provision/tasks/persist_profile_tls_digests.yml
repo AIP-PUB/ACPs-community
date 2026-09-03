@@ -1,0 +1,25 @@
+---
+# persist_profile_tls_digests.yml — 旁路改 PEM 后同步 TLS digest 侧车（§9.5.2）
+#
+# 期望：_persist_digest_profiles（profile 名列表，如 redis / rabbitmq / registry-9002）
+# 在对应目标主机上对 PEM 侧车 tls_material_digest persist=true。
+# amp conf digest 不在范围。
+
+- name: 规范化待持久化 profile 列表
+  ansible.builtin.set_fact:
+    _persist_digest_profiles_norm: >-
+      {{
+        (_persist_digest_profiles | default([]))
+        | map('trim')
+        | reject('equalto', '')
+        | list
+        | unique
+      }}
+
+- name: 逐 profile 持久化 TLS digest 侧车
+  when: (_persist_digest_profiles_norm | length) > 0
+  ansible.builtin.include_tasks: persist_profile_tls_digest_one.yml
+  loop: "{{ _persist_digest_profiles_norm }}"
+  loop_control:
+    loop_var: _dig_profile
+    label: "{{ _dig_profile }}"

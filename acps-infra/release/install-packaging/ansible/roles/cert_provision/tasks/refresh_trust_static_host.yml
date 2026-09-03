@@ -1,0 +1,264 @@
+---
+# 仅将 trust 文件复制到目标机 certs 目录；规范化属主。
+# Does NOT touch leaf certs/keys ( / audit 19.C.2).
+# 期望： _tb_consumer, _tb_target_host, acps_trust_bundle_local,
+# acps_trust_bundle_sha256, acps_force_trust_bundle_refresh
+#
+# 属主规范化按 acps_deploy_mode 分派（本设计 §4.4 / §6.3）：
+# image → 从镜像解析 uid:gid（resolve_image_uid.py + docker run chown 回退，
+#         逻辑与承载分派引入前字节级一致）。
+# host  → 只用 acps_systemd_user 或发行版服务用户（getent 本地账号）+ chown；
+#         禁止 resolve_image_uid.py、禁止 docker（任何形式）。
+
+- name: 解析 target paths for static trust
+  ansible.builtin.set_fact:
+    _tb_runtime: "{{ hostvars[_tb_target_host].acps_runtime_root | default(acps_runtime_root) }}"
+    _tb_certs_dir: "{{ (hostvars[_tb_target_host].acps_runtime_root | default(acps_runtime_root)) }}/{{ _tb_consumer.target_certs_rel }}"
+    _tb_remote_file: "{{ (hostvars[_tb_target_host].acps_runtime_root | default(acps_runtime_root)) }}/{{ _tb_consumer.target_certs_rel }}/{{ _tb_consumer.trust_name }}"
+
+- name: 确保 remote certs directory
+  ansible.builtin.file:
+    path: "{{ _tb_certs_dir }}"
+    state: directory
+    mode: "0755"
+  delegate_to: "{{ _tb_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+- name: 检查 remote trust file
+  ansible.builtin.stat:
+    path: "{{ _tb_remote_file }}"
+    checksum_algorithm: sha256
+  register: _tb_remote_stat
+  delegate_to: "{{ _tb_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+- name: Decide whether remote trust needs refresh
+  ansible.builtin.set_fact:
+    _tb_need_copy: "{{ (acps_force_trust_bundle_refresh | bool) or (not _tb_remote_stat.stat.exists) or ((_tb_remote_stat.stat.checksum | default('')) != acps_trust_bundle_sha256) }}"
+
+- name: 跳过 identical remote trust (idempotent)
+  when: not (_tb_need_copy | bool)
+  ansible.builtin.debug:
+    msg: "trust skip {{ _tb_consumer.profile }}@{{ _tb_target_host }} (digest match)"
+
+- name: 复制 trust file only (no leaf overwrite)
+  when: _tb_need_copy | bool
+  ansible.builtin.copy:
+    src: "{{ acps_trust_bundle_local }}"
+    dest: "{{ _tb_remote_file }}"
+    mode: "0644"
+  delegate_to: "{{ _tb_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+- name: 记录 changed profile
+  when: _tb_need_copy | bool
+  ansible.builtin.set_fact:
+    acps_trust_bundle_changed_profiles: >-
+      {{
+        (acps_trust_bundle_changed_profiles + [_tb_consumer.profile])
+        | unique
+        | list
+      }}
+
+# ---------------------------------------------------------------------------
+# 属主解析 — image 分支：从镜像 USER 解析 uid:gid（不回归）
+# ---------------------------------------------------------------------------
+- name: image 分支：属主解析（镜像 uid:gid）
+  when:
+    - _tb_need_copy | bool
+    - acps_deploy_mode == 'image'
+  block:
+    - name: 解析 image mapping for ownership (control)
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_tools_python | default('python3') }}"
+          - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+          - "--manifest"
+          - "{{ acps_manifest_path }}"
+          - "--component"
+          - "{{ _tb_consumer.component_key }}"
+      register: _tb_manifest
+      changed_when: false
+      delegate_to: localhost
+      become: false
+
+    - name: 设置 image facts for trust target
+      ansible.builtin.set_fact:
+        _tb_image_tag: "{{ (_tb_manifest.stdout | from_json).tag }}"
+        _tb_image_file: "{{ (_tb_manifest.stdout | from_json).file }}"
+
+    - name: 检查 image on target
+      ansible.builtin.command:
+        argv: [docker, image, inspect, "{{ _tb_image_tag }}"]
+      register: _tb_img
+      changed_when: false
+      failed_when: false
+      delegate_to: "{{ _tb_target_host }}"
+      vars:
+        ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: 加载 image on target if missing (for chown helper)
+      when: _tb_img.rc != 0
+      block:
+        - name: 确保 image staging on target
+          ansible.builtin.file:
+            path: "{{ _tb_runtime }}/staging/images"
+            state: directory
+            mode: "0755"
+          delegate_to: "{{ _tb_target_host }}"
+          vars:
+            ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+          become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+        - name: 复制 archive to target
+          ansible.builtin.copy:
+            src: "{{ acps_artifacts_images }}/{{ _tb_image_file }}"
+            dest: "{{ _tb_runtime }}/staging/images/{{ _tb_image_file }}"
+            mode: "0644"
+          delegate_to: "{{ _tb_target_host }}"
+          vars:
+            ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+          become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+        - name: docker load on target
+          ansible.builtin.command:
+            argv: [docker, load, -i, "{{ _tb_runtime }}/staging/images/{{ _tb_image_file }}"]
+          delegate_to: "{{ _tb_target_host }}"
+          vars:
+            ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+          become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+        - name: Cleanup staged archive
+          ansible.builtin.file:
+            path: "{{ _tb_runtime }}/staging/images/{{ _tb_image_file }}"
+            state: absent
+          delegate_to: "{{ _tb_target_host }}"
+          vars:
+            ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+          become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+    # 镜像已在本地时上面的 block 会跳过；清掉 runtime 后 staging 仍须存在（G9）。
+    - name: 确保 staging 根目录（无条件；供 resolve_image_uid 落地）
+      ansible.builtin.file:
+        path: "{{ _tb_runtime }}/staging"
+        state: directory
+        mode: "0755"
+      delegate_to: "{{ _tb_target_host }}"
+      vars:
+        ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: stage resolve_image_uid.py on target
+      ansible.builtin.copy:
+        src: "{{ acps_release_root }}/scripts/resolve_image_uid.py"
+        dest: "{{ _tb_runtime }}/staging/resolve_image_uid.py"
+        mode: "0755"
+      delegate_to: "{{ _tb_target_host }}"
+      vars:
+        ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: 解析 uid/gid on target
+      ansible.builtin.command:
+        argv:
+          - "{{ hostvars[_tb_target_host].ansible_python_interpreter | default('python3') }}"
+          - "{{ _tb_runtime }}/staging/resolve_image_uid.py"
+          - "--image"
+          - "{{ _tb_image_tag }}"
+          - "--user"
+          - "{{ _tb_consumer.owner_user }}"
+      register: _tb_uid
+      changed_when: false
+      delegate_to: "{{ _tb_target_host }}"
+      vars:
+        ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: 设置 trust owner facts (image)
+      ansible.builtin.set_fact:
+        _tb_owner_uid: "{{ (_tb_uid.stdout | from_json).uid }}"
+        _tb_owner_gid: "{{ (_tb_uid.stdout | from_json).gid }}"
+
+# ---------------------------------------------------------------------------
+# 属主解析 — host 分支：只用 acps_systemd_user 或发行版服务用户（本地账号）
+# 禁止 resolve_image_uid.py、禁止 docker（本设计 §4.4 / §6.3）
+# ---------------------------------------------------------------------------
+- name: host 分支：属主解析（本地系统账号）
+  when:
+    - _tb_need_copy | bool
+    - acps_deploy_mode == 'host'
+  block:
+    - name: 解析 host trust owner 用户名（默认 acps_systemd_user）
+      ansible.builtin.set_fact:
+        _tb_owner_user_name: "{{ (_tb_consumer.owner_user | default('') | trim) or acps_systemd_user }}"
+
+    - name: getent 查询 owner 用户 on target（本地账号，非镜像 USER）
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ _tb_owner_user_name }}"
+        fail_key: false
+      register: _tb_owner_getent
+      delegate_to: "{{ _tb_target_host }}"
+      vars:
+        ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+      become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+    - name: 断言 owner 用户已存在于目标机
+      ansible.builtin.assert:
+        that:
+          - (_tb_owner_getent.ansible_facts.getent_passwd[_tb_owner_user_name] | default(None)) is not none
+        fail_msg: >-
+          host trust owner user '{{ _tb_owner_user_name }}' 在目标机
+          {{ _tb_target_host }} 不存在（getent passwd 未命中）。host 模式属主须
+          来自目标机本地系统账号（acps_systemd_user 或发行版服务用户），须由
+          对应安装步骤先创建；禁止回退 resolve_image_uid.py / docker run chown
+          （本设计 §4.4 / §6.3）。
+
+    - name: 设置 trust owner facts (host，数字 uid/gid 取自目标机账号)
+      ansible.builtin.set_fact:
+        _tb_owner_uid: "{{ _tb_owner_getent.ansible_facts.getent_passwd[_tb_owner_user_name][1] }}"
+        _tb_owner_gid: "{{ _tb_owner_getent.ansible_facts.getent_passwd[_tb_owner_user_name][2] }}"
+
+- name: image 分支：ownership-normalize trust file only（docker 回退）
+  when:
+    - _tb_need_copy | bool
+    - acps_deploy_mode == 'image'
+  ansible.builtin.shell: |
+    set -euo pipefail
+    FILE="{{ _tb_remote_file }}"
+    UID_GID="{{ _tb_owner_uid }}:{{ _tb_owner_gid }}"
+    chmod 0644 "$FILE"
+    if ! chown "$UID_GID" "$FILE" 2>/dev/null; then
+      # B6 / §9.5.3：镜像默认 USER=acps 时须 root 进容器才能 chown 宿主文件
+      docker run --rm --user 0:0 --entrypoint chown \
+        -v "{{ _tb_certs_dir }}:/certs:z" \
+        "{{ _tb_image_tag }}" \
+        "$UID_GID" "/certs/{{ _tb_consumer.trust_name }}"
+    fi
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ _tb_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"
+
+- name: host 分支：ownership-normalize trust file only（禁止 docker 回退）
+  when:
+    - _tb_need_copy | bool
+    - acps_deploy_mode == 'host'
+  ansible.builtin.file:
+    path: "{{ _tb_remote_file }}"
+    mode: "0644"
+    owner: "{{ _tb_owner_uid }}"
+    group: "{{ _tb_owner_gid }}"
+  delegate_to: "{{ _tb_target_host }}"
+  vars:
+    ansible_connection: "{{ hostvars[_tb_target_host].ansible_connection | default('ssh') }}"
+  become: "{{ (hostvars[_tb_target_host].ansible_become | default(true)) | bool }}"

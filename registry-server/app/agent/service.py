@@ -14,7 +14,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app.account import service_account as account_service_module
 from app.account.model import RoleType, User
-from app.agent import service_acs, service_atr, service_command, service_query
+from app.agent import service_acs, service_atr, service_command, service_provider, service_query
 from app.agent.exception import (
     AgentError,
     AgentErrorCode,
@@ -25,6 +25,9 @@ from app.sync.service import (
     create_change_log,
     create_change_log_async,
     update_agent_with_changelog_async,
+)
+from app.sync.service import (
+    update_agent_with_changelog as sync_update_agent_with_changelog,
 )
 from app.utils import aic
 from app.utils.utils import get_beijing_time, sha256
@@ -67,6 +70,7 @@ create_agent_detail_response = service_query.create_agent_detail_response
 get_user_async = account_service_module.get_user_async
 acs_service_module = cast("Any", service_acs)
 atr_service_module = cast("Any", service_atr)
+provider_service_module = cast("Any", service_provider)
 
 
 def _as_agent_where_clause(value: ColumnElement[bool] | bool) -> AgentWhereClause:
@@ -97,6 +101,36 @@ def generate_aic_for_agent(db: Session, agent: Agent) -> Agent:
     """兼容旧导入面，在 service.py 中委托同步 AIC 生成。"""
     acs_service_module.get_beijing_time = get_beijing_time
     return service_acs.generate_aic_for_agent(db, agent)
+
+
+async def build_verified_provider_snapshot_async(session: AsyncSession, user_id: uuid.UUID) -> dict[str, object]:
+    """兼容旧导入面，在 service.py 中委托异步 provider 快照生成。"""
+    return await service_provider.build_verified_provider_snapshot_async(session, user_id)
+
+
+def build_verified_provider_snapshot(db: Session, user_id: uuid.UUID) -> dict[str, object]:
+    """兼容旧导入面，在 service.py 中委托同步 provider 快照生成。"""
+    return service_provider.build_verified_provider_snapshot(db, user_id)
+
+
+async def apply_verified_provider_snapshot_async(session: AsyncSession, agent: Agent) -> bool:
+    """兼容旧导入面，在 service.py 中委托异步 provider 快照写入。"""
+    return await service_provider.apply_verified_provider_snapshot_async(session, agent)
+
+
+def apply_verified_provider_snapshot(db: Session, agent: Agent) -> bool:
+    """兼容旧导入面，在 service.py 中委托同步 provider 快照写入。"""
+    return service_provider.apply_verified_provider_snapshot(db, agent)
+
+
+def update_agent_with_changelog(db: Session, agent: Agent, agent_data: dict[str, Any]) -> Agent:
+    """兼容旧导入面，在 service.py 中委托同步变更日志更新。"""
+    return sync_update_agent_with_changelog(db, agent, agent_data)
+
+
+def normalize_inherited_provider(provider: object) -> dict[str, object]:
+    """兼容旧导入面，在 service.py 中委托 provider 继承归一化。"""
+    return service_provider.normalize_inherited_provider(provider)
 
 
 async def create_agent_async(session: AsyncSession, user_id: uuid.UUID, agent_data: dict[str, Any]) -> Agent:
@@ -237,6 +271,7 @@ async def register_entity_async(
     end_points: list[dict[str, Any]] | None = None,
     entity_meta: dict[str, Any] | None = None,
     entity_user_id: str | None = None,
+    certificate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """兼容旧导入面，在 service.py 中委托 ATR 异步实体注册。"""
     atr_service_module.create_change_log_async = create_change_log_async
@@ -246,6 +281,7 @@ async def register_entity_async(
         end_points=end_points,
         entity_meta=entity_meta,
         entity_user_id=entity_user_id,
+        certificate=certificate,
     )
 
 
@@ -255,6 +291,7 @@ def register_entity(
     end_points: list[dict[str, Any]] | None = None,
     entity_meta: dict[str, Any] | None = None,
     entity_user_id: str | None = None,
+    certificate: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """兼容旧导入面，在 service.py 中委托 ATR 同步实体注册。"""
     atr_service_module.create_change_log = create_change_log
@@ -264,6 +301,7 @@ def register_entity(
         end_points=end_points,
         entity_meta=entity_meta,
         entity_user_id=entity_user_id,
+        certificate=certificate,
     )
 
 
@@ -640,7 +678,7 @@ def notify_ca_server_revoke_cert(agent: Agent, reason: int = 5) -> None:
         internal_service_token = getattr(settings, "registry_server_internal_api_token", "").strip()
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "ACPS-Registry-Server/1.0",
+            "User-Agent": "ACPs-Registry-Server/1.0",
         }
         if internal_service_token:
             headers["Authorization"] = f"Bearer {internal_service_token}"

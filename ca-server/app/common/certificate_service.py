@@ -6,12 +6,13 @@ from typing import Any
 from uuid import UUID
 
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, rsa
 from cryptography.x509.oid import NameOID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import and_, func, select
 
+from ..core.crypto_utils import PrivateKeyTypes, x509_signature_algorithm_for
 from .certificate_model import Certificate, CertificateStatus, CertificateType, RevocationReason
 from .certificate_version import get_next_certificate_version
 from .time_utils import beijing_now
@@ -247,6 +248,7 @@ class CertificateService:
         certificate_type: CertificateType,
         validity_days: int = 365,
         parent_certificate: Certificate | None = None,
+        key_type: str = "ed25519",
     ) -> tuple[str, str]:
         """
         生成证书和私钥对
@@ -261,10 +263,16 @@ class CertificateService:
             Tuple[str, str]: (证书PEM, 私钥PEM)
         """
         # 生成私钥
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-        )
+        private_key: PrivateKeyTypes
+        if key_type == "rsa":
+            private_key = rsa.generate_private_key(
+                public_exponent=65537,
+                key_size=2048,
+            )
+        elif key_type == "ec":
+            private_key = ec.generate_private_key(ec.SECP256R1())
+        else:
+            private_key = ed25519.Ed25519PrivateKey.generate()
 
         # 创建证书主体
         subject = x509.Name(
@@ -310,7 +318,7 @@ class CertificateService:
             )
 
         # 签名证书
-        certificate = cert_builder.sign(signing_key, hashes.SHA256())
+        certificate = cert_builder.sign(signing_key, x509_signature_algorithm_for(signing_key))
 
         # 转换为PEM格式
         cert_pem = certificate.public_bytes(serialization.Encoding.PEM).decode("utf-8")

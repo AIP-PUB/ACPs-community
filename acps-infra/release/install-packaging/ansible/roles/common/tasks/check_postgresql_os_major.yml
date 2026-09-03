@@ -1,0 +1,140 @@
+---
+# check_postgresql_os_major.yml — host os_package 升级前 PG 主版本门控
+# （本设计 §2.3 / §4.3；H4 Step 4）
+#
+# 已装 cluster major（PG_VERSION / 探测）必须与
+# postgresql_os_major_version（= baseline-matrix [infra.postgresql].version）一致；
+# 不一致 → fail fast，禁止盲目 package 主版本升级；须人工迁移。
+#
+# 可选注入（负向门控 / 单测）：
+#   acps_pg_installed_major_override — 跳过磁盘探测，直接当作已装 major
+
+- name: 加载 postgresql role defaults（postgresql_os_major_version）
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/../postgresql/defaults/main.yml"
+
+- name: 加载 postgresql OS 系族路径（data_dir / 包名）
+  when: ansible_os_family is defined
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/../postgresql/vars/{{ ansible_os_family }}.yml"
+
+- name: 解析期望 PG major（baseline / role default）
+  ansible.builtin.set_fact:
+    _acps_pg_expected_major: "{{ postgresql_os_major_version | string | trim }}"
+
+- name: 要求期望 major 非空
+  ansible.builtin.assert:
+    that:
+      - (_acps_pg_expected_major | length) > 0
+    fail_msg: >-
+      check_postgresql_os_major: postgresql_os_major_version is empty on
+      {{ inventory_hostname | default('localhost') }}.
+
+- name: 注入已装 major（负向/单测 override）
+  when: (acps_pg_installed_major_override | default('') | string | length) > 0
+  ansible.builtin.set_fact:
+    _acps_pg_installed_major: "{{ acps_pg_installed_major_override | string | trim }}"
+
+- name: 从磁盘探测已装 PG major（无 override）
+  when: (acps_pg_installed_major_override | default('') | string | length) == 0
+  block:
+    - name: 复位探测结果
+      ansible.builtin.set_fact:
+        _acps_pg_installed_major: ""
+
+    - name: 检查期望 data_dir 的 PG_VERSION
+      when: postgresql_os_data_dir is defined
+      ansible.builtin.stat:
+        path: "{{ postgresql_os_data_dir }}/PG_VERSION"
+      register: _acps_pg_ver_stat
+
+    - name: 读取期望路径 PG_VERSION
+      when:
+        - postgresql_os_data_dir is defined
+        - (_acps_pg_ver_stat.stat.exists | default(false) | bool)
+      ansible.builtin.slurp:
+        src: "{{ postgresql_os_data_dir }}/PG_VERSION"
+      register: _acps_pg_ver_slurp
+
+    - name: 绑定期望路径上的已装 major
+      when:
+        - postgresql_os_data_dir is defined
+        - (_acps_pg_ver_stat.stat.exists | default(false) | bool)
+      ansible.builtin.set_fact:
+        _acps_pg_installed_major: >-
+          {{ (_acps_pg_ver_slurp.content | b64decode | trim) | string }}
+
+    # 期望路径无簇时，扫描常见发行版 data 根，避免漏检「他 major 已有数据」
+    - name: RedHat — 扫描 /var/lib/pgsql/*/data/PG_VERSION
+      when:
+        - ansible_os_family | default('') == 'RedHat'
+        - (_acps_pg_installed_major | default('') | length) == 0
+      ansible.builtin.find:
+        paths: /var/lib/pgsql
+        patterns: PG_VERSION
+        recurse: true
+        file_type: file
+        depth: 3
+      register: _acps_pg_find_rh
+      failed_when: false
+
+    - name: Debian — 扫描 /var/lib/postgresql/*/main/PG_VERSION
+      when:
+        - ansible_os_family | default('') == 'Debian'
+        - (_acps_pg_installed_major | default('') | length) == 0
+      ansible.builtin.find:
+        paths: /var/lib/postgresql
+        patterns: PG_VERSION
+        recurse: true
+        file_type: file
+        depth: 3
+      register: _acps_pg_find_deb
+      failed_when: false
+
+    - name: 从扫描结果取文件列表
+      when: (_acps_pg_installed_major | default('') | length) == 0
+      ansible.builtin.set_fact:
+        _acps_pg_scan_files: >-
+          {{
+            (_acps_pg_find_rh.files | default([]))
+            + (_acps_pg_find_deb.files | default([]))
+          }}
+
+    - name: 读取扫描到的 PG_VERSION
+      when:
+        - (_acps_pg_installed_major | default('') | length) == 0
+        - (_acps_pg_scan_files | default([]) | length) > 0
+      ansible.builtin.slurp:
+        src: "{{ (_acps_pg_scan_files | first).path }}"
+      register: _acps_pg_scan_slurp
+
+    - name: 绑定扫描到的已装 major
+      when:
+        - (_acps_pg_installed_major | default('') | length) == 0
+        - (_acps_pg_scan_files | default([]) | length) > 0
+      ansible.builtin.set_fact:
+        _acps_pg_installed_major: >-
+          {{ (_acps_pg_scan_slurp.content | b64decode | trim) | string }}
+
+- name: 宣告 PG major 探测结果
+  ansible.builtin.debug:
+    msg: >-
+      postgresql major gate on {{ inventory_hostname | default('localhost') }}:
+      installed={{ _acps_pg_installed_major | default('(none)') }},
+      expected={{ _acps_pg_expected_major }}
+      (postgresql_os_major_version / baseline-matrix [infra.postgresql].version).
+
+- name: PG 主版本漂移 — fail fast（禁止盲目升/降主版本）
+  when:
+    - (_acps_pg_installed_major | default('') | string | length) > 0
+    - (_acps_pg_installed_major | string) != (_acps_pg_expected_major | string)
+  ansible.builtin.fail:
+    msg: >-
+      PostgreSQL major version mismatch on {{ inventory_hostname | default('localhost') }}:
+      installed cluster major={{ _acps_pg_installed_major }},
+      expected={{ _acps_pg_expected_major }}
+      (postgresql_os_major_version / baseline-matrix [infra.postgresql].version).
+      Host-mode upgrade refuses automatic PostgreSQL major upgrades or downgrades
+      (design §2.3 / §4.3; G §12). Perform a manual dump/restore or pg_upgrade
+      migration to the baseline major, then re-run upgrade.yml. Data directory
+      was NOT modified. Scene preserved.

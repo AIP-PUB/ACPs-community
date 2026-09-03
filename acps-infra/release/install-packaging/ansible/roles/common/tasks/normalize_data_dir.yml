@@ -1,0 +1,9 @@
+---
+# normalize_data_dir.yml
+# 承载分派层（mode 无关中性入口）：按 acps_deploy_mode include 对应实现。
+# image → normalize_data_dir_image.yml（现有 host chown + docker run chown
+# 回退，逻辑不变）。
+# host  → normalize_data_dir_host.yml（只用 chown；禁止 docker，见本设计
+# §4.4 / §6.3）。
+- name: 按 mode 分派 normalize_data_dir 实现
+  ansible.builtin.include_tasks: "normalize_data_dir_{{ acps_deploy_mode }}.yml"

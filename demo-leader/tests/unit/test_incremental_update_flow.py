@@ -494,6 +494,45 @@ class TestOrchestratorIntegration:
         assert response.error is None or response.result is not None
 
     @pytest.mark.asyncio
+    async def test_handle_task_input_supports_sdk_camel_case_status(self, router: InputRouter, mock_scenario_loader):
+        """运行态 SDK TaskStatus 使用 dataItems，需兼容缓存快照的 data_items。"""
+        from acps_sdk.aip.aip_base_model import TaskStatus
+
+        session = create_mock_session(
+            user_context={
+                "awaiting_partner_gaps": [gap.model_dump(by_alias=True) for gap in create_sample_partner_gaps()]
+            }
+        )
+        assert session.active_task is not None
+        first_task = next(iter(session.active_task.partner_tasks.values()))
+        assert first_task.last_snapshot is not None
+        object.__setattr__(
+            first_task.last_snapshot,
+            "status",
+            TaskStatus(state=TaskState.AwaitingInput, stateChangedAt="2024-01-01T00:00:00Z", dataItems=[]),
+        )
+
+        session_manager = MagicMock()
+        session_manager.get_session.return_value = session
+        orchestrator = Orchestrator(
+            session_manager=session_manager,
+            scenario_loader=mock_scenario_loader,
+            intent_analyzer=MagicMock(),
+            input_router=router,
+        )
+
+        response = await orchestrator._handle_task_input(
+            session=session,
+            intent=IntentDecision(
+                intent_type=IntentType.TASK_INPUT,
+                task_instruction=TaskInstruction(text="预算500元，2人，12月25日"),
+            ),
+            user_query="预算500元，2人，12月25日",
+        )
+
+        assert response.error is None or response.result is not None
+
+    @pytest.mark.asyncio
     async def test_handle_task_input_no_active_task(self, router: InputRouter, mock_scenario_loader):
         """测试没有活跃任务时的处理"""
         # 创建没有活跃任务的 Session

@@ -18,6 +18,7 @@ from acps_cli.ca.acme import (
     get_jwk,
     get_jwk_thumbprint,
     normalize_runtime_url,
+    public_jwk_projection,
 )
 from acps_cli.ca.keys import generate_private_key
 
@@ -106,6 +107,14 @@ class TestGetJWK:
         assert "n" in jwk
         assert "e" in jwk
 
+    def test_ed25519_key_jwk_fields(self):
+        key = generate_private_key("ed25519")
+        jwk = get_jwk(key)
+        assert jwk == public_jwk_projection(jwk)
+        assert jwk["kty"] == "OKP"
+        assert jwk["crv"] == "Ed25519"
+        assert "x" in jwk
+
     def test_unsupported_key_type_raises(self):
         with pytest.raises(ValueError, match="Unsupported key type"):
             get_jwk("not-a-key")
@@ -129,6 +138,25 @@ class TestGetJWKThumbprint:
         t1 = get_jwk_thumbprint(get_jwk(k1))
         t2 = get_jwk_thumbprint(get_jwk(k2))
         assert t1 != t2
+
+    def test_okp_thumbprint_supported(self):
+        jwk = get_jwk(generate_private_key("ed25519"))
+        assert len(get_jwk_thumbprint(jwk)) > 0
+
+
+@pytest.mark.unit
+class TestPublicJWKProjection:
+    def test_rsa_private_fields_rejected(self):
+        with pytest.raises(ValueError, match="private key material"):
+            public_jwk_projection({"kty": "RSA", "n": "abc", "e": "AQAB", "d": "secret"})
+
+    def test_ec_private_fields_rejected(self):
+        with pytest.raises(ValueError, match="private key material"):
+            public_jwk_projection({"kty": "EC", "crv": "P-256", "x": "abc", "y": "def", "d": "secret"})
+
+    def test_okp_private_fields_rejected(self):
+        with pytest.raises(ValueError, match="private key material"):
+            public_jwk_projection({"kty": "OKP", "crv": "Ed25519", "x": "abc", "d": "secret"})
 
 
 # ---------------------------------------------------------------------------
@@ -208,7 +236,7 @@ class TestBuildJWS:
         assert protected_json["alg"] == "HS256"
         assert protected_json["kid"] == "kid-1"
         assert protected_json["url"] == "https://example.com/acme/new-account"
-        assert payload_json == jwk
+        assert payload_json == public_jwk_projection(jwk)
 
 
 # ---------------------------------------------------------------------------

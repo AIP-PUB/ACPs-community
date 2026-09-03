@@ -1,0 +1,74 @@
+# 应用最终发布包固定项目清单。
+#
+# 这是采集阶段唯一的输入清单：每个项目（应用本身或被应用依赖的内部共享库）只出现一次。
+# 采集脚本（collect-app-release-kit.sh）不解析任何项目的 internal_wheels 声明去推导、
+# 合并或增删这份清单——清单是否完整由维护清单的人负责。
+#
+# 字段说明：
+# id 项目标识，与目录名一致，也是 runtime-package.toml [package].name 的值。
+# path 相对 acps-infra 仓库根目录的兄弟项目路径。
+# kind "app" 或 "shared-library"。
+# - app：项目声明了 `just package wheel`，采集脚本执行它产出完整应用薄包。
+# - shared-library：只对 pyproject.toml 执行 `uv build --wheel`，只采集这个库自身的 wheel。
+# python_tags 该项目要装配的 CPython 版本标签列表（如 "cp314"）。
+# kind = "shared-library" 的项目不需要这个字段——它不单独产出应用最终发布包，
+# 由消费它的应用各自决定装配时使用的 python_tag。
+#
+# 注意：id 与该项目实际的 wheel distribution 名（PEP 503/427 规范化后的值）不要求机械一致——
+# 例如 ca-server 的 wheel distribution 是 agent_ca_server，这个差异已经由 ca-server 自己的
+# Justfile（package_wheel_distribution）和 package-wheel-runtime.sh 的
+# resolve_project_wheel_distribution 解决，采集脚本不需要在这里重复维护映射，也不会
+# 从 id 反推 wheel 文件名——采集只关心"该项目 dist/ 下有且只有一个 wheel"。
+
+[[projects]]
+id = "registry-server"
+path = "../registry-server"
+kind = "app"
+python_tags = ["cp314"]
+
+[[projects]]
+id = "ca-server"
+path = "../ca-server"
+kind = "app"
+python_tags = ["cp314"]
+
+[[projects]]
+id = "discovery-server"
+path = "../discovery-server"
+kind = "app"
+python_tags = ["cp314"]
+
+[[projects]]
+id = "monitor-server"
+path = "../monitor-server"
+kind = "app"
+python_tags = ["cp314"]
+
+[[projects]]
+id = "mq-auth-server"
+path = "../mq-auth-server"
+kind = "app"
+python_tags = ["cp314"]
+
+[[projects]]
+id = "demo-leader"
+path = "../demo-leader"
+kind = "app"
+python_tags = ["cp314"]
+
+[[projects]]
+id = "demo-partner"
+path = "../demo-partner"
+kind = "app"
+python_tags = ["cp314"]
+
+[[projects]]
+id = "acps-cli"
+path = "../acps-cli"
+kind = "app"
+python_tags = ["cp314"]
+
+[[projects]]
+id = "acps-sdk"
+path = "../acps-sdk"
+kind = "shared-library"

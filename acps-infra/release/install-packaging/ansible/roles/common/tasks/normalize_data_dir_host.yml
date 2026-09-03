@@ -1,0 +1,33 @@
+---
+# normalize_data_dir_host.yml — host 模式：首次启动前将数据目录 chown 到
+# acps_systemd_user 或发行版服务用户（本设计 §4.4 / §6.3）。
+# 期望： acps_data_dir, acps_cert_owner_uid, acps_cert_owner_gid
+# （由 resolve_cert_owner.yml host 分支设置）。
+# 硬约束：只用 chown；禁止 resolve_image_uid.py、禁止 docker run chown。
+
+- name: 断言 data-dir owner uid/gid resolved（host）
+  ansible.builtin.assert:
+    that:
+      - acps_cert_owner_uid is defined
+      - acps_cert_owner_gid is defined
+      - acps_data_dir is defined
+      - (acps_data_dir | string) | length > 0
+    fail_msg: "normalize_data_dir requires acps_data_dir and resolved host owner (acps_systemd_user 或发行版服务用户)"
+
+- name: 确保 data directory exists（host）
+  ansible.builtin.file:
+    path: "{{ acps_data_dir }}"
+    state: directory
+    mode: "{{ acps_data_dir_mode | default('0755') }}"
+    owner: "{{ acps_cert_owner_uid }}"
+    group: "{{ acps_cert_owner_gid }}"
+  become: true
+
+- name: Host chown data dir 到 acps_cert_owner_uid/gid（禁止 docker 回退）
+  ansible.builtin.file:
+    path: "{{ acps_data_dir }}"
+    state: directory
+    recurse: true
+    owner: "{{ acps_cert_owner_uid }}"
+    group: "{{ acps_cert_owner_gid }}"
+  become: true

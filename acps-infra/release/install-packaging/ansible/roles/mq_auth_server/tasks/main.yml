@@ -1,0 +1,162 @@
+---
+- name: 禁用时结束： mq-auth disabled
+  when: not (mq_auth_server_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: stage mq-auth image/app-release
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: mq_auth_server
+    acps_artifact_kind: app_release
+    acps_host_app_pip_packages: ["mq-auth-server"]
+    acps_host_app_console_script: mq-auth-server
+
+- name: 派生主机
+  ansible.builtin.set_fact:
+    _redis_host: "{{ hostvars | acps_group_addr(groups, 'redis') }}"
+    _rmq_host: "{{ hostvars | acps_group_addr(groups, 'rabbitmq') }}"
+    _registry_host: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+
+- name: 准备目录
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ acps_runtime_root }}/config/mq_auth_server"
+    - "{{ acps_runtime_root }}/certs/mq_auth_server"
+
+- name: 同步配置
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/templates/config/mq_auth_server/"
+    dest: "{{ acps_runtime_root }}/config/mq_auth_server/"
+    mode: "0644"
+  register: _mq_auth_config_copy
+
+- name: 渲染 env
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ acps_runtime_root }}/config/mq_auth_server/.env"
+    mode: "0600"
+  register: _mq_auth_env_render
+
+- name: 渲染 mq-auth host 应用单元（app.env + systemd）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_app_unit.yml
+  vars:
+    acps_compose_service_name: mq_auth_server
+    acps_host_install_dest: "{{ acps_host_app_install_dest }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/mq_auth_server/app.env"
+    acps_host_env_template_abs: "{{ playbook_dir }}/../roles/mq_auth_server/templates/env.j2"
+    acps_host_component_id: mq-auth-server
+
+- name: 解析 cert owner
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+  vars:
+    acps_cert_owner_user: acps
+
+- name: 规范化 mq-auth certs
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_certs.yml
+  vars:
+    acps_certs_dir: "{{ acps_runtime_root }}/certs/mq_auth_server"
+
+- name: 计算 mq-auth TLS 材料 digest（相对侧车；无侧车=首装补起）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/mq_auth_server"
+    acps_tls_digest_files:
+      - server.pem
+      - server.key
+      - acps-root-ca.pem
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/mq-auth-tls-material.sha256"
+    acps_tls_digest_persist: false
+
+- name: 解析本轮上游 broker bounce
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_tls_upstream_bounce.yml
+
+- name: 渲染 compose（image-only）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ acps_compose_services_dir }}/mq_auth_server.yml"
+    mode: "0644"
+  register: _mq_auth_compose_render
+
+- name: 判定 mq-auth 是否应 force recreate/restart
+  ansible.builtin.set_fact:
+    _mq_auth_force_recreate: >-
+      {{
+        (_mq_auth_config_copy is changed)
+        or (_mq_auth_env_render is changed)
+        or (
+          (_mq_auth_compose_render is defined)
+          and (_mq_auth_compose_render is changed)
+        )
+        or (_tls_material_digest_changed | default(true) | bool)
+        or (_acps_redis_bounced_this_run | default(false) | bool)
+        or (acps_force_mq_auth_restart | default(false) | bool)
+      }}
+
+- name: 部署 mq-auth（image：compose）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: mq_auth_server
+    acps_compose_force_recreate: "{{ _mq_auth_force_recreate | bool }}"
+
+- name: 部署 mq-auth（host：systemd）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: mq_auth_server
+    acps_compose_force_recreate: "{{ _mq_auth_force_recreate | bool }}"
+
+- name: 持久化 mq-auth TLS digest（本轮已按需 recreate/restart 后）
+  when: _mq_auth_force_recreate | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/mq_auth_server"
+    acps_tls_digest_files:
+      - server.pem
+      - server.key
+      - acps-root-ca.pem
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/mq-auth-tls-material.sha256"
+    acps_tls_digest_persist: true
+
+- name: 开放 mq-auth 广告端口（firewalld/ufw；image/host 同构）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ mq_auth_server_group_api_port }}"
+      - "{{ mq_auth_server_auth_api_port }}"
+
+- name: Health probe 9007 (mTLS may require certs — try HTTP-less TCP wait first)
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ mq_auth_server_group_api_port }}"
+    timeout: 90

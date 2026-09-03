@@ -1,0 +1,19 @@
+---
+# wait-discovery-alive.yml — day2 / 强 recreate 后、business.yml 前的就绪门禁。
+# 只断言 Discovery aliveMap 已覆盖当前 demo Leader + 全部 Partner AIC（Step D 的 D2）。
+# 不跑 Monitor D1，不替代 business.yml A–D。干净 site 后立刻 business 通常不必跑本 playbook。
+#
+# 默认：单次超时 480s；失败后 settle 90s 再重试一次（见 role defaults）。
+# 覆盖：-e acps_business_wait_alive_timeout_seconds=… /
+#       -e acps_business_wait_alive_retry=false /
+#       -e acps_business_wait_alive_retry_settle_seconds=…
+
+- name: 等待 Discovery per-AIC alive（biz2 前置）
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: 运行 Discovery alive 就绪等待
+      ansible.builtin.include_role:
+        name: business_acceptance
+        tasks_from: wait_discovery_alive.yml

@@ -1,0 +1,119 @@
+---
+# register-state.yml — image-mode 首次注册 / 回填
+#
+# 写入 {{ acps_runtime_root }}/state/components/<component>.json（及 control CLI）
+# 来自 release-manifest + inventory 启用标志。对运行中栈安全（不重建）。
+#
+# Usage:
+# ansible-playbook -i inventories/hosts.yml playbooks/register-state.yml \
+# -e @inventories/secrets.yml \
+# -e monitor_server_enabled=false -e keycloak_enabled=false
+# # 子集（纯 key）：
+# ansible-playbook... -e '{"acps_register_components":["registry_server","ca_server"]}'
+
+- name: "注册版本 state — 目标组件"
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: 构建默认注册目录
+      when: acps_register_components is not defined
+      ansible.builtin.set_fact:
+        _acps_register_catalog: >-
+          {{
+            [
+              {'key': 'postgresql', 'enabled': postgresql_enabled | bool, 'groups': ['postgresql']},
+              {'key': 'keycloak', 'enabled': keycloak_enabled | bool, 'groups': ['keycloak']},
+              {'key': 'registry_server', 'enabled': registry_server_enabled | bool, 'groups': ['registry_server']},
+              {'key': 'ca_server', 'enabled': ca_server_enabled | bool, 'groups': ['ca_server']},
+              {'key': 'discovery_server_' ~ (discovery_server_variant | default('cpu')),
+               'enabled': discovery_server_enabled | bool, 'groups': ['discovery_server']},
+              {'key': 'redis', 'enabled': redis_enabled | bool, 'groups': ['redis']},
+              {'key': 'rabbitmq', 'enabled': rabbitmq_enabled | bool, 'groups': ['rabbitmq']},
+              {'key': 'mq_auth_server', 'enabled': mq_auth_server_enabled | bool, 'groups': ['mq_auth_server']},
+              {'key': 'redpanda', 'enabled': monitor_server_enabled | bool, 'groups': ['redpanda']},
+              {'key': 'victoria_metrics', 'enabled': monitor_server_enabled | bool, 'groups': ['victoria_metrics']},
+              {'key': 'clickhouse', 'enabled': monitor_server_enabled | bool, 'groups': ['clickhouse']},
+              {'key': 'minio', 'enabled': monitor_server_enabled | bool, 'groups': ['minio']},
+              {'key': 'opensearch', 'enabled': monitor_server_enabled | bool, 'groups': ['opensearch']},
+              {'key': 'monitor_server', 'enabled': monitor_server_enabled | bool, 'groups': ['monitor_server']},
+              {'key': 'demo_partner', 'enabled': demo_partner_enabled | bool, 'groups': ['demo_partner']},
+              {'key': 'demo_leader', 'enabled': demo_leader_enabled | bool, 'groups': ['demo_leader']},
+            ]
+          }}
+
+    - name: 初始化显式目录
+      when: acps_register_components is defined
+      ansible.builtin.set_fact:
+        _acps_register_catalog: []
+
+    - name: 向目录追加显式 key
+      when: acps_register_components is defined
+      ansible.builtin.set_fact:
+        _acps_register_catalog: >-
+          {{
+            _acps_register_catalog
+            + [{
+                'key': item,
+                'enabled': true,
+                'groups': [
+                  'discovery_server'
+                  if (item is match('^discovery_server_'))
+                  else item
+                ],
+              }]
+          }}
+      loop: "{{ acps_register_components }}"
+
+    - name: 确保目标上 state 目录
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}/components"
+        - "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}/control"
+
+    - name: 主机拥有组件时注册其当前 state
+      when:
+        - item.enabled | bool
+        - (item.groups | default([]) | intersect(group_names) | length) > 0
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: register_component_state.yml
+      vars:
+        acps_component_key: "{{ item.key }}"
+      loop: "{{ _acps_register_catalog }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+- name: "注册版本 state — control acps-cli"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  tasks:
+    - name: 解析 control state 根（acps_control_root 的父目录）
+      ansible.builtin.set_fact:
+        _ctrl_state_runtime_root: "{{ acps_control_root | dirname }}"
+
+    - name: 查找 control app-release 制品以获取 artifact_id
+      ansible.builtin.find:
+        paths: "{{ acps_artifacts_control }}"
+        patterns: ["acps-cli-*-app-release-*.tar.gz", "*-app-release-*.tar.gz"]
+      register: _cli_state_artifacts
+
+    - name: 提交 control acps-cli state
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: commit_state.yml
+      vars:
+        acps_state_scope: control
+        acps_runtime_root: "{{ _ctrl_state_runtime_root }}"
+        acps_state_root: "{{ _ctrl_state_runtime_root }}/state"
+        acps_state_version: "{{ acps_version }}"
+        acps_state_artifact_id: >-
+          {{
+            ((_cli_state_artifacts.files | sort(attribute='path') | last).path | basename)
+            if (_cli_state_artifacts.matched | int > 0)
+            else 'acps-cli-source-fallback'
+          }}
+        acps_state_image_tag: ""

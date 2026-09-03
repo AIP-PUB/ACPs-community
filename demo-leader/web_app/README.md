@@ -32,11 +32,12 @@ web_app/
 
 ## 4. 配置
 
-编辑 `config.js` 修改运行时配置：
+本地开发默认配置放在 `runtime-config.js`，`config.js` 负责提供兜底值并与运行时覆盖合并。部署态可由
+安装层 Ansible 通过 Jinja 模板重写 `runtime-config.js`。
 
 | 配置项           | 默认值                  | 说明             |
 | ---------------- | ----------------------- | ---------------- |
-| `backendBase`    | `http://127.0.0.1:9011` | Leader 后端地址  |
+| `backendBase`    | `http://localhost:9031` | Leader 后端地址  |
 | `apiVersion`     | `v1`                    | API 版本         |
 | `pollInterval`   | `5000`                  | 轮询间隔（毫秒） |
 | `maxPollRetries` | `60`                    | 最大轮询次数     |
@@ -47,16 +48,18 @@ web_app/
 
 ```bash
 # 一体化本地开发（Leader API + Web UI）
-just app start
+just dev start
 ```
 
 或单独启动静态文件服务器：
 
 ```bash
-uv run python web_app/webserver.py              # 默认 127.0.0.1:9010
+uv run python web_app/webserver.py              # 默认 127.0.0.1:9030
 uv run python web_app/webserver.py --port 4000  # 指定端口
 ```
 
-启动后在浏览器访问 `http://localhost:9010`。
+启动后在浏览器访问 `http://localhost:9030`。
 
-> **注意**：前端需要 Leader 服务（默认 `http://127.0.0.1:9011`）已启动才能正常工作。如果 Web 服务器和 Leader 不在同一端口，请确认 `config.js` 中的 `backendBase` 配置正确。
+> **注意**：前端需要 Leader 服务（默认 `http://localhost:9031`）已启动才能正常工作。本地开发默认启用
+> OIDC，并通过 `runtime-config.js` 指向 `acps-infra/dev-infra` 提供的 Keycloak：
+> `http://localhost:9080/realms/acps-leader`。

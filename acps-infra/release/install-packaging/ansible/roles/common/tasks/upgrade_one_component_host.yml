@@ -1,0 +1,653 @@
+---
+# upgrade_one_component_host.yml — 单组件升级主体（host-mode，H4 / 本设计 §4）
+#
+# 由 upgrade_one_component.yml 按 acps_deploy_mode=host 分派。
+#
+# S2–S4 范围：
+#   - app_release：扁平迁移 → no-op 判定 → save_previous → stage 到 releases/<ver>
+#     → role（migrate 失败不 cutover）→ commit（含 layout/release_path/migrate_id）
+#   - control_cli：同构 releases/+current；记 control state；play 序保证先于业务组件
+#   - vendor_bundle：扁平迁移 → no-op → save_previous → stage releases/<ver>
+#     → role cutover（unit 经 current）；禁止清 data
+#   - os_package：ensure_repos → 版本/major 门控 → package(latest 同 major) →
+#     render/restart/health → state 记包版本串（无 releases/）
+#
+# 期望（play vars）：
+#   acps_upgrade_component_key / acps_upgrade_role / acps_component_key
+#   _acps_upgrade_components
+
+- name: 复位回滚遗留的 skip/forbid facts（防御 fact cache / 同进程续跑）
+  ansible.builtin.set_fact:
+    acps_skip_stage_artifact: false
+    acps_host_skip_migrate: false
+    acps_host_forbid_cutover: false
+    acps_host_cutover_done: false
+    acps_host_cutover_requires_migrate: false
+    acps_host_db_migrate_ok: false
+    acps_host_upgrade_noop: false
+    acps_state_migrate_id: ""
+    acps_os_package_state: present
+    # 清除跨组件残留（all-in-one 同机多 play）：避免上一组件的
+    # acps_host_app_install_dest / acps_vendor_* 污染本组件 stage skip / unit。
+    acps_host_app_install_dest: ""
+    acps_vendor_unit_root: ""
+    acps_vendor_install_dest: ""
+    acps_vendor_stage_dest: ""
+    acps_host_release_dest: ""
+    acps_host_release_path: ""
+    # 清空上一组件残留；migrate/cutover 均用 default(..., true) 把空串
+    # 回落到 runtime/<本组件>。vendor/control 分支仍会显式 set_fact root。
+    acps_host_component_root: ""
+    acps_host_unit_via_current: false
+    acps_host_layout: ""
+    acps_host_app_install_changed: false
+    acps_host_vendor_install_changed: false
+
+- name: 加载 host 制品 kind 映射（共用）
+  ansible.builtin.include_tasks: host_artifact_kind_map.yml
+
+- name: 解析本组件 host 升级制品 kind
+  ansible.builtin.set_fact:
+    _acps_host_upgrade_kind: >-
+      {{
+        _acps_host_artifact_kind_map[acps_component_key]
+        | default('unknown')
+      }}
+
+- name: host 升级 — 未知 kind 失败
+  when: _acps_host_upgrade_kind == 'unknown'
+  ansible.builtin.fail:
+    msg: >-
+      upgrade_one_component_host: no artifact kind mapping for
+      {{ acps_component_key }}. Extend host_artifact_kind_map.yml.
+
+# --- app_release ----------------------------------------------------------
+
+- name: host 升级 — app_release 路径
+  when: _acps_host_upgrade_kind == 'app_release'
+  block:
+    - name: 扁平 → releases + current（失败则停，不切新版本）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: migrate_flat_to_releases.yml
+      vars:
+        acps_host_component_root: "{{ acps_runtime_root }}/{{ acps_component_key }}"
+
+    - name: 从 release-manifest 解析新 app-release 制品（控制节点）
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_tools_python | default('python3') }}"
+          - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+          - "--manifest"
+          - "{{ acps_manifest_path }}"
+          - "--table"
+          - "apps"
+          - "--component"
+          - "{{ acps_component_key }}"
+      register: _acps_host_up_manifest
+      changed_when: false
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_become: false
+
+    - name: 记录新制品 meta 与版本目录名
+      ansible.builtin.set_fact:
+        acps_app_meta: "{{ _acps_host_up_manifest.stdout | from_json }}"
+        acps_image_meta: >-
+          {{
+            _acps_host_up_manifest.stdout | from_json
+            | combine({'file': (_acps_host_up_manifest.stdout | from_json).app_release})
+          }}
+        _acps_host_up_artifact: "{{ (_acps_host_up_manifest.stdout | from_json).app_release | string }}"
+        _acps_host_up_version: >-
+          {{
+            (
+              (_acps_host_up_manifest.stdout | from_json).app_release | string
+            )
+            | regex_replace('\\.(tar\\.gz|tgz|zip)$', '')
+            | regex_replace('[^A-Za-z0-9._+-]+', '_')
+            | trim('_')
+          }}
+
+    - name: 读取现有组件 state（no-op 判定）
+      ansible.builtin.stat:
+        path: "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}/components/{{ acps_component_key }}.json"
+      register: _acps_host_up_state_stat
+
+    - name: 加载现有组件 state JSON
+      when: _acps_host_up_state_stat.stat.exists | default(false) | bool
+      ansible.builtin.slurp:
+        src: "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}/components/{{ acps_component_key }}.json"
+      register: _acps_host_up_state_slurp
+
+    - name: 判定 artifact_id 未变且未 force → no-op
+      ansible.builtin.set_fact:
+        acps_host_upgrade_noop: >-
+          {{
+            (not (acps_force_app_reinstall | default(false) | bool))
+            and (_acps_host_up_state_stat.stat.exists | default(false) | bool)
+            and (
+              (
+                (_acps_host_up_state_slurp.content | b64decode | from_json).artifact_id
+                | default('')
+                | string
+              )
+              == (_acps_host_up_artifact | string)
+            )
+          }}
+
+    - name: 宣告 app_release no-op（仍跑 health）
+      when: acps_host_upgrade_noop | bool
+      ansible.builtin.debug:
+        msg: >-
+          upgrade {{ acps_component_key }} (host): artifact_id={{ _acps_host_up_artifact }}
+          unchanged and acps_force_app_reinstall=false — no-op (health only).
+
+    - name: app_release no-op — 绑定经 current 的 install dest 并 health
+      when: acps_host_upgrade_noop | bool
+      block:
+        - name: no-op — 探测 current symlink
+          ansible.builtin.stat:
+            path: "{{ acps_runtime_root }}/{{ acps_component_key }}/current"
+          register: _acps_host_noop_current
+
+        - name: no-op 绑定 unit/install facts（current 优先，否则扁平根）
+          ansible.builtin.set_fact:
+            acps_host_unit_via_current: >-
+              {{
+                (_acps_host_noop_current.stat.exists | default(false) | bool)
+                and (_acps_host_noop_current.stat.islnk | default(false) | bool)
+              }}
+            acps_host_layout: >-
+              {{
+                'releases'
+                if (
+                  (_acps_host_noop_current.stat.exists | default(false) | bool)
+                  and (_acps_host_noop_current.stat.islnk | default(false) | bool)
+                )
+                else 'flat'
+              }}
+            acps_host_app_install_dest: >-
+              {{
+                (acps_runtime_root ~ '/' ~ acps_component_key ~ '/current')
+                if (
+                  (_acps_host_noop_current.stat.exists | default(false) | bool)
+                  and (_acps_host_noop_current.stat.islnk | default(false) | bool)
+                )
+                else (acps_runtime_root ~ '/' ~ acps_component_key)
+              }}
+            acps_skip_stage_artifact: true
+            acps_host_forbid_cutover: true
+
+        - name: no-op — 应用组件 role（跳过 stage/cutover；render/health）
+          ansible.builtin.include_role:
+            name: "{{ acps_upgrade_role }}"
+
+        - name: role 后重新绑定组件 key
+          ansible.builtin.set_fact:
+            acps_component_key: "{{ acps_upgrade_component_key }}"
+
+    - name: app_release 正式升级（artifact 变化或 force）
+      when: not (acps_host_upgrade_noop | bool)
+      block:
+        - name: save_previous_state before staging new release
+          ansible.builtin.include_role:
+            name: common
+            tasks_from: save_previous_state.yml
+
+        - name: 绑定升级 stage dest（releases/<ver>）与 unit-via-current
+          ansible.builtin.set_fact:
+            acps_host_release_dest: >-
+              {{ acps_runtime_root }}/{{ acps_component_key }}/releases/{{ _acps_host_up_version }}
+            acps_host_component_root: "{{ acps_runtime_root }}/{{ acps_component_key }}"
+            acps_host_unit_via_current: true
+            acps_host_layout: releases
+
+        - name: 应用组件 role（stage→releases；migrate 后 cutover；health）
+          ansible.builtin.include_role:
+            name: "{{ acps_upgrade_role }}"
+
+        - name: role 后重新绑定组件 key
+          ansible.builtin.set_fact:
+            acps_component_key: "{{ acps_upgrade_component_key }}"
+
+        - name: commit_state after health（含 layout / release_path / migrate_id）
+          ansible.builtin.include_role:
+            name: common
+            tasks_from: commit_state.yml
+          vars:
+            acps_state_layout: releases
+            acps_state_release_path: "{{ acps_host_release_dest | default('') }}"
+            # migrate_id 由 db_migrate_host 写入 fact acps_state_migrate_id；
+            # 禁止在本 vars 中再映射同名变量（会遮蔽 fact 并触发自引用递归）。
+
+# --- control_cli ----------------------------------------------------------
+
+- name: host 升级 — control acps-cli 路径
+  when: _acps_host_upgrade_kind == 'control_cli'
+  block:
+    - name: 绑定 control CLI 根与 state scope
+      ansible.builtin.set_fact:
+        acps_component_key: acps_cli
+        acps_state_scope: control
+        acps_runtime_root: "{{ acps_control_root | dirname }}"
+        acps_state_root: "{{ acps_control_root | dirname }}/state"
+        acps_host_component_root: "{{ acps_control_root }}/acps-cli"
+
+    - name: 扁平 → releases + current（control CLI）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: migrate_flat_to_releases.yml
+      vars:
+        acps_component_key: acps_cli
+        acps_host_component_root: "{{ acps_control_root }}/acps-cli"
+        acps_state_scope: control
+        acps_runtime_root: "{{ acps_control_root | dirname }}"
+        acps_state_root: "{{ acps_control_root | dirname }}/state"
+
+    - name: 迁移后刷新 control CLI compat 软链（venv/scripts → current）
+      ansible.builtin.shell: |
+        set -euo pipefail
+        ROOT="{{ acps_control_root }}/acps-cli"
+        if [[ -L "${ROOT}/current" || -d "${ROOT}/current" ]]; then
+          ln -sfn current/venv "${ROOT}/venv"
+          if [[ -d "${ROOT}/current/scripts" ]]; then
+            ln -sfn current/scripts "${ROOT}/scripts"
+          fi
+        fi
+      args:
+        executable: /bin/bash
+
+    - name: 查找 control app-release 制品
+      ansible.builtin.find:
+        paths: "{{ acps_artifacts_control }}"
+        patterns: ["acps-cli-*-app-release-*.tar.gz", "*-app-release-*.tar.gz"]
+      register: _acps_host_cli_artifacts
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_become: false
+
+    - name: 要求 control app-release（或显式源码回退）
+      ansible.builtin.assert:
+        that:
+          - (_acps_host_cli_artifacts.matched | int > 0)
+            or (acps_cli_allow_source_fallback | default(false) | bool)
+        fail_msg: >-
+          upgrade control acps-cli (host): no app-release under
+          {{ acps_artifacts_control }}.
+
+    - name: 解析 control CLI artifact_id / 版本目录
+      ansible.builtin.set_fact:
+        _acps_host_cli_artifact: >-
+          {{
+            ((_acps_host_cli_artifacts.files | sort(attribute='path') | last).path | basename)
+            if (_acps_host_cli_artifacts.matched | int > 0)
+            else 'acps-cli-source-fallback'
+          }}
+        _acps_host_cli_archive: >-
+          {{
+            ((_acps_host_cli_artifacts.files | sort(attribute='path') | last).path)
+            if (_acps_host_cli_artifacts.matched | int > 0)
+            else ''
+          }}
+
+    - name: 规范化 control CLI 版本目录名
+      ansible.builtin.set_fact:
+        _acps_host_cli_version: >-
+          {{
+            _acps_host_cli_artifact
+            | regex_replace('\\.(tar\\.gz|tgz|zip)$', '')
+            | regex_replace('[^A-Za-z0-9._+-]+', '_')
+            | trim('_')
+          }}
+        acps_image_meta: >-
+          {{
+            {
+              'file': _acps_host_cli_artifact,
+              'app_release': _acps_host_cli_artifact,
+            }
+          }}
+
+    - name: 读取 control CLI state（no-op 判定）
+      ansible.builtin.stat:
+        path: "{{ acps_control_root | dirname }}/state/control/acps_cli.json"
+      register: _acps_host_cli_state_stat
+
+    - name: 加载 control CLI state JSON
+      when: _acps_host_cli_state_stat.stat.exists | default(false) | bool
+      ansible.builtin.slurp:
+        src: "{{ acps_control_root | dirname }}/state/control/acps_cli.json"
+      register: _acps_host_cli_state_slurp
+
+    - name: 判定 control CLI no-op
+      ansible.builtin.set_fact:
+        acps_host_upgrade_noop: >-
+          {{
+            (not (acps_force_app_reinstall | default(false) | bool))
+            and (_acps_host_cli_state_stat.stat.exists | default(false) | bool)
+            and (
+              (
+                (_acps_host_cli_state_slurp.content | b64decode | from_json).artifact_id
+                | default('')
+                | string
+              )
+              == (_acps_host_cli_artifact | string)
+            )
+          }}
+
+    - name: 宣告 control CLI no-op（仍跑 --help）
+      when: acps_host_upgrade_noop | bool
+      ansible.builtin.debug:
+        msg: >-
+          upgrade acps_cli (host): artifact_id={{ _acps_host_cli_artifact }}
+          unchanged — no-op (smoke --help only).
+
+    - name: control CLI no-op — smoke --help
+      when: acps_host_upgrade_noop | bool
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_control_root }}/acps-cli/current/venv/bin/acps-cli"
+          - --help
+      register: _acps_host_cli_noop_help
+      changed_when: false
+      failed_when: false
+
+    - name: control CLI no-op — 扁平 compat 路径兜底
+      when:
+        - acps_host_upgrade_noop | bool
+        - (_acps_host_cli_noop_help.rc | default(1) | int) != 0
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_control_root }}/acps-cli/venv/bin/acps-cli"
+          - --help
+      changed_when: false
+
+    - name: control CLI 正式升级
+      when: not (acps_host_upgrade_noop | bool)
+      block:
+        - name: save_previous_state（control acps_cli）
+          ansible.builtin.include_role:
+            name: common
+            tasks_from: save_previous_state.yml
+          vars:
+            acps_state_scope: control
+            acps_runtime_root: "{{ acps_control_root | dirname }}"
+            acps_state_root: "{{ acps_control_root | dirname }}/state"
+
+        - name: 绑定 control CLI stage dest
+          ansible.builtin.set_fact:
+            acps_host_release_dest: >-
+              {{ acps_control_root }}/acps-cli/releases/{{ _acps_host_cli_version }}
+            acps_host_unit_via_current: true
+            acps_host_layout: releases
+            acps_host_cli_upgrade: true
+
+        - name: 应用 control_acps_cli role（安装到 releases/<ver> + cutover）
+          ansible.builtin.include_role:
+            name: control_acps_cli
+
+        - name: commit_state（control acps_cli）
+          ansible.builtin.include_role:
+            name: common
+            tasks_from: commit_state.yml
+          vars:
+            acps_state_scope: control
+            acps_runtime_root: "{{ acps_control_root | dirname }}"
+            acps_state_root: "{{ acps_control_root | dirname }}/state"
+            acps_state_version: "{{ acps_version }}"
+            acps_state_artifact_id: "{{ _acps_host_cli_artifact }}"
+            acps_state_image_tag: ""
+            acps_state_layout: releases
+            acps_state_release_path: "{{ acps_host_release_dest }}"
+
+# --- vendor_bundle（S3） --------------------------------------------------
+
+- name: host 升级 — vendor_bundle 路径
+  when: _acps_host_upgrade_kind == 'vendor_bundle'
+  block:
+    - name: 解析 vendor 落地根
+      ansible.builtin.set_fact:
+        _acps_host_vendor_home: >-
+          {{
+            (vendor_bundle_install_roots | default({})).get(
+              acps_component_key,
+              acps_runtime_root ~ '/' ~ acps_component_key
+            )
+          }}
+
+    - name: 扁平 → releases + current（vendor；失败则停，不切新版本）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: migrate_flat_to_releases.yml
+      vars:
+        acps_host_component_root: "{{ _acps_host_vendor_home }}"
+
+    - name: 从 release-manifest 解析新 vendor 制品（控制节点）
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_tools_python | default('python3') }}"
+          - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+          - "--manifest"
+          - "{{ acps_manifest_path }}"
+          - "--table"
+          - "vendor"
+          - "--component"
+          - "{{ acps_component_key }}"
+      register: _acps_host_up_vendor_manifest
+      changed_when: false
+      delegate_to: localhost
+      become: false
+      vars:
+        ansible_become: false
+
+    - name: 记录新 vendor 制品 meta 与版本目录名
+      ansible.builtin.set_fact:
+        acps_vendor_meta: "{{ _acps_host_up_vendor_manifest.stdout | from_json }}"
+        acps_image_meta: >-
+          {{
+            _acps_host_up_vendor_manifest.stdout | from_json
+            | combine({'file': (_acps_host_up_vendor_manifest.stdout | from_json).file})
+          }}
+        _acps_host_up_artifact: "{{ (_acps_host_up_vendor_manifest.stdout | from_json).file | string }}"
+        _acps_host_up_version: >-
+          {{
+            (
+              (_acps_host_up_vendor_manifest.stdout | from_json).file | string
+            )
+            | regex_replace('\\.(tar\\.gz|tgz|zip)$', '')
+            | regex_replace('[^A-Za-z0-9._+-]+', '_')
+            | trim('_')
+          }}
+
+    - name: 读取现有组件 state（vendor no-op 判定）
+      ansible.builtin.stat:
+        path: "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}/components/{{ acps_component_key }}.json"
+      register: _acps_host_up_state_stat
+
+    - name: 加载现有组件 state JSON（vendor）
+      when: _acps_host_up_state_stat.stat.exists | default(false) | bool
+      ansible.builtin.slurp:
+        src: "{{ acps_state_root | default(acps_runtime_root ~ '/state') }}/components/{{ acps_component_key }}.json"
+      register: _acps_host_up_state_slurp
+
+    - name: 判定 vendor artifact_id 未变且未 force → no-op
+      ansible.builtin.set_fact:
+        acps_host_upgrade_noop: >-
+          {{
+            (not (acps_force_vendor_reinstall | default(false) | bool))
+            and (_acps_host_up_state_stat.stat.exists | default(false) | bool)
+            and (
+              (
+                (_acps_host_up_state_slurp.content | b64decode | from_json).artifact_id
+                | default('')
+                | string
+              )
+              == (_acps_host_up_artifact | string)
+            )
+          }}
+
+    - name: 宣告 vendor_bundle no-op（仍跑 health；不毁 data）
+      when: acps_host_upgrade_noop | bool
+      ansible.builtin.debug:
+        msg: >-
+          upgrade {{ acps_component_key }} (host vendor_bundle): artifact_id={{ _acps_host_up_artifact }}
+          unchanged and acps_force_vendor_reinstall=false — no-op (health only; data dirs untouched).
+
+    - name: vendor_bundle no-op — 绑定经 current 的 install dest 并 health
+      when: acps_host_upgrade_noop | bool
+      block:
+        - name: no-op — 探测 vendor current symlink
+          ansible.builtin.stat:
+            path: "{{ _acps_host_vendor_home }}/current"
+          register: _acps_host_noop_vendor_current
+
+        - name: no-op 绑定 vendor unit/install facts（current 优先，否则扁平根）
+          ansible.builtin.set_fact:
+            acps_host_unit_via_current: >-
+              {{
+                (_acps_host_noop_vendor_current.stat.exists | default(false) | bool)
+                and (_acps_host_noop_vendor_current.stat.islnk | default(false) | bool)
+              }}
+            acps_host_layout: >-
+              {{
+                'releases'
+                if (
+                  (_acps_host_noop_vendor_current.stat.exists | default(false) | bool)
+                  and (_acps_host_noop_vendor_current.stat.islnk | default(false) | bool)
+                )
+                else 'flat'
+              }}
+            # 与 unit_root 一致；stage_artifact skip 读 acps_host_app_install_dest，
+            # 若不设会被同机上一 app 组件残留覆盖 vendor_*（P1）。
+            acps_host_app_install_dest: >-
+              {{
+                (_acps_host_vendor_home ~ '/current')
+                if (
+                  (_acps_host_noop_vendor_current.stat.exists | default(false) | bool)
+                  and (_acps_host_noop_vendor_current.stat.islnk | default(false) | bool)
+                )
+                else _acps_host_vendor_home
+              }}
+            acps_vendor_unit_root: >-
+              {{
+                (_acps_host_vendor_home ~ '/current')
+                if (
+                  (_acps_host_noop_vendor_current.stat.exists | default(false) | bool)
+                  and (_acps_host_noop_vendor_current.stat.islnk | default(false) | bool)
+                )
+                else _acps_host_vendor_home
+              }}
+            acps_vendor_install_dest: >-
+              {{
+                (_acps_host_vendor_home ~ '/current')
+                if (
+                  (_acps_host_noop_vendor_current.stat.exists | default(false) | bool)
+                  and (_acps_host_noop_vendor_current.stat.islnk | default(false) | bool)
+                )
+                else _acps_host_vendor_home
+              }}
+            acps_vendor_stage_dest: >-
+              {{
+                (_acps_host_vendor_home ~ '/current')
+                if (
+                  (_acps_host_noop_vendor_current.stat.exists | default(false) | bool)
+                  and (_acps_host_noop_vendor_current.stat.islnk | default(false) | bool)
+                )
+                else _acps_host_vendor_home
+              }}
+            acps_skip_stage_artifact: true
+            acps_host_forbid_cutover: true
+
+        - name: no-op — 应用 vendor role（跳过 stage/cutover；render/health；不毁 data）
+          ansible.builtin.include_role:
+            name: "{{ acps_upgrade_role }}"
+
+        - name: role 后重新绑定组件 key
+          ansible.builtin.set_fact:
+            acps_component_key: "{{ acps_upgrade_component_key }}"
+
+    - name: vendor_bundle 正式升级（artifact 变化或 force；禁止清 data）
+      when: not (acps_host_upgrade_noop | bool)
+      block:
+        - name: save_previous_state before staging new vendor release
+          ansible.builtin.include_role:
+            name: common
+            tasks_from: save_previous_state.yml
+
+        - name: 绑定升级 stage dest（releases/<ver>）与 unit-via-current
+          ansible.builtin.set_fact:
+            acps_host_release_dest: >-
+              {{ _acps_host_vendor_home }}/releases/{{ _acps_host_up_version }}
+            acps_host_component_root: "{{ _acps_host_vendor_home }}"
+            acps_host_unit_via_current: true
+            acps_host_layout: releases
+
+        - name: 应用 vendor role（stage→releases；cutover；health；data 目录不动）
+          ansible.builtin.include_role:
+            name: "{{ acps_upgrade_role }}"
+
+        - name: role 后重新绑定组件 key
+          ansible.builtin.set_fact:
+            acps_component_key: "{{ acps_upgrade_component_key }}"
+
+        - name: commit_state after health（含 layout / release_path）
+          ansible.builtin.include_role:
+            name: common
+            tasks_from: commit_state.yml
+          vars:
+            acps_state_layout: releases
+            acps_state_release_path: "{{ acps_host_release_dest | default('') }}"
+
+# --- os_package（S4：PG/Redis/RMQ；无 releases/） --------------------------
+
+- name: host 升级 — os_package 路径
+  when: _acps_host_upgrade_kind == 'os_package'
+  block:
+    - name: PostgreSQL — 主版本门控（漂移则 fail；不改 data）
+      when:
+        - acps_component_key == 'postgresql'
+        - postgresql_managed | default(true) | bool
+      ansible.builtin.include_tasks: check_postgresql_os_major.yml
+
+    - name: save_previous_state before os_package upgrade
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: save_previous_state.yml
+
+    - name: 绑定 os_package 升级态（同 major 包升级到 latest；无 releases/）
+      ansible.builtin.set_fact:
+        acps_os_package_state: latest
+        acps_host_layout: os_package
+        acps_host_release_path: ""
+        acps_host_forbid_cutover: true
+        acps_host_unit_via_current: false
+
+    - name: 宣告 os_package 小版本升级路径
+      ansible.builtin.debug:
+        msg: >-
+          upgrade {{ acps_component_key }} (host os_package): ensure_repos →
+          package state=latest (same major for PG) → render → restart → health;
+          no releases/ symlink. Data dirs are not wiped.
+
+    - name: 应用组件 role（repos + package + render + restart + health）
+      ansible.builtin.include_role:
+        name: "{{ acps_upgrade_role }}"
+
+    - name: role 后重新绑定组件 key
+      ansible.builtin.set_fact:
+        acps_component_key: "{{ acps_upgrade_component_key }}"
+
+    - name: 探测已装包版本串（state artifact_id）
+      ansible.builtin.include_tasks: probe_os_package_version.yml
+
+    - name: commit_state（包版本串；layout=os_package；无 release_path）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: commit_state.yml
+      vars:
+        acps_state_artifact_id: "{{ _acps_os_pkg_version_str }}"
+        acps_state_image_tag: ""
+        acps_state_layout: os_package
+        acps_state_release_path: ""

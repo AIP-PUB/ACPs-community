@@ -1,0 +1,29 @@
+services:
+  monitor_server:
+    image: {{ acps_effective_image_tag }}
+    environment:
+      APP_ENV: production
+    env_file:
+      - {{ acps_runtime_root }}/config/monitor_server/.env
+    ports:
+      - "{{ monitor_server_port }}:9009"
+    volumes:
+      - {{ acps_runtime_root }}/config/monitor_server:/opt/acps/app/config:ro,z
+      # Redis TLS trust — CA installed by monitor role from control work/certs/redis
+      - {{ acps_runtime_root }}/certs/monitor_server/acps-root-ca.pem:/certs/acps-root-ca.pem:ro,z
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9009/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 40s
+    restart: unless-stopped
+{% set _acps_extra_hosts = hostvars | acps_compose_extra_hosts(groups) %}
+{% if _acps_extra_hosts %}
+    extra_hosts:
+{% for _eh in _acps_extra_hosts %}
+      - "{{ _eh }}"
+{% endfor %}
+{% endif %}
+    networks:
+      - {{ acps_docker_network }}

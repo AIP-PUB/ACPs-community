@@ -1,0 +1,320 @@
+---
+- name: discovery 禁用时结束
+  when: not (discovery_server_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: 失败于 unknown variant
+  ansible.builtin.assert:
+    that:
+      - discovery_server_variant in ['cpu', 'gpu']
+    fail_msg: "discovery_server_variant must be cpu|gpu"
+
+- name: stage discovery image/app-release
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: "discovery_server_{{ discovery_server_variant }}"
+    acps_artifact_kind: app_release
+    # gpu 变体依赖 pyproject.toml [project.optional-dependencies].gpu（本地模型推理栈）；
+    # cpu 变体只需 base deps（外部 Embedding/LLM API）。
+    acps_host_app_pip_packages: >-
+      {{ ['discovery-server[gpu]'] if discovery_server_variant == 'gpu' else ['discovery-server'] }}
+
+- name: 派生主机
+  ansible.builtin.set_fact:
+    _pg_host: "{{ hostvars | acps_group_addr(groups, 'postgresql') }}"
+    _registry_host: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+
+- name: "派生 acps_psql.sh mode 参数（image: 在 PG 所在节点 docker exec；host: --host/--port）"
+  ansible.builtin.set_fact:
+    _pg_psql_mode_args: >-
+      {{
+        ('--mode image --container ' ~ acps_compose_project_prefix ~ '-postgresql-1')
+        if acps_deploy_mode == 'image'
+        else ('--mode host --host ' ~ _pg_host ~ ' --port ' ~ (postgresql_port | string))
+      }}
+    # image 多机：PG 容器只在 postgresql 组主机上；跨机 SQL 必须 delegate 过去。
+    _pg_psql_delegate: >-
+      {{
+        (groups['postgresql'] | first)
+        if (
+          acps_deploy_mode == 'image'
+          and inventory_hostname not in (groups['postgresql'] | default([]))
+        )
+        else inventory_hostname
+      }}
+
+
+- name: 派生 Monitor / Redpanda advertise for alive-sync
+  when: monitor_server_enabled | bool
+  ansible.builtin.set_fact:
+    _monitor_host: "{{ hostvars | acps_group_addr(groups, 'monitor_server') }}"
+    _redpanda_host: "{{ hostvars | acps_group_addr(groups, 'redpanda') }}"
+
+- name: 要求 Monitor inventory when alive-sync is enabled
+  when: monitor_server_enabled | bool
+  ansible.builtin.assert:
+    that:
+      - groups['monitor_server'] | default([]) | length == 1
+      - groups['redpanda'] | default([]) | length == 1
+      - (_monitor_host | default('') | length) > 0
+      - (_redpanda_host | default('') | length) > 0
+    fail_msg: >-
+      monitor_server_enabled=true but monitor_server/redpanda inventory advertise
+      address is missing. Discovery alive-sync needs Monitor HeartbeatRelay
+      (/sync/info + amp.heartbeat.alive-delta) and Redpanda bootstrap from inventory.
+      Fix inventory groups / acps_advertise_host; do not hand-edit container configs.
+
+- name: 要求 shared heartbeat sync internal token when Monitor is enabled
+  when: monitor_server_enabled | bool
+  ansible.builtin.assert:
+    that:
+      - (monitor_heartbeat_sync_internal_token | default('') | length) >= 16
+      - monitor_heartbeat_sync_internal_token is not match('(?i)^change_me')
+    fail_msg: >-
+      monitor_heartbeat_sync_internal_token missing or placeholder in secrets.yml.
+      Discovery alive-sync bootstraps Monitor /sync/* with this shared Bearer
+      (HEARTBEAT_SYNC_INTERNAL_TOKEN / ALIVE_SYNC_PROVIDER_BEARER_TOKEN). Required
+      for Keycloak OIDC installs (H D2); also used when OIDC is off. Failures point
+      to Monitor Relay auth or Discovery alive-sync consumer — not Monitor
+      heartbeat/summary API (D2 must not use that API).
+
+- name: 准备目录
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ acps_runtime_root }}/config/discovery_server"
+
+- name: 同步配置（排除 production.toml — 由下方 j2 渲染）
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/templates/config/discovery_server/{{ item }}"
+    dest: "{{ acps_runtime_root }}/config/discovery_server/{{ item }}"
+    mode: "0644"
+  loop:
+    - default.toml
+    - development.toml
+    - testing.toml
+  register: _disc_config_copy
+
+- name: 渲染 production overlay (alive-sync + topology)
+  ansible.builtin.template:
+    src: production.toml.j2
+    dest: "{{ acps_runtime_root }}/config/discovery_server/production.toml"
+    mode: "0644"
+  register: _disc_toml_render
+
+- name: 渲染 env
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ acps_runtime_root }}/config/discovery_server/.env"
+    mode: "0600"
+  register: _disc_env_render
+
+- name: 渲染 discovery host 应用单元（app.env + systemd）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_app_unit.yml
+  vars:
+    acps_compose_service_name: discovery_server
+    acps_host_install_dest: "{{ acps_host_app_install_dest }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/discovery_server/app.env"
+    acps_host_env_template_abs: "{{ playbook_dir }}/../roles/discovery_server/templates/env.j2"
+    acps_host_component_id: discovery-server-api
+
+# stage_artifact_host_app_release 按组件键 discovery_server_{cpu|gpu} 建
+# config/<key> 软链；本角色（与 image compose 一致）把 overlay 写到
+# config/discovery_server。host 下必须把 WorkingDirectory/config 指回逻辑路径，
+# 否则 production.toml（含 alive_sync.enabled）不会被加载。
+- name: host — 将 app config 软链到逻辑 discovery_server 配置目录
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.file:
+    src: "{{ acps_runtime_root }}/config/discovery_server"
+    dest: "{{ acps_host_app_install_dest }}/config"
+    state: link
+    force: true
+
+# discovery 在 cwd 下写 logs/data_log（wheel 安装时不再写 site-packages）
+- name: 确保 discovery 可写日志目录（host WorkingDirectory）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.file:
+    path: "{{ acps_host_app_install_dest }}/logs"
+    state: directory
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+    mode: "0755"
+
+- name: 渲染 compose（image-only）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ acps_compose_services_dir }}/discovery_server.yml"
+    mode: "0644"
+  register: _disc_compose_render
+
+- name: 判定 discovery 是否应 force recreate（image；配置/compose/显式 force）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.set_fact:
+    _disc_force_recreate: >-
+      {{
+        (_disc_config_copy is changed)
+        or (_disc_toml_render is changed)
+        or (_disc_env_render is changed)
+        or (
+          (_disc_compose_render is defined)
+          and (_disc_compose_render is changed)
+        )
+        or (acps_force_app_reinstall | default(false) | bool)
+        or (acps_force_discovery_restart | default(false) | bool)
+      }}
+
+- name: Alembic 迁移 discovery
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: db_migrate.yml
+  vars:
+    acps_compose_service_name: discovery_server
+    acps_host_migrate_env:
+      APP_ENV: production
+      DATABASE_URL: "postgresql+asyncpg://{{ discovery_db_user | acps_urlquote }}:{{ discovery_db_password | acps_urlquote }}@{{ _pg_host }}:{{ postgresql_port }}/{{ discovery_db_name }}"
+
+- name: 部署 discovery（image：compose）
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: discovery_server
+    acps_compose_force_recreate: "{{ _disc_force_recreate | bool }}"
+
+- name: 部署 discovery（host：systemd）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: discovery_server
+
+- name: 开放 discovery 广告端口（firewalld/ufw；image/host 同构）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ discovery_server_port }}"
+
+- name: Health 9005
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: health_http.yml
+  vars:
+    acps_health_url: "http://127.0.0.1:{{ discovery_server_port }}/health"
+
+# CPU path uses external embedding APIs (often 1536-d, e.g. text-embedding-3-small).
+# Alembic default skills.embedding is vector(1024) (bge-m3). Align column to
+# 在 Registry→Discovery 语义索引刷新前设置 embedding_dim，否则 NL 查询
+# return empty acsMap (asyncpg: expected N dimensions, not M).
+- name: 将 acps_psql.sh stage 到 PG 执行节点（多机时非本机）
+  when:
+    - discovery_server_variant == 'cpu'
+    - (embedding_dim | default('') | string | length) > 0
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_acps_psql.yml
+    apply:
+      delegate_to: "{{ _pg_psql_delegate }}"
+
+- name: Align Discovery skills.embedding dimension to embedding_dim
+  when:
+    - discovery_server_variant == 'cpu'
+    - (embedding_dim | default('') | string | length) > 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    export PGPASSWORD='{{ discovery_db_password }}'
+    PSQL="{{ acps_runtime_root }}/staging/acps_psql.sh"
+    DIM="{{ embedding_dim | int }}"
+    # Read current dim; no-op when already aligned.
+    CUR="$("$PSQL" {{ _pg_psql_mode_args }} \
+      --user '{{ discovery_db_user }}' --db '{{ discovery_db_name }}' --no-align --tuples-only --sql \
+      "SELECT format_type(a.atttypid, a.atttypmod)
+       FROM pg_attribute a
+       JOIN pg_class c ON a.attrelid = c.oid
+       JOIN pg_namespace n ON c.relnamespace = n.oid
+       WHERE n.nspname = current_schema()
+         AND c.relname = 'skills'
+         AND a.attname = 'embedding'
+         AND a.attnum > 0
+         AND NOT a.attisdropped")"
+    if [[ "$CUR" == "vector($DIM)" ]]; then
+      echo "embedding_dim_already=$CUR"
+      exit 0
+    fi
+    echo "embedding_dim_align $CUR -> vector($DIM)"
+    "$PSQL" {{ _pg_psql_mode_args }} \
+      --user '{{ discovery_db_user }}' --db '{{ discovery_db_name }}' <<SQL
+    DELETE FROM agents;
+    DROP INDEX IF EXISTS skills_embedding_hnsw_idx;
+    ALTER TABLE skills ALTER COLUMN embedding TYPE vector(${DIM}) USING NULL::vector(${DIM});
+    CREATE INDEX IF NOT EXISTS skills_embedding_hnsw_idx
+      ON skills USING hnsw (embedding vector_cosine_ops)
+      WITH (m = 16, ef_construction = 64);
+    SQL
+    echo "embedding_dim_aligned=vector($DIM)"
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ _pg_psql_delegate }}"
+  register: _disc_emb_dim
+  changed_when: "'embedding_dim_aligned=' in (_disc_emb_dim.stdout | default(''))"
+  no_log: true
+
+- name: 校验 skills.embedding 已对齐到 embedding_dim
+  when:
+    - discovery_server_variant == 'cpu'
+    - (embedding_dim | default('') | string | length) > 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    export PGPASSWORD='{{ discovery_db_password }}'
+    DIM="{{ embedding_dim | int }}"
+    CUR="$("{{ acps_runtime_root }}/staging/acps_psql.sh" {{ _pg_psql_mode_args }} \
+      --user '{{ discovery_db_user }}' --db '{{ discovery_db_name }}' --no-align --tuples-only --sql \
+      "SELECT format_type(a.atttypid, a.atttypmod)
+       FROM pg_attribute a
+       JOIN pg_class c ON a.attrelid = c.oid
+       JOIN pg_namespace n ON c.relnamespace = n.oid
+       WHERE n.nspname = current_schema()
+         AND c.relname = 'skills'
+         AND a.attname = 'embedding'
+         AND a.attnum > 0
+         AND NOT a.attisdropped")"
+    echo "embedding_format_type=$CUR"
+    [[ "$CUR" == "vector($DIM)" ]]
+  args:
+    executable: /bin/bash
+  delegate_to: "{{ _pg_psql_delegate }}"
+  register: _disc_emb_verify
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: 断言 embedding 维度
+  when:
+    - discovery_server_variant == 'cpu'
+    - (embedding_dim | default('') | string | length) > 0
+  ansible.builtin.assert:
+    that:
+      - _disc_emb_verify.rc | default(1) | int == 0
+      - >-
+        (_disc_emb_verify.stdout | default(''))
+        is search('embedding_format_type=vector\(' ~ (embedding_dim | string) ~ '\)')
+    fail_msg: >-
+      Discovery skills.embedding is not vector({{ embedding_dim }}) after align
+      (stdout={{ _disc_emb_verify.stdout | default('') | trim }};
+      stderr={{ _disc_emb_verify.stderr | default('') | trim }})

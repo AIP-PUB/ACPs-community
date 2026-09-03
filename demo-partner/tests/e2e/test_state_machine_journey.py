@@ -12,7 +12,7 @@ Partner E2E Tests - State Machine Journey
 
 运行方式：
     # 需要先启动 Partner 服务
-    just app start
+    just dev start
 
     # 运行 E2E 测试（必须串行执行）
     python -m pytest tests/e2e/test_state_machine_journey.py -v -s -n 0

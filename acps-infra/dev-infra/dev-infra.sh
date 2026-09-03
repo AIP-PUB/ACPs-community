@@ -5,7 +5,7 @@
 #   统一管理 acps-infra/dev-infra/compose.yml 中定义的共享依赖容器。
 #
 # 公开 service 名：
-#   postgres | redis | rabbitmq | gateway
+#   postgres | redis | rabbitmq | gateway | keycloak | kafka
 #
 # 兼容旧写法：
 #   dev-postgres | dev-redis | dev-rabbitmq | dev-nginx
@@ -13,26 +13,35 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMPOSE_FILE="${SCRIPT_DIR}/compose.yml"
+# 可通过 DEV_INFRA_COMPOSE_FILE 指定隔离的 Compose 文件（例如测试时默认端口
+# 已被其他本地部署占用的场景）；未设置时保持标准 dev-infra 配置不变。
+COMPOSE_FILE="${DEV_INFRA_COMPOSE_FILE:-${SCRIPT_DIR}/compose.yml}"
 COMPOSE_PROJECT_NAME="dev-infra"
 NETWORK_NAME="acps-dev-net"
 DEFAULT_LOG_TAIL=200
 WAIT_TIMEOUT=90
 RABBITMQ_WAIT_TIMEOUT=150
+KEYCLOAK_WAIT_TIMEOUT=240
 WAIT_INTERVAL=2
 
-PUBLIC_SERVICES=("postgres" "redis" "rabbitmq" "gateway")
-COMPOSE_SERVICES=("dev-postgres" "dev-redis" "dev-rabbitmq" "dev-nginx")
-CONTAINER_NAMES=("dev-postgres" "dev-redis" "dev-rabbitmq" "dev-nginx")
-VOLUME_NAMES=("dev-pgdata" "dev-redisdata" "dev-mqdata" "")
-PORTS=("5432:5432" "6379:6379" "5671:5671,15672:15672" "9000:80")
-SERVICE_MODES=("default" "optional" "optional" "optional")
-HEALTHCHECK_FLAGS=("yes" "yes" "yes" "no")
+PUBLIC_SERVICES=("postgres" "redis" "rabbitmq" "gateway" "keycloak" "kafka" "victoria-metrics" "clickhouse" "minio" "opensearch")
+COMPOSE_SERVICES=("dev-postgres" "dev-redis" "dev-rabbitmq" "dev-nginx" "dev-keycloak" "dev-redpanda" "dev-victoria-metrics" "dev-clickhouse" "dev-minio" "dev-opensearch")
+CONTAINER_NAMES=("dev-postgres" "dev-redis" "dev-rabbitmq" "dev-nginx" "dev-keycloak" "dev-redpanda" "dev-victoria-metrics" "dev-clickhouse" "dev-minio" "dev-opensearch")
+VOLUME_NAMES=("dev-pgdata" "dev-redisdata" "dev-mqdata" "" "dev-keycloakdata" "dev-redpandadata" "dev-vmdata" "dev-chdata" "dev-miniodata" "dev-opensearchdata")
+PORTS=("5432:5432" "6379:6379" "5671:5671,15672:15672" "80:80" "9080:8080" "19092:19092,19644:9644" "8428:8428" "8123:8123,19010:9000" "19000:9000,19001:9001" "9200:9200")
+SERVICE_MODES=("default" "optional" "optional" "optional" "optional" "optional" "optional" "optional" "optional" "optional")
+HEALTHCHECK_FLAGS=("yes" "yes" "yes" "no" "yes" "yes" "yes" "yes" "yes" "yes")
 DESCRIPTIONS=(
     "共享 PostgreSQL，供 registry/ca/discovery 开发使用"
     "共享 Redis，可按需启用"
     "共享 RabbitMQ，可按需启用"
     "开发网关 Nginx，可按需启用"
+    "共享 Keycloak，供真人 OIDC 联调使用"
+    "Redpanda（Kafka 兼容），供 monitor-server 开发使用"
+    "VictoriaMetrics（时序数据库），供 monitor-server Metrics 开发使用"
+    "ClickHouse（列存数据库），供 monitor-server Access 开发使用"
+    "MinIO（对象存储），供 monitor-server Access 冷归档使用"
+    "OpenSearch（全文搜索），供 monitor-server System 开发使用"
 )
 
 NORMALIZED_SERVICES=()
@@ -60,7 +69,7 @@ usage() {
   ./dev-infra.sh wait [service ...]
   ./dev-infra.sh logs [service ...] [--tail N] [--since DURATION] [--follow]
   ./dev-infra.sh reset [service ...] [--volumes] [--yes]
-  ./dev-infra.sh doctor
+  ./dev-infra.sh check
   ./dev-infra.sh help
 
 公开 service：
@@ -68,6 +77,12 @@ usage() {
   redis      共享 Redis
   rabbitmq   共享 RabbitMQ
   gateway    开发网关 Nginx
+  keycloak   共享 Keycloak，宿主机通过 localhost:9080 访问
+  kafka      Redpanda（Kafka 兼容），宿主机通过 localhost:19092 连接（90xx 预留给应用）
+  victoria-metrics VictoriaMetrics，宿主机通过 localhost:8428 访问
+  clickhouse ClickHouse，HTTP: localhost:8123，原生 TCP: localhost:19010
+  minio      MinIO，API: localhost:19000，Console: localhost:19001（避开应用 90xx）
+  opensearch OpenSearch（全文搜索），宿主机通过 localhost:9200 连接
 
 说明：
   - up 不传 service 时默认启动 postgres。
@@ -137,7 +152,8 @@ compose_cmd() {
 }
 
 compose_cmd_all_profiles() {
-    COMPOSE_PROFILES=redis,rabbitmq,gateway docker compose -f "${COMPOSE_FILE}" "$@"
+    COMPOSE_PROFILES=redis,rabbitmq,gateway,keycloak,victoria-metrics,clickhouse,minio,opensearch \
+        docker compose -f "${COMPOSE_FILE}" "$@"
 }
 
 compose_up_detached() {
@@ -146,7 +162,6 @@ compose_up_detached() {
 
 ensure_rabbitmq_tls_assets() {
     local cert_dir="${SCRIPT_DIR}/certs/issued/rabbitmq"
-    local manifest_path="${SCRIPT_DIR}/dev-pki.toml"
     local required_paths=(
         "${cert_dir}/rabbitmq-server.pem"
         "${cert_dir}/rabbitmq-server.key"
@@ -158,13 +173,26 @@ ensure_rabbitmq_tls_assets() {
 
     for path in "${required_paths[@]}"; do
         if [[ ! -f "${path}" ]]; then
-            if [[ ! -f "${manifest_path}" ]]; then
-                log_error "未找到 dev-infra 证书声明文件：${manifest_path}"
-                return 1
-            fi
+            log_info "RabbitMQ TLS 资产缺失，调用 ./dev-cert.sh issue-leaf 生成证书。"
 
-            log_info "RabbitMQ TLS 资产缺失，按 ${manifest_path} 声明调用 ./dev-cert.sh issue-batch 生成证书。"
-            "${SCRIPT_DIR}/dev-cert.sh" issue-batch "${manifest_path}"
+            "${SCRIPT_DIR}/dev-cert.sh" issue-leaf \
+                --ca infra \
+                --common-name "rabbitmq" \
+                --usage serverAuth \
+                --san "DNS:localhost,DNS:rabbitmq,DNS:stage-rabbitmq,DNS:dev-rabbitmq,DNS:host.docker.internal,IP:127.0.0.1" \
+                --cert-out "${cert_dir}/rabbitmq-server.pem" \
+                --key-out "${cert_dir}/rabbitmq-server.key" \
+                --bundle-out "${cert_dir}/trust-bundle.pem" \
+                --relative-to "${SCRIPT_DIR}"
+
+            "${SCRIPT_DIR}/dev-cert.sh" issue-leaf \
+                --ca infra \
+                --common-name "rabbitmq-auth-http-client" \
+                --usage clientAuth \
+                --cert-out "${cert_dir}/rabbitmq-client.pem" \
+                --key-out "${cert_dir}/rabbitmq-client.key" \
+                --relative-to "${SCRIPT_DIR}"
+
             return 0
         fi
     done
@@ -193,6 +221,166 @@ ensure_rabbitmq_dev_vhost() {
 
     log_error "RabbitMQ 健康检查已通过，但未能及时完成 acps vhost 初始化。"
     return 1
+}
+
+ensure_redpanda_topics() {
+    local container_name="dev-redpanda"
+    local deadline=$((SECONDS + WAIT_TIMEOUT))
+
+    while (( SECONDS < deadline )); do
+        if docker exec "${container_name}" rpk cluster health >/dev/null 2>&1; then
+            log_info "确保 Redpanda 开发主题：amp.audit, amp.audit.dlq, amp.heartbeat, amp.heartbeat.alive-delta, amp.heartbeat.dlq"
+            # amp.audit：3 分区，保留 72 小时（259200000ms）
+            docker exec "${container_name}" rpk topic create amp.audit \
+                -p 3 -r 1 \
+                -c retention.ms=259200000 >/dev/null 2>&1 || true
+            # amp.audit.dlq：1 分区，保留 7 天（604800000ms）
+            docker exec "${container_name}" rpk topic create amp.audit.dlq \
+                -p 1 -r 1 \
+                -c retention.ms=604800000 >/dev/null 2>&1 || true
+            # amp.heartbeat：1 分区（input_partition_count=1），LogAppendTime，保留 7 天
+            docker exec "${container_name}" rpk topic create amp.heartbeat \
+                -p 1 -r 1 \
+                -c retention.ms=604800000 \
+                -c message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            # amp.heartbeat.alive-delta：1 分区（heartbeat_shard_count=1），保留 7 天（delta_retention_hours=168）
+            docker exec "${container_name}" rpk topic create amp.heartbeat.alive-delta \
+                -p 1 -r 1 \
+                -c retention.ms=604800000 >/dev/null 2>&1 || true
+            # amp.heartbeat.dlq：1 分区，保留 7 天
+            docker exec "${container_name}" rpk topic create amp.heartbeat.dlq \
+                -p 1 -r 1 \
+                -c retention.ms=604800000 >/dev/null 2>&1 || true
+            # amp.metrics：1 分区，LogAppendTime，保留 7 天（O-2：时间戳由 broker 赋予）
+            docker exec "${container_name}" rpk topic create amp.metrics \
+                -p 1 -r 1 \
+                -c retention.ms=604800000 \
+                -c message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            # amp.metrics.dlq：1 分区，保留 7 天
+            docker exec "${container_name}" rpk topic create amp.metrics.dlq \
+                -p 1 -r 1 \
+                -c retention.ms=604800000 >/dev/null 2>&1 || true
+            # amp.access：4 分区，LogAppendTime，保留 7 天（Access Writer 消费，与 Writer 并发对齐）
+            docker exec "${container_name}" rpk topic create amp.access \
+                -p 4 -r 1 \
+                -c retention.ms=604800000 \
+                -c message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            # amp.access.dlq：1 分区，保留 7 天
+            docker exec "${container_name}" rpk topic create amp.access.dlq \
+                -p 1 -r 1 \
+                -c retention.ms=604800000 >/dev/null 2>&1 || true
+            # 已存在主题不会继承 create -c 参数，幂等修正 LogAppendTime（Heartbeat / Metrics / Access 必需）
+            docker exec "${container_name}" rpk topic alter-config amp.heartbeat \
+                --set message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            docker exec "${container_name}" rpk topic alter-config amp.metrics \
+                --set message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            docker exec "${container_name}" rpk topic alter-config amp.access \
+                --set message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            # 旧环境可能仅有 1 分区，幂等扩至 4 分区（与 create -p 4 对齐）
+            docker exec "${container_name}" rpk topic add-partitions amp.access -n 3 >/dev/null 2>&1 || true
+            # amp.message：4 分区，LogAppendTime，保留 7 天（Message Writer 消费）
+            docker exec "${container_name}" rpk topic create amp.message \
+                -p 4 -r 1 \
+                -c retention.ms=604800000 \
+                -c message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            # amp.message.dlq：1 分区，保留 7 天
+            docker exec "${container_name}" rpk topic create amp.message.dlq \
+                -p 1 -r 1 \
+                -c retention.ms=604800000 >/dev/null 2>&1 || true
+            docker exec "${container_name}" rpk topic alter-config amp.message \
+                --set message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            # 已存在单分区 topic 幂等扩到 4 分区（create 对已存在 topic 不生效）
+            docker exec "${container_name}" rpk topic add-partitions amp.message -n 3 >/dev/null 2>&1 || true
+            # amp.system：4 分区，LogAppendTime，保留 7 天（System Writer 消费，与 Writer 并发对齐）
+            docker exec "${container_name}" rpk topic create amp.system \
+                -p 4 -r 1 \
+                -c retention.ms=604800000 \
+                -c message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            # amp.system.dlq：1 分区，保留 7 天
+            docker exec "${container_name}" rpk topic create amp.system.dlq \
+                -p 1 -r 1 \
+                -c retention.ms=604800000 >/dev/null 2>&1 || true
+            docker exec "${container_name}" rpk topic alter-config amp.system \
+                --set message.timestamp.type=LogAppendTime >/dev/null 2>&1 || true
+            log_info "Redpanda 主题确保完成（幂等，已存在则跳过）。"
+            return 0
+        fi
+        sleep "${WAIT_INTERVAL}"
+    done
+
+    log_error "Redpanda 启动后未能及时响应，无法初始化 AMP 主题。"
+    return 1
+}
+
+ensure_minio_buckets() {
+    local container_name="dev-minio"
+    local deadline=$((SECONDS + WAIT_TIMEOUT))
+
+    while (( SECONDS < deadline )); do
+        if docker exec "${container_name}" mc ready local >/dev/null 2>&1; then
+            log_info "确保 MinIO 开发存储桶：amp-access-archive"
+            # 配置本地别名
+            docker exec "${container_name}" mc alias set devminio http://localhost:9000 admin devpass >/dev/null 2>&1 || true
+            # 创建 Access 冷归档存储桶（幂等）
+            docker exec "${container_name}" mc mb devminio/amp-access-archive >/dev/null 2>&1 || true
+            log_info "MinIO 存储桶确保完成（幂等，已存在则跳过）。"
+            return 0
+        fi
+        sleep "${WAIT_INTERVAL}"
+    done
+
+    log_error "MinIO 启动后未能及时响应，无法初始化存储桶。"
+    return 1
+}
+
+ensure_keycloak_postgres_database() {
+    local container_name="dev-postgres"
+
+    if ! wait_for_service_ready "postgres"; then
+        log_error "PostgreSQL 尚未就绪，无法准备 Keycloak 数据库。"
+        return 1
+    fi
+
+    log_info "确保 Keycloak PostgreSQL 用户与数据库存在。"
+    docker exec -i "${container_name}" psql -v ON_ERROR_STOP=1 --username postgres --dbname postgres <<'SQL' >/dev/null
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'keycloak') THEN
+        CREATE ROLE keycloak LOGIN PASSWORD 'keycloak';
+    ELSE
+        ALTER ROLE keycloak WITH LOGIN PASSWORD 'keycloak';
+    END IF;
+END
+$$;
+
+SELECT 'CREATE DATABASE keycloak OWNER keycloak'
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'keycloak')\gexec
+
+ALTER DATABASE keycloak OWNER TO keycloak;
+SQL
+}
+
+ensure_keycloak_dev_bootstrap() {
+    local bootstrap_script="${SCRIPT_DIR}/keycloak/bootstrap-dev-keycloak.sh"
+
+    if [[ ! -x "${bootstrap_script}" ]]; then
+        log_error "未找到 Keycloak 开发 bootstrap 脚本：${bootstrap_script}"
+        return 1
+    fi
+
+    if ! wait_for_service_ready "keycloak"; then
+        log_error "Keycloak 容器未能通过健康检查，无法执行开发 bootstrap。"
+        return 1
+    fi
+
+    log_info "执行 Keycloak 开发 bootstrap（realm / EdDSA / registry-cli、monitor-cli、registry-e2e、monitor-e2e、leader-e2e clients）。"
+    KEYCLOAK_CONTAINER="${KEYCLOAK_CONTAINER:-dev-keycloak}" \
+        KEYCLOAK_ADMIN="${KEYCLOAK_ADMIN:-admin}" \
+        KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-devpass}" \
+        REGISTRY_WEB_BASE_URL="${REGISTRY_WEB_BASE_URL:-http://localhost:9001}" \
+        MONITOR_WEB_BASE_URL="${MONITOR_WEB_BASE_URL:-http://localhost:9009}" \
+        LEADER_WEB_BASE_URL="${LEADER_WEB_BASE_URL:-http://localhost:9030}" \
+        bash "${bootstrap_script}"
 }
 
 docker_cli_available() {
@@ -256,6 +444,10 @@ service_index_by_legacy() {
             ;;
         dev-nginx)
             printf '3\n'
+            return 0
+            ;;
+        dev-keycloak)
+            printf '4\n'
             return 0
             ;;
     esac
@@ -401,6 +593,9 @@ service_wait_timeout() {
         rabbitmq)
             printf '%s\n' "${RABBITMQ_WAIT_TIMEOUT}"
             ;;
+        keycloak)
+            printf '%s\n' "${KEYCLOAK_WAIT_TIMEOUT}"
+            ;;
         *)
             printf '%s\n' "${WAIT_TIMEOUT}"
             ;;
@@ -506,6 +701,7 @@ cmd_up() {
     ensure_network
 
     local services=()
+    local needs_keycloak_setup="no"
     if [[ "$#" -eq 0 ]]; then
         services=("postgres")
     else
@@ -519,8 +715,16 @@ cmd_up() {
         if [[ "${service_name}" == "rabbitmq" ]]; then
             ensure_rabbitmq_tls_assets
         fi
+        if [[ "${service_name}" == "keycloak" ]]; then
+            needs_keycloak_setup="yes"
+        fi
         compose_services+=("$(service_compose_name "${service_name}")")
     done
+
+    if [[ "${needs_keycloak_setup}" == "yes" ]]; then
+        compose_up_detached "$(service_compose_name postgres)"
+        ensure_keycloak_postgres_database
+    fi
 
     log_info "启动服务：$(join_by ', ' "${services[@]}")"
     compose_up_detached "${compose_services[@]}"
@@ -528,7 +732,15 @@ cmd_up() {
     for service_name in "${services[@]}"; do
         if [[ "${service_name}" == "rabbitmq" ]]; then
             ensure_rabbitmq_dev_vhost
-            break
+        fi
+        if [[ "${service_name}" == "keycloak" ]]; then
+            ensure_keycloak_dev_bootstrap
+        fi
+        if [[ "${service_name}" == "kafka" ]]; then
+            ensure_redpanda_topics
+        fi
+        if [[ "${service_name}" == "minio" ]]; then
+            ensure_minio_buckets
         fi
     done
 
@@ -955,16 +1167,16 @@ cmd_doctor() {
     done
 
     if [[ "${DOCTOR_ERRORS}" -gt 0 ]]; then
-        log_error "doctor 发现 ${DOCTOR_ERRORS} 个错误，${DOCTOR_WARNINGS} 个警告。"
+        log_error "check 发现 ${DOCTOR_ERRORS} 个错误，${DOCTOR_WARNINGS} 个警告。"
         return 1
     fi
 
     if [[ "${DOCTOR_WARNINGS}" -gt 0 ]]; then
-        log_warn "doctor 通过，但存在 ${DOCTOR_WARNINGS} 个警告。"
+        log_warn "check 通过，但存在 ${DOCTOR_WARNINGS} 个警告。"
         return 0
     fi
 
-    log_info "doctor 通过。"
+    log_info "check 通过。"
 }
 
 SUBCOMMAND="${1:-help}"
@@ -994,7 +1206,7 @@ case "${SUBCOMMAND}" in
         shift
         cmd_reset "$@"
         ;;
-    doctor)
+    check)
         shift
         cmd_doctor "$@"
         ;;

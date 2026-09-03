@@ -30,6 +30,10 @@ class SuccessMessageResponse(BaseModel):
     message: str
 
 
+class OidcLogoutResponse(SuccessMessageResponse):
+    end_session_endpoint: str | None = None
+
+
 class RegisterRequest(BaseModel):
     username: str | None = None
     password: str | None = None

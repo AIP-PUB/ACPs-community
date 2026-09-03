@@ -227,7 +227,6 @@ start -> accepted -> working -> awaiting-input -> continue -> working
 | [acps_sdk/aip/aip_group_leader.py](../../acps-sdk/acps_sdk/aip/aip_group_leader.py) | 群组模式 Leader 客户端与高层会话封装 |
 | [acps_sdk/aip/aip_group_partner.py](../../acps-sdk/acps_sdk/aip/aip_group_partner.py) | 群组模式 Partner 客户端 |
 | [acps_sdk/aip/aip_stream_model.py](../../acps-sdk/acps_sdk/aip/aip_stream_model.py) | 流式传输模型定义 |
-| [acps_sdk/aip/mtls_config.py](../../acps-sdk/acps_sdk/aip/mtls_config.py) | mTLS 配置辅助 |
 
 ---
 

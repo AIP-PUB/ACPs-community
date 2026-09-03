@@ -1,0 +1,88 @@
+---
+# preflight_host_os_id.yml
+# host 模式：从 Ansible facts 归一 acps_os_id，并对照安装包内
+# baseline-matrix.toml [os_whitelist].ids fail-fast（本设计 §6.1）。
+
+- name: 归一 acps_os_id 与 acps_el_major
+  vars:
+    _dist: "{{ ansible_distribution | lower }}"
+    _major: "{{ ansible_distribution_major_version | string }}"
+    _ver: "{{ ansible_distribution_version | string }}"
+    _el_like: "{{ _dist in ['rocky', 'redhat', 'almalinux'] }}"
+  ansible.builtin.set_fact:
+    acps_el_major: "{{ _major }}"
+    acps_os_id: >-
+      {{
+        'rocky8' if (_el_like | bool) and _major == '8' else (
+          'rocky9' if (_el_like | bool) and _major == '9' else (
+            'ubuntu20' if _dist == 'ubuntu' and _ver.startswith('20.04') else (
+              'ubuntu22' if _dist == 'ubuntu' and _ver.startswith('22.04') else ''
+            )
+          )
+        )
+      }}
+    cacheable: true
+
+- name: 未识别 OS 时 fail-fast
+  ansible.builtin.assert:
+    that:
+      - (acps_os_id | string | length) > 0
+    fail_msg: >-
+      host-mode OS not in supported set after normalize.
+      distribution={{ ansible_distribution }} version={{ ansible_distribution_version }}
+      major={{ ansible_distribution_major_version }} os_family={{ ansible_os_family }}.
+      Supported acps_os_id: rocky8, rocky9, ubuntu20, ubuntu22
+      (rocky|rhel|almalinux 8/9; ubuntu 20.04/22.04).
+
+- name: rocky8 — 断言托管节点 Python ≥3.8（ansible-core ≥2.16；inventory 宜设 python3.8）
+  when: acps_os_id == 'rocky8'
+  block:
+    - name: 探测托管节点 Python 版本
+      ansible.builtin.command:
+        argv:
+          - "{{ ansible_python_interpreter | default('python3') }}"
+          - -c
+          - import sys; print("%d.%d" % sys.version_info[:2])
+      register: _rocky8_py_ver
+      changed_when: false
+
+    - name: 要求 Python ≥3.8
+      ansible.builtin.assert:
+        that:
+          - (_rocky8_py_ver.stdout | trim) is version('3.8', '>=')
+        fail_msg: >-
+          rocky8 host requires managed-node Python ≥3.8 for ansible-core ≥2.16
+          (got {{ _rocky8_py_ver.stdout | trim }} via
+          {{ ansible_python_interpreter | default('python3') }}).
+          Install python38 module and set ansible_python_interpreter=/usr/bin/python3.8
+          (see hosts.rocky8.yml).
+
+- name: 控制节点读取 packaged baseline-matrix [os_whitelist].ids
+  ansible.builtin.command:
+    argv:
+      - "{{ acps_tools_python | default('python3') }}"
+      - "{{ acps_release_root }}/scripts/baseline_os_whitelist.py"
+      - "--matrix"
+      - "{{ acps_release_root }}/baseline-matrix.toml"
+  register: _acps_os_whitelist_lookup
+  changed_when: false
+  delegate_to: localhost
+  become: false
+  run_once: true
+  vars:
+    ansible_become: false
+
+- name: 记录 os_whitelist fact
+  ansible.builtin.set_fact:
+    acps_os_whitelist_ids: "{{ _acps_os_whitelist_lookup.stdout | from_json }}"
+  run_once: true
+
+- name: 断言 acps_os_id ∈ baseline-matrix [os_whitelist]
+  ansible.builtin.assert:
+    that:
+      - acps_os_id in (acps_os_whitelist_ids | default([]))
+    fail_msg: >-
+      host-mode acps_os_id={{ acps_os_id }} not in baseline-matrix [os_whitelist].ids
+      {{ acps_os_whitelist_ids | default([]) }}
+      (host={{ inventory_hostname }}, distribution={{ ansible_distribution }}
+      {{ ansible_distribution_version }}).

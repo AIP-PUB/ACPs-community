@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, HTTPException
 from pydantic import ValidationError
 from datetime import datetime, timezone
 import uuid
+import logging
 from typing import Dict, Optional, Callable, Awaitable
 
 from .aip_base_model import (
@@ -13,7 +14,17 @@ from .aip_base_model import (
     TextDataItem,
     TaskCommandType,
 )
+from .aip_identity import (
+    AipIdentityError,
+    assert_sender_matches_expected,
+    assert_sender_matches_peer,
+    identity_error_to_jsonrpc,
+)
+from .aip_peer_cert import get_request_peer_aic
 from .aip_rpc_model import RpcRequest, RpcResponse, JSONRPCError
+
+logger = logging.getLogger(__name__)
+_DEFAULT_TASK_RESULT_SENDER = "server"
 
 
 # -------- Pluggable Command Framework --------
@@ -181,7 +192,7 @@ class TaskManager:
             id=f"result-{uuid.uuid4()}",
             sentAt=datetime.now(timezone.utc).isoformat(),
             senderRole="partner",
-            senderId="server",  # Will be overridden by actual partner
+            senderId=_DEFAULT_TASK_RESULT_SENDER,  # Will be overridden by actual partner
             taskId=command.taskId,
             status=task_status,
             sessionId=command.sessionId,
@@ -252,7 +263,24 @@ class TaskManager:
         task.products = products
 
 
-async def handle_rpc_request(request: Request, agent_handlers: CommandHandlers):
+def _bind_default_task_result_identity(
+    result: TaskResult,
+    local_aic: str | None,
+) -> TaskResult:
+    """Backfill the built-in TaskManager placeholder sender with the real local AIC."""
+    if local_aic and result.senderId == _DEFAULT_TASK_RESULT_SENDER:
+        result.senderId = local_aic
+    return result
+
+
+async def handle_rpc_request(
+    request: Request,
+    agent_handlers: CommandHandlers,
+    *,
+    local_aic: str | None = None,
+    identity_binding_enabled: bool = True,
+    dispatch_request: Callable[[RpcRequest], Awaitable[RpcResponse]] | None = None,
+):
     """
     Generic handler for AIP RPC requests.
     It parses the request, validates it, and passes it to the agent-specific logic.
@@ -267,6 +295,15 @@ async def handle_rpc_request(request: Request, agent_handlers: CommandHandlers):
     command = rpc_request.params.command
     task_id = command.taskId
 
+    if identity_binding_enabled and not local_aic:
+        raise ValueError("local_aic is required when identity_binding_enabled=True")
+
+    if identity_binding_enabled:
+        try:
+            assert_sender_matches_peer(command, get_request_peer_aic(request))
+        except AipIdentityError as exc:
+            return RpcResponse(id=rpc_request.id, error=identity_error_to_jsonrpc(exc))
+
     if not task_id and command.command != TaskCommandType.Start:
         error = JSONRPCError(
             code=-32602,
@@ -274,6 +311,15 @@ async def handle_rpc_request(request: Request, agent_handlers: CommandHandlers):
             data="taskId is required for non-Start commands.",
         )
         return RpcResponse(id=rpc_request.id, error=error)
+
+    if dispatch_request is not None:
+        try:
+            response = await dispatch_request(rpc_request)
+            if identity_binding_enabled and response.result is not None and local_aic is not None:
+                assert_sender_matches_expected(response.result, local_aic)
+            return response
+        except AipIdentityError as exc:
+            return RpcResponse(id=rpc_request.id, error=identity_error_to_jsonrpc(exc))
 
     # --- Command Dispatch via pluggable handlers ---
     task = TaskManager.get_task(task_id) if task_id else None
@@ -284,7 +330,12 @@ async def handle_rpc_request(request: Request, agent_handlers: CommandHandlers):
             if getattr(agent_handlers, "on_start", None):
                 result = await agent_handlers.on_start(command, task)
             else:
-                result = await DefaultHandlers.start(command, task)
+                result = _bind_default_task_result_identity(
+                    await DefaultHandlers.start(command, task),
+                    local_aic,
+                )
+            if identity_binding_enabled and local_aic is not None:
+                assert_sender_matches_expected(result, local_aic)
             return RpcResponse(id=rpc_request.id, result=result)
 
         # Get requires existing task
@@ -297,7 +348,12 @@ async def handle_rpc_request(request: Request, agent_handlers: CommandHandlers):
             if getattr(agent_handlers, "on_get", None):
                 result = await agent_handlers.on_get(command, task)
             else:
-                result = await DefaultHandlers.get(command, task)
+                result = _bind_default_task_result_identity(
+                    await DefaultHandlers.get(command, task),
+                    local_aic,
+                )
+            if identity_binding_enabled and local_aic is not None:
+                assert_sender_matches_expected(result, local_aic)
             return RpcResponse(id=rpc_request.id, result=result)
 
         # Other commands require existing task
@@ -311,26 +367,43 @@ async def handle_rpc_request(request: Request, agent_handlers: CommandHandlers):
             if getattr(agent_handlers, "on_cancel", None):
                 result = await agent_handlers.on_cancel(command, task)
             else:
-                result = await DefaultHandlers.cancel(command, task)
+                result = _bind_default_task_result_identity(
+                    await DefaultHandlers.cancel(command, task),
+                    local_aic,
+                )
+            if identity_binding_enabled and local_aic is not None:
+                assert_sender_matches_expected(result, local_aic)
             return RpcResponse(id=rpc_request.id, result=result)
 
         if command.command == TaskCommandType.Complete:
             if getattr(agent_handlers, "on_complete", None):
                 result = await agent_handlers.on_complete(command, task)
             else:
-                result = await DefaultHandlers.complete(command, task)
+                result = _bind_default_task_result_identity(
+                    await DefaultHandlers.complete(command, task),
+                    local_aic,
+                )
+            if identity_binding_enabled and local_aic is not None:
+                assert_sender_matches_expected(result, local_aic)
             return RpcResponse(id=rpc_request.id, result=result)
 
         if command.command == TaskCommandType.Continue:
             if getattr(agent_handlers, "on_continue", None):
                 result = await agent_handlers.on_continue(command, task)
             else:
-                result = await DefaultHandlers.continue_(command, task)
+                result = _bind_default_task_result_identity(
+                    await DefaultHandlers.continue_(command, task),
+                    local_aic,
+                )
+            if identity_binding_enabled and local_aic is not None:
+                assert_sender_matches_expected(result, local_aic)
             return RpcResponse(id=rpc_request.id, result=result)
 
         # Unknown or missing command -> try catch-all handler if provided
         if getattr(agent_handlers, "on_message", None):
             result = await agent_handlers.on_message(command, task)
+            if identity_binding_enabled and local_aic is not None:
+                assert_sender_matches_expected(result, local_aic)
             return RpcResponse(id=rpc_request.id, result=result)
 
         # Default: respond with invalid params error
@@ -341,6 +414,8 @@ async def handle_rpc_request(request: Request, agent_handlers: CommandHandlers):
         )
         return RpcResponse(id=rpc_request.id, error=error)
 
+    except AipIdentityError as exc:
+        return RpcResponse(id=rpc_request.id, error=identity_error_to_jsonrpc(exc))
     except Exception as e:
         # If the agent logic fails, update the task state to 'failed'
         error_item = TextDataItem(text=f"Agent execution failed: {str(e)}")
@@ -350,11 +425,29 @@ async def handle_rpc_request(request: Request, agent_handlers: CommandHandlers):
         return RpcResponse(id=rpc_request.id, result=failed_task)
 
 
-def add_aip_rpc_router(app: FastAPI, endpoint: str, agent_handlers: CommandHandlers):
+def add_aip_rpc_router(
+    app: FastAPI,
+    endpoint: str,
+    agent_handlers: CommandHandlers,
+    *,
+    local_aic: str | None = None,
+    identity_binding_enabled: bool = True,
+):
     """
     Adds the AIP RPC endpoint to a FastAPI application.
     """
 
+    if not identity_binding_enabled:
+        logger.warning(
+            "AIP identity binding disabled for RPC server endpoint=%s",
+            endpoint,
+        )
+
     @app.post(endpoint, response_model=RpcResponse)
     async def rpc_endpoint(request: Request):
-        return await handle_rpc_request(request, agent_handlers)
+        return await handle_rpc_request(
+            request,
+            agent_handlers,
+            local_aic=local_aic,
+            identity_binding_enabled=identity_binding_enabled,
+        )

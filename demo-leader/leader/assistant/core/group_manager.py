@@ -26,6 +26,8 @@ from acps_sdk.aip.aip_group_leader import (
 from acps_sdk.aip.aip_group_model import (
     ACSObject,
 )
+from acps_sdk.amp import MessageEmitter
+from acps_sdk.amp.trace_context import TraceContext
 
 from ..models.task import PartnerSelection
 
@@ -138,6 +140,9 @@ class GroupManager:
         rabbitmq_config: RabbitMQConfig,
         group_config: GroupConfig,
         ssl_context: ssl.SSLContext | None = None,
+        identity_binding_enabled: bool = True,
+        message_emitter: MessageEmitter | None = None,
+        trace_context_provider: Callable[[], TraceContext | None] | None = None,
     ):
         """
         初始化群组管理器
@@ -152,6 +157,9 @@ class GroupManager:
         self.rabbitmq_config = rabbitmq_config
         self.group_config = group_config
         self.ssl_context = ssl_context
+        self.identity_binding_enabled = identity_binding_enabled
+        self._message_emitter = message_emitter
+        self._trace_context_provider = trace_context_provider
 
         # SDK GroupLeader 实例
         self._group_leader: GroupLeader | None = None
@@ -214,6 +222,9 @@ class GroupManager:
             },
             ssl_context=self.ssl_context,
             invitation_timeout_seconds=self.group_config.partner_join_timeout,
+            identity_binding_enabled=self.identity_binding_enabled,
+            message_emitter=self._message_emitter,
+            trace_context_provider=self._trace_context_provider,
         )
 
         self._started = True
@@ -1022,6 +1033,9 @@ def create_group_manager(
     rabbitmq_config: dict[str, Any] | RabbitMQConfig,
     group_config: dict[str, Any] | GroupConfig,
     ssl_context: ssl.SSLContext | None = None,
+    identity_binding_enabled: bool = True,
+    message_emitter: MessageEmitter | None = None,
+    trace_context_provider: Callable[[], TraceContext | None] | None = None,
 ) -> GroupManager:
     """
     创建群组管理器
@@ -1071,6 +1085,9 @@ def create_group_manager(
         rabbitmq_config=rmq_config,
         group_config=grp_config,
         ssl_context=ssl_context,
+        identity_binding_enabled=identity_binding_enabled,
+        message_emitter=message_emitter,
+        trace_context_provider=trace_context_provider,
     )
 
     logger.info("[GroupManager] Group manager created")

@@ -1,10 +1,10 @@
 /**
  * Tour Assistant Frontend - 使用新的 Leader API
- * 
+ *
  * 新 API 模式：
  * - POST /api/v1/submit：异步提交用户输入，返回 sessionId 和 activeTaskId
  * - GET /api/v1/result/{session_id}：轮询任务状态和结果
- * 
+ *
  * 响应类型：
  * - pending: 任务等待执行
  * - running: 任务执行中
@@ -30,6 +30,8 @@ const els = {
     modeSelector: document.getElementById('modeSelector'),
     statusDisplay: document.getElementById('statusDisplay'),
     progressDisplay: document.getElementById('progressDisplay'),
+    logoutBtn: document.getElementById('logoutBtn'),
+    authDisplay: document.getElementById('authDisplay'),
 };
 
 // =============================================================================
@@ -37,7 +39,7 @@ const els = {
 // =============================================================================
 
 const CONFIG = window.APP_CONFIG || {};
-const DEFAULT_BACKEND_BASE = 'http://127.0.0.1:9011';
+const DEFAULT_BACKEND_BASE = 'http://127.0.0.1:9031';
 const API_VERSION = CONFIG.apiVersion || 'v1';
 const POLL_INTERVAL = CONFIG.pollInterval || 1000;
 const MAX_POLL_RETRIES = CONFIG.maxPollRetries || 60;
@@ -45,6 +47,14 @@ const MAX_POLL_RETRIES = CONFIG.maxPollRetries || 60;
 const runtimeBackendBase = typeof CONFIG.backendBase === 'string' ? CONFIG.backendBase.trim() : null;
 const BACKEND_BASE = runtimeBackendBase === '' ? '' : runtimeBackendBase || DEFAULT_BACKEND_BASE;
 const BACKEND_BASE_PREFIX = BACKEND_BASE.endsWith('/') ? BACKEND_BASE.slice(0, -1) : BACKEND_BASE;
+const OIDC = Object.assign({
+    enabled: false,
+    issuer: '',
+    clientId: 'leader-web',
+    scope: 'openid profile email',
+    redirectUri: window.location.origin + window.location.pathname,
+    postLogoutRedirectUri: window.location.origin + window.location.pathname,
+}, CONFIG.oidc || {});
 
 // 应用状态
 let state = {
@@ -57,6 +67,16 @@ let state = {
     lastTaskStatus: null,
 };
 
+const authState = {
+    discovery: null,
+    accessToken: null,
+    refreshToken: null,
+    idToken: null,
+    expiresAt: 0,
+    profile: null,
+    bootstrapPromise: null,
+};
+
 // =============================================================================
 // API 工具函数
 // =============================================================================
@@ -65,8 +85,315 @@ let state = {
  * 构建 API URL
  */
 function apiUrl(path) {
-    if (location.port === '9011' || BACKEND_BASE === '') return path;
+    if (location.port === '9031' || BACKEND_BASE === '') return path;
     return BACKEND_BASE_PREFIX + path;
+}
+
+function oidcEnabled() {
+    return Boolean(OIDC.enabled && typeof OIDC.issuer === 'string' && OIDC.issuer.trim());
+}
+
+function redirectUri() {
+    return (OIDC.redirectUri || (window.location.origin + window.location.pathname)).trim();
+}
+
+function postLogoutRedirectUri() {
+    return (OIDC.postLogoutRedirectUri || redirectUri()).trim();
+}
+
+function authStorageKey(name) {
+    return `leader-oidc-${name}`;
+}
+
+function updateAuthUi() {
+    const enabled = oidcEnabled();
+    const display = authState.profile?.name || authState.profile?.preferred_username || authState.profile?.email || '';
+
+    if (els.logoutBtn) {
+        els.logoutBtn.classList.toggle('hidden', !enabled);
+    }
+
+    if (!els.authDisplay) {
+        return;
+    }
+
+    if (!enabled || !display) {
+        els.authDisplay.classList.add('hidden');
+        els.authDisplay.textContent = '';
+        return;
+    }
+
+    els.authDisplay.classList.remove('hidden');
+    els.authDisplay.textContent = display;
+}
+
+function base64UrlEncode(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    bytes.forEach(byte => {
+        binary += String.fromCharCode(byte);
+    });
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function randomString() {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return base64UrlEncode(bytes);
+}
+
+async function sha256Base64Url(value) {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+    return base64UrlEncode(digest);
+}
+
+async function loadOidcDiscovery() {
+    if (authState.discovery) {
+        return authState.discovery;
+    }
+
+    const issuer = OIDC.issuer.replace(/\/$/, '');
+    const response = await fetch(`${issuer}/.well-known/openid-configuration`, {
+        headers: { 'Accept': 'application/json' },
+    });
+    if (!response.ok) {
+        throw new Error('无法加载 OIDC discovery 文档');
+    }
+    authState.discovery = await response.json();
+    return authState.discovery;
+}
+
+function saveLoginTransaction({ state, verifier, nonce }) {
+    sessionStorage.setItem(authStorageKey('state'), state);
+    sessionStorage.setItem(authStorageKey('verifier'), verifier);
+    sessionStorage.setItem(authStorageKey('nonce'), nonce);
+}
+
+function loadLoginTransaction() {
+    return {
+        state: sessionStorage.getItem(authStorageKey('state')),
+        verifier: sessionStorage.getItem(authStorageKey('verifier')),
+        nonce: sessionStorage.getItem(authStorageKey('nonce')),
+    };
+}
+
+function clearLoginTransaction() {
+    sessionStorage.removeItem(authStorageKey('state'));
+    sessionStorage.removeItem(authStorageKey('verifier'));
+    sessionStorage.removeItem(authStorageKey('nonce'));
+}
+
+function clearAuthState() {
+    authState.accessToken = null;
+    authState.refreshToken = null;
+    authState.idToken = null;
+    authState.expiresAt = 0;
+    authState.profile = null;
+    updateAuthUi();
+}
+
+function decodeJwtPayload(token) {
+    const parts = token.split('.');
+    if (parts.length < 2) {
+        return {};
+    }
+    const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4);
+    try {
+        return JSON.parse(atob(padded));
+    } catch (error) {
+        console.warn('无法解析 token payload', error);
+        return {};
+    }
+}
+
+function storeTokenResponse(tokenResponse) {
+    authState.accessToken = tokenResponse.access_token || null;
+    authState.refreshToken = tokenResponse.refresh_token || null;
+    authState.idToken = tokenResponse.id_token || null;
+
+    const accessClaims = authState.accessToken ? decodeJwtPayload(authState.accessToken) : {};
+    const now = Math.floor(Date.now() / 1000);
+    authState.expiresAt = Number(accessClaims.exp || (now + Number(tokenResponse.expires_in || 60)));
+    authState.profile = authState.idToken ? decodeJwtPayload(authState.idToken) : accessClaims;
+    updateAuthUi();
+}
+
+async function exchangeAuthorizationCode(code, returnedState) {
+    const discovery = await loadOidcDiscovery();
+    const tx = loadLoginTransaction();
+    if (!tx.state || !tx.verifier || tx.state !== returnedState) {
+        clearAuthState();
+        clearLoginTransaction();
+        throw new Error('OIDC state 校验失败');
+    }
+
+    const body = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        client_id: OIDC.clientId,
+        code_verifier: tx.verifier,
+        redirect_uri: redirectUri(),
+    });
+
+    const response = await fetch(discovery.token_endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+    });
+    if (!response.ok) {
+        clearAuthState();
+        clearLoginTransaction();
+        throw new Error('OIDC 授权码换 token 失败');
+    }
+
+    const tokenResponse = await response.json();
+    const idTokenClaims = tokenResponse.id_token ? decodeJwtPayload(tokenResponse.id_token) : null;
+    if (!tokenResponse.id_token || idTokenClaims?.nonce !== tx.nonce) {
+        clearAuthState();
+        clearLoginTransaction();
+        throw new Error('OIDC nonce 校验失败');
+    }
+
+    clearLoginTransaction();
+    storeTokenResponse(tokenResponse);
+
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('code');
+    cleanUrl.searchParams.delete('state');
+    cleanUrl.searchParams.delete('session_state');
+    history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+}
+
+async function redirectToLogin() {
+    const discovery = await loadOidcDiscovery();
+    const stateValue = randomString();
+    const verifier = randomString();
+    const nonce = randomString();
+    const challenge = await sha256Base64Url(verifier);
+    saveLoginTransaction({ state: stateValue, verifier, nonce });
+
+    const url = new URL(discovery.authorization_endpoint);
+    url.searchParams.set('client_id', OIDC.clientId);
+    url.searchParams.set('response_type', 'code');
+    url.searchParams.set('redirect_uri', redirectUri());
+    url.searchParams.set('scope', OIDC.scope || 'openid profile email');
+    url.searchParams.set('state', stateValue);
+    url.searchParams.set('nonce', nonce);
+    url.searchParams.set('code_challenge', challenge);
+    url.searchParams.set('code_challenge_method', 'S256');
+    window.location.assign(url.toString());
+}
+
+async function refreshAccessToken() {
+    if (!authState.refreshToken) {
+        await redirectToLogin();
+        return null;
+    }
+
+    const discovery = await loadOidcDiscovery();
+    const body = new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: OIDC.clientId,
+        refresh_token: authState.refreshToken,
+    });
+
+    const response = await fetch(discovery.token_endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+    });
+    if (!response.ok) {
+        clearAuthState();
+        await redirectToLogin();
+        return null;
+    }
+
+    const tokenResponse = await response.json();
+    storeTokenResponse(tokenResponse);
+    return authState.accessToken;
+}
+
+async function ensureAccessToken() {
+    if (!oidcEnabled()) {
+        return null;
+    }
+
+    if (!authState.accessToken) {
+        await bootstrapAuth();
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (authState.expiresAt && authState.expiresAt - now <= 30) {
+        return refreshAccessToken();
+    }
+    return authState.accessToken;
+}
+
+async function apiFetch(path, options = {}) {
+    const headers = new Headers(options.headers || {});
+    if (!headers.has('Content-Type') && options.body !== undefined) {
+        headers.set('Content-Type', 'application/json');
+    }
+    if (oidcEnabled()) {
+        const accessToken = await ensureAccessToken();
+        if (accessToken) {
+            headers.set('Authorization', `Bearer ${accessToken}`);
+        }
+    }
+
+    return fetch(apiUrl(path), Object.assign({}, options, { headers }));
+}
+
+async function bootstrapAuth() {
+    if (!oidcEnabled()) {
+        updateAuthUi();
+        return;
+    }
+    if (authState.bootstrapPromise) {
+        return authState.bootstrapPromise;
+    }
+
+    authState.bootstrapPromise = (async () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('error')) {
+            throw new Error(params.get('error_description') || params.get('error') || 'OIDC 登录失败');
+        }
+        if (params.get('code')) {
+            await exchangeAuthorizationCode(params.get('code'), params.get('state'));
+            return;
+        }
+        if (authState.accessToken) {
+            updateAuthUi();
+            return;
+        }
+        await redirectToLogin();
+    })();
+
+    try {
+        await authState.bootstrapPromise;
+    } finally {
+        authState.bootstrapPromise = null;
+    }
+}
+
+async function logout() {
+    const discovery = await loadOidcDiscovery().catch(() => null);
+    const idTokenHint = authState.idToken;
+    clearAuthState();
+    clearLoginTransaction();
+
+    if (discovery?.end_session_endpoint) {
+        const url = new URL(discovery.end_session_endpoint);
+        url.searchParams.set('post_logout_redirect_uri', postLogoutRedirectUri());
+        if (idTokenHint) {
+            url.searchParams.set('id_token_hint', idTokenHint);
+        }
+        window.location.assign(url.toString());
+        return;
+    }
+
+    window.location.assign(postLogoutRedirectUri());
 }
 
 /**
@@ -78,7 +405,7 @@ function generateClientRequestId() {
 
 /**
  * 提交用户请求到 /api/v1/submit
- * 
+ *
  * API 格式:
  * - query: 用户输入文本
  * - mode: 执行模式 (direct_rpc / group)
@@ -102,9 +429,8 @@ async function submitQuery(query) {
         payload.activeTaskId = state.activeTaskId;
     }
 
-    const response = await fetch(apiUrl(`/api/${API_VERSION}/submit`), {
+    const response = await apiFetch(`/api/${API_VERSION}/submit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
     });
 
@@ -121,7 +447,7 @@ async function submitQuery(query) {
 
 /**
  * 查询任务结果 GET /api/v1/result/{session_id}
- * 
+ *
  * 响应格式 (LeaderResult):
  * - sessionId, mode, userId
  * - createdAt, updatedAt, touchedAt, expiresAt
@@ -137,9 +463,8 @@ async function getResult(sessionId, taskId = null) {
         url += `?taskId=${encodeURIComponent(taskId)}`;
     }
 
-    const response = await fetch(url, {
+    const response = await apiFetch(url.replace(BACKEND_BASE_PREFIX, ''), {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
     });
 
     const json = await response.json();
@@ -353,7 +678,7 @@ function renderAnalysis(data) {
 
 /**
  * 渲染 Partner 状态 - 使用 activeTask.partnerTasks 格式
- * 
+ *
  * partnerTasks 格式: { [aic]: { partnerAic, aipTaskId, state, dimensions, lastStateChangedAt, ... } }
  */
 function renderPartnerResultsNew(partnerTasks) {
@@ -686,7 +1011,7 @@ function startPolling(sessionId, taskId) {
 
 /**
  * 处理轮询结果 - 新 API LeaderResult 格式
- * 
+ *
  * LeaderResult 结构:
  * - sessionId, mode, userId
  * - activeTask: { id, status, createdAt, ... }
@@ -915,12 +1240,12 @@ function enableInput() {
 
 /**
  * 发送用户查询
- * 
+ *
  * API 响应格式:
  * SubmitResponse.result = SubmitResult {
  *   sessionId, mode, activeTaskId, acceptedAt, externalStatus
  * }
- * 
+ *
  * externalStatus 值: pending, running, awaiting_input, completed, failed
  */
 async function sendQuery(query) {
@@ -1041,6 +1366,14 @@ if (els.newSessionBtn) {
     });
 }
 
+if (els.logoutBtn) {
+    els.logoutBtn.addEventListener('click', () => {
+        logout().catch(error => {
+            console.error('退出登录失败:', error);
+        });
+    });
+}
+
 // 模式选择器事件
 const modeRadios = document.querySelectorAll('input[name="executionMode"]');
 modeRadios.forEach(radio => {
@@ -1066,5 +1399,21 @@ if (els.userInput) {
 // 初始化
 // =============================================================================
 
-resetSessionUI();
-addMessage('system', '欢迎！输入您的需求开始对话。\n\n💡 提示：按 Ctrl+Enter 快速发送');
+async function bootstrapApp() {
+    resetSessionUI();
+    disableInput();
+
+    try {
+        await bootstrapAuth();
+        const welcome = oidcEnabled()
+            ? '欢迎回来，输入您的需求开始对话。\n\n💡 提示：按 Ctrl+Enter 快速发送'
+            : '欢迎！输入您的需求开始对话。\n\n💡 提示：按 Ctrl+Enter 快速发送';
+        addMessage('system', welcome);
+        enableInput();
+    } catch (error) {
+        console.error('应用初始化失败:', error);
+        addMessage('assistant', `❌ 初始化失败: ${error.message}`);
+    }
+}
+
+bootstrapApp();

@@ -1,0 +1,54 @@
+---
+# ensure_host_ssl_certs.yml
+# CPython standalone（OpenSSL）默认查找 /etc/ssl/cert.pem。
+# Rocky 9 的 ca-certificates 已提供该符号链接；Rocky 8 常缺失，导致
+# urllib/ssl 出站 HTTPS（demo LLM 等）CERTIFICATE_VERIFY_FAILED，而 httpx+certifi
+#（如 Discovery）仍可工作。本任务仅在缺失时补齐，指向发行版 trust bundle。
+
+- name: 探测系统 TLS trust bundle
+  ansible.builtin.set_fact:
+    _acps_ssl_trust_bundle: >-
+      {{
+        '/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem'
+        if ansible_os_family == 'RedHat'
+        else '/etc/ssl/certs/ca-certificates.crt'
+      }}
+
+- name: 检查 /etc/ssl/cert.pem
+  ansible.builtin.stat:
+    path: /etc/ssl/cert.pem
+  register: _acps_ssl_cert_pem
+
+- name: 检查 trust bundle 是否存在
+  ansible.builtin.stat:
+    path: "{{ _acps_ssl_trust_bundle }}"
+  register: _acps_ssl_trust_stat
+
+- name: 缺失时创建 /etc/ssl/cert.pem → 系统 trust bundle（rocky8 等）
+  when:
+    - not (_acps_ssl_cert_pem.stat.exists | default(false))
+    - _acps_ssl_trust_stat.stat.exists | default(false)
+  become: true
+  block:
+    - name: 确保 /etc/ssl 目录
+      ansible.builtin.file:
+        path: /etc/ssl
+        state: directory
+        mode: "0755"
+
+    - name: 链接 /etc/ssl/cert.pem
+      ansible.builtin.file:
+        src: "{{ _acps_ssl_trust_bundle }}"
+        dest: /etc/ssl/cert.pem
+        state: link
+        force: true
+
+- name: trust bundle 缺失时告警（不阻断；依赖方可能自带 certifi）
+  when:
+    - not (_acps_ssl_cert_pem.stat.exists | default(false))
+    - not (_acps_ssl_trust_stat.stat.exists | default(false))
+  ansible.builtin.debug:
+    msg: >-
+      host SSL: neither /etc/ssl/cert.pem nor {{ _acps_ssl_trust_bundle }}
+      exists on {{ inventory_hostname }}; CPython urllib HTTPS may fail.
+      Install ca-certificates / update-ca-trust.

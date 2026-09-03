@@ -1,0 +1,100 @@
+---
+# 绑定叶证 SAN 身份与当前 advertise + extra SANs。
+# 换业务机 / 改 acps_advertise_host / 改 *_tls_extra_sans 后，若仍复用旧叶证，
+# 会出现 SAN 不含本机 → AMQPS/mTLS 失败。检测到指纹变化即强制本 profile 重签。
+#
+# 期望：_profile_outdir_name、_cert_advertise_host、_cert_extra_sans
+# 产出：_advertise_sans_changed（bool）→ 参与本 profile 的 _need_bootstrap /
+#        _want_reissue 分流。读取顺序：profile `.advertise-sans-sha256` →
+#        issuer wipe 保留的 `.advertise-sans-stash/<outdir>`。
+# 禁止 set_fact 全局 acps_force_cert_renew（会泄漏到后续 profile / play）。
+
+- name: 计算当前 advertise+SAN 指纹
+  ansible.builtin.shell: |
+    set -euo pipefail
+    "{{ acps_tools_python | default('python3') }}" - <<'PY'
+    import hashlib, json
+    advertise = """{{ _cert_advertise_host | trim }}"""
+    extras = {{ _cert_extra_sans | default([]) | to_json }}
+    names = []
+    for n in [advertise, *extras]:
+        n = (n or "").strip()
+        if n:
+            names.append(n)
+    payload = {"advertise": advertise, "sans": sorted(set(names))}
+    print(hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
+    PY
+  args:
+    executable: /bin/bash
+  register: _advertise_fp_cmd
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 读取已绑定 advertise+SAN 指纹（profile 目录）
+  ansible.builtin.slurp:
+    src: "{{ acps_control_root }}/work/certs/{{ _profile_outdir_name }}/.advertise-sans-sha256"
+  register: _advertise_bound_slurp
+  failed_when: false
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 读取 issuer wipe 保留的 advertise+SAN 指纹 stash
+  ansible.builtin.slurp:
+    src: "{{ acps_control_root }}/work/certs/.advertise-sans-stash/{{ _profile_outdir_name }}"
+  register: _advertise_stash_slurp
+  failed_when: false
+  changed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 解析 profile / stash 中的已绑定指纹
+  ansible.builtin.set_fact:
+    _advertise_bound_from_profile: >-
+      {{
+        (
+          (_advertise_bound_slurp.content | default('') | b64decode)
+          if (_advertise_bound_slurp.content is defined)
+          else ''
+        )
+        | trim
+      }}
+    _advertise_bound_from_stash: >-
+      {{
+        (
+          (_advertise_stash_slurp.content | default('') | b64decode)
+          if (_advertise_stash_slurp.content is defined)
+          else ''
+        )
+        | trim
+      }}
+
+- name: 解析 advertise 指纹比较结果
+  ansible.builtin.set_fact:
+    _advertise_current_sha256: "{{ _advertise_fp_cmd.stdout | trim }}"
+    # Prefer live profile binding; fall back to issuer-wipe stash so SAN drift
+    # is not masked when work/certs/<outdir> was deleted.
+    _advertise_bound_sha256: >-
+      {{
+        _advertise_bound_from_profile
+        if (_advertise_bound_from_profile | length) > 0
+        else _advertise_bound_from_stash
+      }}
+    _advertise_sans_changed: false
+
+- name: advertise/SAN 指纹变更 → 标记本 profile 重签
+  when:
+    - (_advertise_bound_sha256 | length) > 0
+    - _advertise_bound_sha256 != _advertise_current_sha256
+  block:
+    - name: 标记 advertise SAN 已变更
+      ansible.builtin.set_fact:
+        _advertise_sans_changed: true
+
+    - name: 提示 advertise/SAN 变更将重签叶证
+      ansible.builtin.debug:
+        msg: >-
+          profile={{ _profile }} advertise/SAN 指纹已变更
+          (was={{ _advertise_bound_sha256[:12] }}… now={{ _advertise_current_sha256[:12] }}…
+          advertise={{ _cert_advertise_host }}) — 本 profile 将重签叶证。

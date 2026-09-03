@@ -25,6 +25,7 @@ from app.core.base_exception import PROBLEM_JSON_MEDIA_TYPE, build_problem_detai
 from app.core.config import settings
 from app.core.db_session import AsyncSessionLocal, async_engine, close_sync_engine
 from app.core.logging_config import setup_logging
+from app.core.oidc import close_oidc_validator, init_oidc_validator
 from app.core.otel import init_otel
 from app.core.peer_cert import PeerCertificateMiddleware
 from app.core.security import limiter, register_security_middleware
@@ -55,17 +56,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         None: 启动完成后将控制权交还给 FastAPI。
     """
     init_otel(settings, app)
+    await init_oidc_validator()
     yield
+    await close_oidc_validator()
     await async_engine.dispose()
     close_sync_engine()
 
 
 def acps_exception_handler(request: Request, exc: AcpsError) -> JSONResponse:
-    """将 ACPS 异常转换为协议要求的响应格式。
+    """将 ACPs 异常转换为协议要求的响应格式。
 
     Args:
         request: 当前传入的 HTTP 请求。
-        exc: 抛出的 ACPS 异常。
+        exc: 抛出的 ACPs 异常。
 
     Returns:
         JSONResponse: 协议约定的错误响应。
@@ -78,9 +81,9 @@ def acps_exception_handler(request: Request, exc: AcpsError) -> JSONResponse:
 
 
 def _dispatch_acps_exception(request: Request, exc: Exception) -> JSONResponse:
-    """适配 Starlette 异常处理器签名并委派给 ACPS 处理器。"""
+    """适配 Starlette 异常处理器签名并委派给 ACPs 处理器。"""
     if not isinstance(exc, AcpsError):
-        raise TypeError(f"Unexpected exception type for ACPS handler: {type(exc)!r}")
+        raise TypeError(f"Unexpected exception type for ACPs handler: {type(exc)!r}")
     return acps_exception_handler(request, exc)
 
 

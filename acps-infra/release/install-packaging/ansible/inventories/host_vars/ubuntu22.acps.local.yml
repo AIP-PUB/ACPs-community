@@ -1,0 +1,5 @@
+# 四 OS 混部 / 单机 Ubuntu22 共用：业务机广告名与 Ansible 连接。
+
+ansible_host: ubuntu22.acps.local
+acps_advertise_host: ubuntu22.acps.local
+ansible_user: huxiaofeng

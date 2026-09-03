@@ -66,7 +66,7 @@ def fake_dsp_client(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
         await asyncio.sleep(0)
         return RegistryInfo(
             service="registry-server",
-            version="2.1.0",
+            version="2.2.0",
             status="ok",
             supported_types=["acs"],
         )

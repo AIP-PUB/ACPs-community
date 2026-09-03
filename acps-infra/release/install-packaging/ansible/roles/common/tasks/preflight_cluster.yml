@@ -1,0 +1,303 @@
+---
+# 集群 preflight：secrets、模式、组基数、docker（image-mode）。
+
+# group_vars/all.yml 不再硬编码本变量（否则盖掉 hosts.yml all.vars）。
+# inventory / -e 未设时落到 common/defaults 同款路径。
+- name: 解析 acps_control_root 默认（inventory / -e 可覆盖）
+  ansible.builtin.set_fact:
+    acps_control_root: "{{ acps_control_root | default(lookup('env', 'HOME') ~ '/.local/share/acps/control', true) }}"
+
+- name: 断言 ansible-core 最低版本
+  ansible.builtin.assert:
+    that:
+      - ansible_version.full is version(acps_ansible_min_version, '>=')
+    fail_msg: >-
+      Ansible {{ ansible_version.full }} < required {{ acps_ansible_min_version }}.
+      On the control node run: {{ acps_release_root }}/scripts/bootstrap_control_ansible.sh
+      (or: uv tool install --force --python 3.14 'ansible-core>={{ acps_ansible_min_version }}').
+
+- name: 断言控制节点 Ansible 解释器具备 tomllib（Python ≥3.11）
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_playbook_python | default('python3') }}"
+      - -c
+      - import tomllib; import sys; print(sys.version.split()[0])
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  register: _acps_ctrl_tomllib
+  failed_when: false
+
+- name: 控制节点缺少 tomllib 时失败
+  ansible.builtin.assert:
+    that:
+      - (_acps_ctrl_tomllib.rc | default(1)) == 0
+    fail_msg: >-
+      Control-node Ansible Python cannot import tomllib (need Python ≥3.11 for
+      manifest_lookup.py). Current interpreter: {{ ansible_playbook_python | default('python3') }}.
+      Fix: {{ acps_release_root }}/scripts/bootstrap_control_ansible.sh
+      (installs ansible-core on CPython 3.14 via uv).
+
+- name: 断言部署模式为 image 或 host
+  ansible.builtin.assert:
+    that:
+      - acps_deploy_mode in ['image', 'host']
+    fail_msg: "acps_deploy_mode must be image or host (got {{ acps_deploy_mode }})"
+
+- name: 要求已加载 secrets 文件（key 存在）
+  ansible.builtin.assert:
+    that:
+      - postgresql_superuser_password is defined
+      - registry_db_password is defined
+      - ca_db_password is defined
+      - discovery_db_password is defined
+      - redis_password is defined
+      - rabbitmq_password is defined
+      - registry_admin_password is defined
+    fail_msg: >-
+      secrets.yml not loaded or incomplete. Run with -e @inventories/secrets.yml
+      (copy from secrets.example.yml, replace CHANGE_ME, chmod 600).
+
+- name: 对已启用核心组件的占位 secrets 失败
+  vars:
+    _placeholder_hits: >-
+      {{
+        [
+          ('postgresql_superuser_password', postgresql_superuser_password),
+          ('registry_db_password', registry_db_password),
+          ('ca_db_password', ca_db_password),
+          ('discovery_db_password', discovery_db_password),
+          ('redis_password', redis_password),
+          ('rabbitmq_password', rabbitmq_password),
+          ('registry_admin_password', registry_admin_password),
+          ('registry_secret_key', registry_secret_key),
+          ('registry_server_internal_api_token', registry_server_internal_api_token),
+        ]
+        | selectattr('1', 'search', acps_secrets_placeholder)
+        | map(attribute='0')
+        | list
+      }}
+  ansible.builtin.assert:
+    that:
+      - _placeholder_hits | length == 0
+    fail_msg: "secrets still contain placeholder CHANGE_ME for keys: {{ _placeholder_hits }}"
+
+# URL userinfo 危险字符：模板已 acps_urlquote，仍禁止易踩坑字符，避免运维误判。
+- name: 断言拼进连接串的口令不含 URL 危险字符
+  vars:
+    _url_unsafe_re: '[#@:/?[:space:]]'
+    _url_secret_pairs:
+      - { key: redis_password, value: "{{ redis_password }}" }
+      - { key: rabbitmq_password, value: "{{ rabbitmq_password }}" }
+      - { key: rabbitmq_user, value: "{{ rabbitmq_user | default('') }}" }
+      - { key: postgresql_superuser_password, value: "{{ postgresql_superuser_password }}" }
+      - { key: registry_db_password, value: "{{ registry_db_password }}" }
+      - { key: ca_db_password, value: "{{ ca_db_password }}" }
+      - { key: discovery_db_password, value: "{{ discovery_db_password }}" }
+      - { key: monitor_db_password, value: "{{ monitor_db_password | default('') }}" }
+      - { key: keycloak_db_password, value: "{{ keycloak_db_password | default('') }}" }
+      - { key: mq_auth_mgmt_pass, value: "{{ mq_auth_mgmt_pass }}" }
+      - { key: minio_root_password, value: "{{ minio_root_password | default('') }}" }
+    _url_unsafe_hits: >-
+      {{
+        _url_secret_pairs
+        | rejectattr('value', 'eq', '')
+        | selectattr('value', 'search', _url_unsafe_re)
+        | map(attribute='key')
+        | list
+      }}
+  ansible.builtin.assert:
+    that:
+      - _url_unsafe_hits | length == 0
+    fail_msg: >-
+      secrets.yml values must not contain URL-reserved characters (# @ : / ? or whitespace)
+      for keys: {{ _url_unsafe_hits }}.
+      They break REDIS_URL / DATABASE_URL / AMQP URLs if left unencoded; prefer
+      alphanumeric plus . _ - !. See secrets.example.yml.
+
+- name: 断言 MinIO root 口令满足上游长度要求
+  ansible.builtin.assert:
+    that:
+      - (minio_root_user | default('') | length) >= 3
+      - (minio_root_password | default('') | length) >= 8
+    fail_msg: >-
+      MinIO requires MINIO_ROOT_USER length >= 3 and MINIO_ROOT_PASSWORD length >= 8
+      (got user={{ minio_root_user | default('') | length }},
+      password={{ minio_root_password | default('') | length }}).
+
+- name: 断言每个已启用+托管的组件组恰好一台主机
+  vars:
+    _component_flags:
+      postgresql: "{{ postgresql_enabled | bool and postgresql_managed | bool }}"
+      redis: "{{ redis_enabled | bool and redis_managed | bool }}"
+      rabbitmq: "{{ rabbitmq_enabled | bool and rabbitmq_managed | bool }}"
+      keycloak: "{{ keycloak_enabled | bool and keycloak_managed | bool }}"
+      registry_server: "{{ registry_server_enabled | bool and registry_server_managed | bool }}"
+      ca_server: "{{ ca_server_enabled | bool and ca_server_managed | bool }}"
+      discovery_server: "{{ discovery_server_enabled | bool and discovery_server_managed | bool }}"
+      mq_auth_server: "{{ mq_auth_server_enabled | bool and mq_auth_server_managed | bool }}"
+      monitor_server: "{{ monitor_server_enabled | bool }}"
+      demo_partner: "{{ demo_partner_enabled | bool }}"
+      demo_leader: "{{ demo_leader_enabled | bool }}"
+  ansible.builtin.assert:
+    that:
+      - (not (_component_flags[item] | bool)) or ((groups[item] | default([])) | length == 1)
+    fail_msg: "group {{ item }} must have exactly 1 host when enabled+managed (got {{ groups[item] | default([]) }})"
+    success_msg: "group {{ item }} cardinality OK"
+  loop: "{{ _component_flags.keys() | list }}"
+
+- name: 解析 auth 模式 fact
+  ansible.builtin.set_fact:
+    acps_auth_mode: "{{ 'oidc' if (keycloak_enabled | bool) else 'local' }}"
+    cacheable: true
+
+# — 控制节点上的 ca-server 中间材料（阶段 4 之前）
+- name: ca_server 启用时校验控制节点 ca-materials
+  when: ca_server_enabled | bool
+  ansible.builtin.command:
+    argv:
+      - bash
+      - "{{ acps_release_root }}/scripts/validate_ca_materials.sh"
+      - --dir
+      - "{{ acps_ca_materials_dir }}"
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: false
+
+# — acps_advertise_host 地址平面门禁（image / host 多机禁 loopback；host 单机允许）
+# 注意：acps_advertise_host 若已定义（含空串），必须按原值判定，不可 default(..., true)
+# 回落到 ansible_host——否则预检放行、角色仍读到空 advertise 会静默写坏证书/ACS。
+- name: 汇总已启用组件组的业务主机列表
+  ansible.builtin.set_fact:
+    _acps_biz_hosts: >-
+      {{
+        (
+          ((groups['postgresql'] | default([]))
+            if (postgresql_enabled | default(true) | bool)
+               and (postgresql_managed | default(true) | bool)
+            else [])
+          + ((groups['redis'] | default([]))
+            if (redis_enabled | default(true) | bool)
+               and (redis_managed | default(true) | bool)
+            else [])
+          + ((groups['rabbitmq'] | default([]))
+            if (rabbitmq_enabled | default(true) | bool)
+               and (rabbitmq_managed | default(true) | bool)
+            else [])
+          + ((groups['keycloak'] | default([]))
+            if (keycloak_enabled | default(true) | bool)
+               and (keycloak_managed | default(true) | bool)
+            else [])
+          + ((groups['registry_server'] | default([]))
+            if (registry_server_enabled | default(true) | bool)
+               and (registry_server_managed | default(true) | bool)
+            else [])
+          + ((groups['ca_server'] | default([]))
+            if (ca_server_enabled | default(true) | bool)
+               and (ca_server_managed | default(true) | bool)
+            else [])
+          + ((groups['discovery_server'] | default([]))
+            if (discovery_server_enabled | default(true) | bool)
+               and (discovery_server_managed | default(true) | bool)
+            else [])
+          + ((groups['mq_auth_server'] | default([]))
+            if (mq_auth_server_enabled | default(true) | bool)
+               and (mq_auth_server_managed | default(true) | bool)
+            else [])
+          + ((groups['monitor_server'] | default([]))
+            if (monitor_server_enabled | default(true) | bool)
+            else [])
+          + ((groups['demo_partner'] | default([]))
+            if (demo_partner_enabled | default(true) | bool)
+            else [])
+          + ((groups['demo_leader'] | default([]))
+            if (demo_leader_enabled | default(true) | bool)
+            else [])
+          + ((groups['redpanda'] | default([]))
+            if ((amp_host_milestone | default(false) | bool)
+                or (monitor_server_enabled | default(true) | bool))
+            else [])
+          + ((groups['victoria_metrics'] | default([]))
+            if ((amp_host_milestone | default(false) | bool)
+                or (monitor_server_enabled | default(true) | bool))
+            else [])
+          + ((groups['minio'] | default([]))
+            if ((amp_host_milestone | default(false) | bool)
+                or (monitor_server_enabled | default(true) | bool))
+            else [])
+          + ((groups['clickhouse'] | default([]))
+            if (monitor_server_enabled | default(true) | bool)
+            else [])
+          + ((groups['opensearch'] | default([]))
+            if (monitor_server_enabled | default(true) | bool)
+            else [])
+        )
+        | unique
+        | list
+      }}
+    _acps_advertise_violations: []
+  run_once: true
+
+- name: 收集 loopback / 空 advertise 违规（逐主机）
+  ansible.builtin.set_fact:
+    _acps_advertise_violations: "{{ (_acps_advertise_violations | default([])) + [_acps_hit] }}"
+  vars:
+    _acps_adv: >-
+      {{
+        (
+          hostvars[item].acps_advertise_host
+          if (hostvars[item].acps_advertise_host is defined)
+          else (hostvars[item].ansible_host | default(item))
+        )
+        | string
+        | trim
+      }}
+    _acps_hit: "{{ {'host': item, 'advertise': _acps_adv} }}"
+  when: >-
+    (_acps_adv | length) == 0
+    or (_acps_adv | lower) in ['127.0.0.1', 'localhost', '::1']
+  loop: "{{ _acps_biz_hosts }}"
+  run_once: true
+
+- name: image-mode — 拒绝空 / loopback acps_advertise_host
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.assert:
+    that:
+      - (_acps_advertise_violations | default([]) | length) == 0
+    fail_msg: >-
+      image-mode forbids empty or loopback acps_advertise_host
+      (containers cannot reach Keycloak/JWKS/ACS via 127.0.0.1/localhost).
+      Violations: {{ _acps_advertise_violations }}.
+      Set a LAN IP or resolvable DNS name in host_vars (colocated Mac:
+      host_vars/acps-node-1.yml or export ACPS_ADVERTISE_HOST=...).
+  run_once: true
+
+- name: host-mode 多机 — 拒绝 loopback / 空 acps_advertise_host
+  when:
+    - acps_deploy_mode == 'host'
+    - (_acps_biz_hosts | default([]) | length) > 1
+  ansible.builtin.assert:
+    that:
+      - (_acps_advertise_violations | default([]) | length) == 0
+    fail_msg: >-
+      host-mode with multiple business hosts forbids empty or loopback
+      acps_advertise_host. Violations: {{ _acps_advertise_violations }}.
+      Use a reachable IP/DNS per host (see install-package-ansible-deploy.md §4.2).
+  run_once: true
+
+- name: host 模式 — OS 白名单与 acps_os_id 归一（本设计 §6.1）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: preflight_host_os_id.yml
+
+- name: host 模式 — 确保 CPython 可用的系统 CA 路径（/etc/ssl/cert.pem）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: ensure_host_ssl_certs.yml
+
+- name: host 模式 — OS 源可达性门禁（托管 PG/Redis/RMQ）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: preflight_host_os_repos.yml
+
+- name: host 模式 — rocky8/ubuntu20 vendor glibc 早期门禁
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: preflight_host_vendor_glibc.yml

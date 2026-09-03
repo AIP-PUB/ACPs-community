@@ -1,6 +1,6 @@
 [app]
 name = "Agent Discovery Server"
-version = "2.1.0"
+version = "2.2.0"
 description = "基于自然语言请求提供 Agent 发现的 API 服务"
 
 [server]
@@ -23,7 +23,7 @@ pool_recycle = 1800
 pool_pre_ping = true
 
 [discovery]
-mode = "gpu"
+mode = "cpu"
 
 [embedding]
 dimension = 1024

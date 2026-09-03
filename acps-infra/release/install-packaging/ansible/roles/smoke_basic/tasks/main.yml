@@ -1,0 +1,81 @@
+---
+# acps_smoke_tls_plane_only=true（§9.5.5 / BP5）：仅 TLS 平面硬门禁，跳过 HTTP/TCP/alive-sync。
+
+- name: 探测核心 HTTP health 端点（含 monitor:9009 冷启动重试 §9.5.5/BP9）
+  when: not (acps_smoke_tls_plane_only | default(false) | bool)
+  ansible.builtin.uri:
+    url: "{{ item }}"
+    method: GET
+    status_code: [200]
+    validate_certs: false
+  loop: "{{ _urls }}"
+  vars:
+    _reg: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+    _ca: "{{ hostvars | acps_group_addr(groups, 'ca_server') }}"
+    _disc: "{{ hostvars | acps_group_addr(groups, 'discovery_server') }}"
+    _mon: "{{ hostvars | acps_group_addr(groups, 'monitor_server') }}"
+    _kc: "{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+    _leader: "{{ hostvars | acps_group_addr(groups, 'demo_leader') }}"
+    _urls: >-
+      {{
+        (['http://' ~ _reg ~ ':' ~ registry_server_public_port ~ '/health'] if (registry_server_enabled | bool) else [])
+        + (['http://' ~ _ca ~ ':' ~ ca_server_port ~ '/health'] if (ca_server_enabled | bool) else [])
+        + (['http://' ~ _disc ~ ':' ~ discovery_server_port ~ '/health'] if (discovery_server_enabled | bool) else [])
+        + (['http://' ~ _mon ~ ':' ~ monitor_server_port ~ '/health'] if (monitor_server_enabled | bool) else [])
+        + (['http://' ~ _kc ~ ':' ~ keycloak_port ~ '/realms/acps-registry/.well-known/openid-configuration'] if (keycloak_enabled | bool) else [])
+        + (['http://' ~ _leader ~ ':' ~ (demo_leader_web_port | default(9030)) ~ '/api/v1/health']
+           if (demo_leader_enabled | bool) and (acps_smoke_include_demo | default(true) | bool) else [])
+      }}
+  retries: "{{ acps_smoke_http_retries | default(15) }}"
+  delay: "{{ acps_smoke_http_delay | default(4) }}"
+  register: _smoke
+  until: _smoke is succeeded
+
+- name: 探测 infra 与 demo partner 的 TCP 端口（明文平面；TLS 平面见 tls_planes.yml）
+  when: not (acps_smoke_tls_plane_only | default(false) | bool)
+  ansible.builtin.wait_for:
+    host: "{{ item.host }}"
+    port: "{{ item.port }}"
+    timeout: 10
+  loop: "{{ _ports }}"
+  vars:
+    _pg: "{{ hostvars | acps_group_addr(groups, 'postgresql') }}"
+    _rp: "{{ hostvars | acps_group_addr(groups, 'redpanda') }}"
+    _vm: "{{ hostvars | acps_group_addr(groups, 'victoria_metrics') }}"
+    _ch: "{{ hostvars | acps_group_addr(groups, 'clickhouse') }}"
+    _minio: "{{ hostvars | acps_group_addr(groups, 'minio') }}"
+    _os: "{{ hostvars | acps_group_addr(groups, 'opensearch') }}"
+    _ports: >-
+      {{
+        ([{'host': _pg, 'port': postgresql_port}] if (postgresql_enabled | bool) else [])
+        + ([
+             {'host': _rp, 'port': redpanda_kafka_port},
+             {'host': _vm, 'port': victoria_metrics_port},
+             {'host': _ch, 'port': clickhouse_http_port},
+             {'host': _minio, 'port': minio_api_port},
+             {'host': _os, 'port': opensearch_http_port},
+           ] if (monitor_server_enabled | bool) else [])
+      }}
+
+# Redis / RabbitMQ AMQPS / mq-auth / registry-9002 / demo HTTPS：按真实协议握手（fail-closed）。
+- name: TLS 平面握手验收
+  when: acps_tls_smoke_enabled | default(true) | bool
+  ansible.builtin.include_tasks: tls_planes.yml
+
+# Monitor 就绪后：Monitor Relay + Discovery alive-sync。
+# D2 必须使用 Discovery alive 视图 — 切勿使用 Monitor heartbeat/summary API。
+- name: Monitor→Discovery alive-sync 探测
+  when:
+    - not (acps_smoke_tls_plane_only | default(false) | bool)
+    - discovery_server_enabled | bool
+    - monitor_server_enabled | bool
+  ansible.builtin.include_tasks: alive_sync.yml
+
+- name: 基础 smoke 摘要
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        'tls-plane-only smoke passed (fail-closed TLS planes; HTTP/demo skipped)'
+        if (acps_smoke_tls_plane_only | default(false) | bool)
+        else 'basic smoke passed (HTTP + plain TCP + TLS planes + monitor/AMP + keycloak/demo as enabled)'
+      }}

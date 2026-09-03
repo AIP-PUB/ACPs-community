@@ -1,0 +1,154 @@
+{
+  "aic": "",
+  "active": false,
+  "lastModifiedTime": "2025-10-11T14:21:56.426665+08:00",
+  "protocolVersion": "02.02",
+  "name": "全国交通规划智能体",
+  "description": "全国城际交通规划智能体（Partner）。职责：围绕用户旅游或差旅日程，提供中国境内城市与城市之间的交通规划与对比（高铁/火车/航班/长途客运/轮渡/自驾概述），支持多段组合与时间-费用权衡。范围限定：仅处理中国大陆境内的城际交通，不提供城市内部出行（如地铁/公交/出租/网约车/步行等）与境外或跨国交通。明确拒绝：① 城市内通勤/导航/接驳细节；② 景点/酒店/餐饮等非交通内容；③ 境外或跨国交通；④ 货运/物流请求。混合请求中仅抽取并处理城际交通段，城市内部分予以拒绝并说明。全局必要输入：出发城市与到达城市（或有序的城市序列，≥2）以及出行日期或天数。全局可选输入：人数、预算区间、偏好（时间优先/费用优先/舒适度）、行李与特殊需求、票务限制（直达/最少换乘/避夜行）。",
+  "version": "1.0.0",
+  "provider": {
+    "organization": "ACPs工作组",
+    "department": "",
+    "url": "https://ioa.pub",
+    "license": "京ICP备2025124884号-4"
+  },
+  "securitySchemes": {
+    "mtls": {
+      "type": "mutualTLS",
+      "description": "智能体间mTLS双向认证"
+    }
+  },
+  "endPoints": [
+    {
+      "url": "https://localhost:9025/rpc",
+      "transport": "JSONRPC",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    },
+    {
+      "url": "https://localhost:9025/stream",
+      "transport": "SSE",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    },
+    {
+      "url": "https://localhost:9025/notification",
+      "transport": "JSONRPC",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    },
+    {
+      "url": "amqps://rabbitmq:5671/acps?inbox=inbox_{AIC}",
+      "transport": "AMQP",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    }
+  ],
+  "certificate": {
+    "altNames": {
+      "dns": [
+        "localhost"
+      ]
+    }
+  },
+  "capabilities": {
+    "streaming": true,
+    "notification": true,
+    "messageQueue": [
+      "rabbitmq:>=4.2"
+    ]
+  },
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "china_transport.intercity-transportation-planning",
+      "name": "城际交通规划",
+      "description": "规划城市间的交通路线与对比（航班/高铁/动车/普列/长途汽车/轮渡/自驾概述）。仅限中国大陆境内城际段；拒绝城市内部与境外跨国请求。必要输入：出发城市、到达城市、出行日期或天数。可选输入：人数、预算区间、时间或费用优先、行李/特殊需求、票务限制（直达/最少换乘）。",
+      "version": "1.0.0",
+      "tags": [
+        "城际交通",
+        "长途出行",
+        "交通方式选择",
+        "路线规划"
+      ],
+      "examples": [
+        "我从上海到北京旅游，请比较高铁、飞机、长途汽车的优缺点，包括时间、价格、舒适度，帮我选择最合适的交通方式",
+        "时间非常紧张，我需要最快的方式从广州到北京，请推荐最快的交通工具组合和具体的班次信息",
+        "我比较注重性价比，请帮我分析从成都到北京的各种交通方式，找到时间和费用最平衡的出行方案"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "china_transport.route-optimization",
+      "name": "路线优化服务",
+      "description": "在多个城市之间进行城际交通路线优化，减少总耗时与成本，并兼顾舒适度。仅限跨城市的段与段组合；拒绝缺少必要城市序列或纯城市内优化的请求。必要输入：有序城市序列（≥2）与出行日期或天数。可选输入：预算上限、优先侧重点（时间/费用/舒适度）、每日起止时间窗口、换乘限制（直达优先/避夜行/最少换乘）。",
+      "version": "1.0.0",
+      "tags": [
+        "路线优化",
+        "多点连接",
+        "时间节省",
+        "成本控制"
+      ],
+      "examples": [
+        "我计划沪宁杭三城旅行：上海→南京→杭州，时间优先，请优化每段的城际交通并给出总耗时与预算区间",
+        "北京→青岛→烟台→大连的八日行，请在控制预算的前提下优化各段交通方式与出发时段",
+        "成都→西安→郑州→北京的线路，尽量减少换乘与夜行，给出高铁/航班/长途客运的对比"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    {
+      "id": "china_transport.special-needs-transportation",
+      "name": "特殊需求交通",
+      "description": "为具有特殊需求的用户提供城际交通方案定制（如大件行李、老人小孩同行、团队出行、恐高/晕车等限制）。范围仅限城市与城市之间的交通，不含城市内段。必要输入：城市对或有序城市序列、出行日期或天数、人数与行李/特殊需求说明。可选输入：预算区间、舒适度偏好、换乘与步行限制（少步行/少换乘/避夜行）。",
+      "version": "1.0.0",
+      "tags": [
+        "特殊需求",
+        "定制方案",
+        "舒适出行",
+        "行李处理"
+      ],
+      "examples": [
+        "两位老人携带较多行李，从长沙到厦门再到泉州，优先舒适与少换乘，请给出城际交通建议与预算区间",
+        "我们是15人的团体，从广州→桂林→阳朔→南宁，给出城际交通方案并标注团队更合适的方式",
+        "我恐高且容易晕车，从成都到西安再到郑州，尽量避开航班与夜行，推荐高铁优先的组合"
+      ],
+      "inputModes": [
+        "text/plain"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json"
+      ]
+    }
+  ]
+}

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
 import httpx
+from asyncpg import PostgresError  # type: ignore[import-untyped]
 from fastapi import status
 from openai import OpenAIError
 from sqlalchemy import func
@@ -915,7 +916,7 @@ class DSPClient:
                 result = await session.execute(select(Agent))
                 agents = result.scalars().all()
                 logger.info("Snapshot 同步完成", agent_count=len(agents))
-        except SQLAlchemyError as exc:
+        except (OSError, PostgresError, SQLAlchemyError) as exc:
             logger.warning("Snapshot 同步完成，但无法统计 Agent 数量", error=str(exc))
 
     async def _log_changes_sync_result(self, total_change_count: int) -> None:
@@ -930,7 +931,7 @@ class DSPClient:
                 result = await session.execute(select(Agent))
                 agents = result.scalars().all()
                 logger.info("Changes 连续同步完成", total_change_count=total_change_count, agent_count=len(agents))
-        except SQLAlchemyError as exc:
+        except (OSError, PostgresError, SQLAlchemyError) as exc:
             logger.warning(
                 "Changes 同步完成，但无法统计 Agent 数量",
                 total_change_count=total_change_count,

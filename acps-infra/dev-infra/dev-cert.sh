@@ -44,7 +44,7 @@ usage() {
     cat <<'EOF'
 用法：
   ./dev-cert.sh init-ca
-  ./dev-cert.sh issue-leaf --ca <infra|agent> --common-name <CN> --usage <EKU> --cert-out <path> --key-out <path> [--san <SAN>] [--bundle-out <path>] [--relative-to <dir>]
+  ./dev-cert.sh issue-leaf --ca <infra|agent> --common-name <CN> --usage <EKU> --cert-out <path> --key-out <path> [--san <SAN>] [--bundle-out <path>] [--relative-to <dir>] [--algorithm <ed25519|rsa>]
   ./dev-cert.sh export-ca --ca <root|infra|agent|bundle> [--cert-out <path>] [--key-out <path>] [--chain-out <path>] [--bundle-out <path>] [--relative-to <dir>]
   ./dev-cert.sh issue-batch <manifest.toml>
   ./dev-cert.sh status
@@ -138,6 +138,12 @@ new_tmpfile() {
     mktemp "${TMPDIR:-/tmp}/acps-dev-cert.XXXXXX"
 }
 
+is_ed25519_private_key() {
+    local key_path="$1"
+
+    openssl pkey -in "${key_path}" -text -noout 2>/dev/null | grep -q '^ED25519 Private-Key:'
+}
+
 write_root_extfile() {
     local extfile="$1"
     cat >"${extfile}" <<'EOF'
@@ -164,11 +170,17 @@ write_leaf_extfile() {
     local extfile="$1"
     local usage="$2"
     local san="$3"
+    local algorithm="${4:-ed25519}"
 
     {
         echo "[leaf_cert]"
         echo "basicConstraints = critical, CA:false"
-        echo "keyUsage = critical, digitalSignature, keyEncipherment"
+        if [[ "${algorithm}" == "ed25519" ]]; then
+            # Ed25519 是纯签名算法，RFC 8410 §3 明确禁止设 keyEncipherment
+            echo "keyUsage = critical, digitalSignature"
+        else
+            echo "keyUsage = critical, digitalSignature, keyEncipherment"
+        fi
         echo "extendedKeyUsage = ${usage}"
         echo "subjectKeyIdentifier = hash"
         echo "authorityKeyIdentifier = keyid,issuer"
@@ -185,17 +197,27 @@ create_root_ca() {
     csr="$(new_tmpfile)"
     extfile="$(new_tmpfile)"
 
-    openssl genrsa -out "${ROOT_CA_KEY}" 4096 >/dev/null 2>&1
+    openssl genpkey -algorithm ED25519 -out "${ROOT_CA_KEY}" >/dev/null 2>&1
     openssl req -new -key "${ROOT_CA_KEY}" -out "${csr}" -subj "/CN=ACPs Development Root CA" >/dev/null 2>&1
     write_root_extfile "${extfile}"
-    openssl x509 -req \
-        -in "${csr}" \
-        -signkey "${ROOT_CA_KEY}" \
-        -out "${ROOT_CA_CERT}" \
-        -days "${ROOT_DAYS}" \
-        -sha256 \
-        -extfile "${extfile}" \
-        -extensions root_ca >/dev/null 2>&1
+    if is_ed25519_private_key "${ROOT_CA_KEY}"; then
+        openssl x509 -req \
+            -in "${csr}" \
+            -signkey "${ROOT_CA_KEY}" \
+            -out "${ROOT_CA_CERT}" \
+            -days "${ROOT_DAYS}" \
+            -extfile "${extfile}" \
+            -extensions root_ca >/dev/null 2>&1
+    else
+        openssl x509 -req \
+            -in "${csr}" \
+            -signkey "${ROOT_CA_KEY}" \
+            -out "${ROOT_CA_CERT}" \
+            -days "${ROOT_DAYS}" \
+            -sha256 \
+            -extfile "${extfile}" \
+            -extensions root_ca >/dev/null 2>&1
+    fi
 
     rm -f "${csr}" "${extfile}"
 }
@@ -213,19 +235,31 @@ create_intermediate_ca() {
     csr="$(new_tmpfile)"
     extfile="$(new_tmpfile)"
 
-    openssl genrsa -out "${key_path}" 4096 >/dev/null 2>&1
+    openssl genpkey -algorithm ED25519 -out "${key_path}" >/dev/null 2>&1
     openssl req -new -key "${key_path}" -out "${csr}" -subj "/CN=${subject_cn}" >/dev/null 2>&1
     write_intermediate_extfile "${extfile}"
-    openssl x509 -req \
-        -in "${csr}" \
-        -CA "${ROOT_CA_CERT}" \
-        -CAkey "${ROOT_CA_KEY}" \
-        -CAcreateserial \
-        -out "${cert_path}" \
-        -days "${INTERMEDIATE_DAYS}" \
-        -sha256 \
-        -extfile "${extfile}" \
-        -extensions intermediate_ca >/dev/null 2>&1
+    if is_ed25519_private_key "${ROOT_CA_KEY}"; then
+        openssl x509 -req \
+            -in "${csr}" \
+            -CA "${ROOT_CA_CERT}" \
+            -CAkey "${ROOT_CA_KEY}" \
+            -CAcreateserial \
+            -out "${cert_path}" \
+            -days "${INTERMEDIATE_DAYS}" \
+            -extfile "${extfile}" \
+            -extensions intermediate_ca >/dev/null 2>&1
+    else
+        openssl x509 -req \
+            -in "${csr}" \
+            -CA "${ROOT_CA_CERT}" \
+            -CAkey "${ROOT_CA_KEY}" \
+            -CAcreateserial \
+            -out "${cert_path}" \
+            -days "${INTERMEDIATE_DAYS}" \
+            -sha256 \
+            -extfile "${extfile}" \
+            -extensions intermediate_ca >/dev/null 2>&1
+    fi
 
     cat "${cert_path}" "${ROOT_CA_CERT}" >"${chain_path}"
     rm -f "${csr}" "${extfile}"
@@ -317,6 +351,7 @@ issue_leaf_certificate() {
     local san="$4"
     local cert_path="$5"
     local key_path="$6"
+    local algorithm="${7:-ed25519}"
 
     init_ca
     ensure_dir "$(dirname "${cert_path}")"
@@ -327,19 +362,42 @@ issue_leaf_certificate() {
     csr="$(new_tmpfile)"
     extfile="$(new_tmpfile)"
 
-    openssl genrsa -out "${key_path}" 2048 >/dev/null 2>&1
+    case "${algorithm}" in
+        ed25519)
+            openssl genpkey -algorithm ED25519 -out "${key_path}" >/dev/null 2>&1
+            ;;
+        rsa)
+            openssl genrsa -out "${key_path}" 2048 >/dev/null 2>&1
+            ;;
+        *)
+            log_error "issue-leaf 只支持 ed25519 或 rsa，当前算法：${algorithm}"
+            exit 1
+            ;;
+    esac
     openssl req -new -key "${key_path}" -out "${csr}" -subj "/CN=${subject_cn}" >/dev/null 2>&1
-    write_leaf_extfile "${extfile}" "${usage}" "${san}"
-    openssl x509 -req \
-        -in "${csr}" \
-        -CA "${ca_cert}" \
-        -CAkey "${ca_key}" \
-        -CAcreateserial \
-        -out "${cert_path}" \
-        -days "${LEAF_DAYS}" \
-        -sha256 \
-        -extfile "${extfile}" \
-        -extensions leaf_cert >/dev/null 2>&1
+    write_leaf_extfile "${extfile}" "${usage}" "${san}" "${algorithm}"
+    if is_ed25519_private_key "${ca_key}"; then
+        openssl x509 -req \
+            -in "${csr}" \
+            -CA "${ca_cert}" \
+            -CAkey "${ca_key}" \
+            -CAcreateserial \
+            -out "${cert_path}" \
+            -days "${LEAF_DAYS}" \
+            -extfile "${extfile}" \
+            -extensions leaf_cert >/dev/null 2>&1
+    else
+        openssl x509 -req \
+            -in "${csr}" \
+            -CA "${ca_cert}" \
+            -CAkey "${ca_key}" \
+            -CAcreateserial \
+            -out "${cert_path}" \
+            -days "${LEAF_DAYS}" \
+            -sha256 \
+            -extfile "${extfile}" \
+            -extensions leaf_cert >/dev/null 2>&1
+    fi
 
     rm -f "${csr}" "${extfile}"
     openssl verify -CAfile "${ROOT_CA_CERT}" -untrusted "${ca_cert}" "${cert_path}" >/dev/null
@@ -354,6 +412,7 @@ issue_leaf_artifact() {
     local key_out="$6"
     local bundle_out="$7"
     local base_dir="$8"
+    local algorithm="${9:-ed25519}"
 
     local cert_path key_path bundle_path=""
     cert_path="$(resolve_path_from_base "${base_dir}" "${cert_out}")"
@@ -362,7 +421,7 @@ issue_leaf_artifact() {
         bundle_path="$(resolve_path_from_base "${base_dir}" "${bundle_out}")"
     fi
 
-    issue_leaf_certificate "${ca_kind}" "${subject_cn}" "${usage}" "${san}" "${cert_path}" "${key_path}"
+    issue_leaf_certificate "${ca_kind}" "${subject_cn}" "${usage}" "${san}" "${cert_path}" "${key_path}" "${algorithm}"
     if [[ -n "${bundle_path}" ]]; then
         copy_output "${TRUST_BUNDLE}" "${bundle_path}"
     fi
@@ -478,6 +537,7 @@ for index, item in enumerate(items, start=1):
             get_text(item, "key_path", required=True),
             "",
             get_text(item, "bundle_path", required=False),
+            get_text(item, "algorithm", required=False) or "ed25519",
         ]
     elif item_type == "ca-materials":
         row = [
@@ -511,10 +571,10 @@ issue_batch_from_manifest() {
     manifest_dir="$(cd "$(dirname "${manifest_path}")" && pwd)"
     manifest_abs="${manifest_dir}/$(basename "${manifest_path}")"
 
-    while IFS="${FIELD_SEPARATOR}" read -r item_type ca_kind common_name usage san cert_path key_path chain_path bundle_path; do
+    while IFS="${FIELD_SEPARATOR}" read -r item_type ca_kind common_name usage san cert_path key_path chain_path bundle_path algorithm; do
         case "${item_type}" in
             leaf)
-                issue_leaf_artifact "${ca_kind}" "${common_name}" "${usage}" "${san}" "${cert_path}" "${key_path}" "${bundle_path}" "${manifest_dir}"
+                issue_leaf_artifact "${ca_kind}" "${common_name}" "${usage}" "${san}" "${cert_path}" "${key_path}" "${bundle_path}" "${manifest_dir}" "${algorithm:-ed25519}"
                 ;;
             ca-materials)
                 export_ca_materials "${ca_kind}" "${cert_path}" "${key_path}" "${chain_path}" "${bundle_path}" "${manifest_dir}"
@@ -574,6 +634,7 @@ run_issue_leaf_command() {
     local key_out=""
     local bundle_out=""
     local base_dir="$PWD"
+    local algorithm="ed25519"
 
     while (($#)); do
         case "$1" in
@@ -609,6 +670,14 @@ run_issue_leaf_command() {
                 base_dir="$2"
                 shift 2
                 ;;
+            --algorithm)
+                algorithm="$2"
+                if [[ "${algorithm}" != "ed25519" && "${algorithm}" != "rsa" ]]; then
+                    log_error "issue-leaf --algorithm 只支持 ed25519 或 rsa，当前值：${algorithm}"
+                    exit 1
+                fi
+                shift 2
+                ;;
             *)
                 log_error "issue-leaf 不支持的参数：$1"
                 exit 1
@@ -622,7 +691,7 @@ run_issue_leaf_command() {
         exit 1
     fi
 
-    issue_leaf_artifact "${ca_kind}" "${subject_cn}" "${usage}" "${san}" "${cert_out}" "${key_out}" "${bundle_out}" "${base_dir}"
+    issue_leaf_artifact "${ca_kind}" "${subject_cn}" "${usage}" "${san}" "${cert_out}" "${key_out}" "${bundle_out}" "${base_dir}" "${algorithm}"
 }
 
 run_export_ca_command() {

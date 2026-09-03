@@ -78,7 +78,9 @@ leader/
 | `[group]`            | Group 模式开关、状态探测、等待超时和重试等参数             |
 | `[rabbitmq]`         | RabbitMQ 连接参数，用于 Group 模式消息通信                 |
 
-`config.toml` 已作为正式配置提交到仓库。实际 LLM 参数通过仓库根目录 `.env` 注入；推荐使用仓库根目录的 `just prep env` 或 `just app/bootstrap` 自动准备本地环境：
+`config.toml` 已作为正式配置提交到仓库。实际 LLM 参数通过仓库根目录 `.env` 注入；本地开发默认 OIDC 配置则直接保存在
+`config.toml` 与 `web_app/runtime-config.js`，以便与 `acps-infra/dev-infra` 的 Keycloak 开箱对齐。推荐使用仓库根目录的
+`just prep env` 或 `just dev start` 自动准备本地环境：
 
 ```bash
 just prep env
@@ -98,7 +100,8 @@ just prep env
 
 `[mtls]` 段固定引用 `atr/client.pem`、`atr/client.key` 和 `atr/trust-bundle.pem`，证书脚本只覆盖文件内容，不再改写 `config.toml`。
 
-`leader/config.toml` 中仅保留 `llm.*.*_env` 形式的环境变量名引用，避免把具体 provider / model 信息写入仓库。
+`leader/config.toml` 中仅对 LLM 敏感信息保留 `llm.*.*_env` 形式的环境变量名引用，避免把具体密钥写入仓库；端口、
+OIDC issuer / audience / algorithm 等稳定的本地开发默认值直接提交到仓库维护。
 
 ### 场景配置
 
@@ -112,23 +115,20 @@ just prep env
 从仓库根目录运行（推荐）：
 
 ```bash
-# 建立本地开发环境
-just app bootstrap
-
-# 后台启动 Leader API + Web UI
-just app start
+# 后台启动 Leader API + Web UI（启动前自动准备环境）
+just dev start
 
 # 仅以前台模式观察 Leader API 启动日志
-just app start fg
+just dev start fg
 ```
 
 或通过 uvicorn 直接启动：
 
 ```bash
-uv run uvicorn leader.main:app --host 0.0.0.0 --port 9011 --reload
+uv run uvicorn leader.main:app --host 0.0.0.0 --port 9031 --reload
 ```
 
-> **注意**：Leader 依赖 Discovery、MQ Auth、Partner 等本地联调服务；默认地址见仓库根目录 `.env.example`。Partner 可通过兄弟项目 `demo-partner` 的 `just app` 工作流启动。
+> **注意**：Leader 依赖 Discovery、MQ Auth、Partner 等本地联调服务；默认地址见仓库根目录 `.env.example`。Partner 可通过兄弟项目 `demo-partner` 的 `just dev` 工作流启动。
 
 ## 4. API 接口
 

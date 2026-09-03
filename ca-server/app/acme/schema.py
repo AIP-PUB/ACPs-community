@@ -27,12 +27,14 @@ class ACMEErrorDetail(BaseModel):
 class JWKKey(BaseModel):
     """JSON Web Key 模式"""
 
-    kty: str = Field(..., description="密钥类型，如 RSA")
+    kty: str = Field(..., description="密钥类型，支持 RSA / EC / OKP")
     use: str | None = Field(None, description="密钥用途")
     alg: str | None = Field(None, description="算法")
     n: str | None = Field(None, description="RSA 模数")
     e: str | None = Field(None, description="RSA 指数")
-    # 可以根据需要添加其他密钥参数
+    crv: str | None = Field(None, description="EC/OKP 曲线，如 P-256 或 Ed25519")
+    x: str | None = Field(None, description="EC/OKP 公钥 x 坐标或原始公钥字节")
+    y: str | None = Field(None, description="EC 公钥 y 坐标")
 
 
 class JWSHeader(BaseModel):

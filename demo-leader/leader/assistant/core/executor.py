@@ -158,6 +158,7 @@ class TaskExecutor:
         config: ExecutorConfig | None = None,
         acs_cache: dict[str, dict[str, Any]] | None = None,
         ssl_context: ssl.SSLContext | None = None,
+        identity_binding_enabled: bool = True,
     ):
         """
         初始化执行器。
@@ -172,6 +173,10 @@ class TaskExecutor:
         self.config = config or ExecutorConfig()
         self.acs_cache = acs_cache or {}
         self._ssl_context = ssl_context
+        self._identity_binding_enabled = identity_binding_enabled
+
+        if not self._identity_binding_enabled:
+            logger.warning("AIP identity binding disabled for Leader RPC executor")
 
         # RPC 客户端缓存
         self._rpc_clients: dict[str, AipRpcClient] = {}
@@ -204,6 +209,7 @@ class TaskExecutor:
 
         # 收集所有需要执行的 Partner
         partner_tasks = self._build_partner_tasks(session_id, active_task_id, planning_result)
+        self._last_partner_tasks = partner_tasks
 
         if not partner_tasks:
             logger.warning("No active partners to execute")
@@ -211,6 +217,10 @@ class TaskExecutor:
             return result
 
         logger.info(f"Starting execution for {len(partner_tasks)} partner(s)")
+
+        from assistant.access_setup import start_trace
+
+        start_trace()
 
         try:
             # Phase 1: 并发下发 start
@@ -282,6 +292,7 @@ class TaskExecutor:
 
         # 收集所有需要轮询的 Partner
         partner_tasks = self._build_partner_tasks(session_id, active_task_id, planning_result)
+        self._last_partner_tasks = partner_tasks
 
         if not partner_tasks:
             logger.warning("No active partners to poll")
@@ -289,6 +300,10 @@ class TaskExecutor:
             return result
 
         logger.info(f"Resuming polling for {len(partner_tasks)} partner(s)")
+
+        from assistant.access_setup import start_trace
+
+        start_trace()
 
         try:
             # 先获取一次当前状态，初始化 result
@@ -396,16 +411,41 @@ class TaskExecutor:
     async def _get_or_create_client(self, partner_aic: str, endpoint: str) -> AipRpcClient:
         """获取或创建 RPC 客户端"""
         if partner_aic not in self._rpc_clients:
+            from assistant.access_setup import (
+                LEADER_ACCESS_EMITTER,
+                LEADER_SERVICE_NAME,
+                get_current_trace,
+            )
+
             # 对 HTTPS 端点传入 ssl_context，HTTP 端点不传
             ctx = self._ssl_context if endpoint.startswith("https://") else None
+            callee_service = self._resolve_callee_service(partner_aic)
             self._rpc_clients[partner_aic] = AipRpcClient(
                 partner_url=endpoint,
                 leader_id=self.leader_aic,
                 ssl_context=ctx,
+                expected_partner_aic=partner_aic,
+                identity_binding_enabled=self._identity_binding_enabled,
+                access_emitter=LEADER_ACCESS_EMITTER,
+                callee_aic=partner_aic,
+                caller_service=LEADER_SERVICE_NAME,
+                callee_service=callee_service,
+                trace_context_provider=get_current_trace,
             )
             if ctx:
                 self._log_peer_cert(partner_aic, endpoint)
         return self._rpc_clients[partner_aic]
+
+    def _resolve_callee_service(self, partner_aic: str) -> str:
+        """从已构建的 partner_tasks 或 AIC 派生 callee serviceName。"""
+        info = getattr(self, "_last_partner_tasks", {}).get(partner_aic)
+        if info:
+            selection = info.get("selection")
+            skill_name = getattr(selection, "skill_name", None) if selection else None
+            skill_id = getattr(selection, "skill_id", None) if selection else None
+            suffix = skill_name or (skill_id.split(".")[-1] if skill_id else partner_aic[-8:])
+            return f"demo-partner-{suffix}"
+        return f"demo-partner-{partner_aic[-8:]}"
 
     def _log_peer_cert(self, partner_aic: str, endpoint: str):
         """连接 Partner HTTPS 端点，记录其服务端证书信息。"""
@@ -488,6 +528,28 @@ class TaskExecutor:
             except Exception as e:
                 elapsed_ms = (time_module.time() - start_time) * 1000
                 logger.error(f"[Partner:{short_aic}] START failed after {elapsed_ms:.0f}ms: {e}")
+                from assistant.system_setup import LEADER_SYSTEM_EMITTER
+
+                try:
+                    LEADER_SYSTEM_EMITTER.emit_sync(
+                        {
+                            "message": f"Partner start failed: aic={short_aic}, error={type(e).__name__}",
+                            "category": "error",
+                            "component": "executor",
+                            "module": "start_partner",
+                            "tags": {"partner_aic": partner_aic, "error_type": type(e).__name__},
+                            "partner_aic": partner_aic,
+                            "endpoint": task_info.get("endpoint", ""),
+                            "elapsed_ms": int(elapsed_ms),
+                            "error_type": type(e).__name__,
+                            "error_message": str(e)[:500],
+                        },
+                        severity_number=17,
+                        severity_text="ERROR",
+                        correlation_id=session_id,
+                    )
+                except Exception:
+                    logger.warning("System emit S-L1 failed", exc_info=True)
                 return partner_aic, (None, str(e))
 
         # 并发执行
@@ -545,6 +607,28 @@ class TaskExecutor:
                 logger.warning(f"[Polling] Execution timeout after {round_count} rounds")
                 result.phase = ExecutionPhase.TIMEOUT
                 result.error = "Execution timeout"
+                from assistant.system_setup import LEADER_SYSTEM_EMITTER
+
+                try:
+                    _total_elapsed = int((time_module.time() - polling_start) * 1000)
+                    LEADER_SYSTEM_EMITTER.emit_sync(
+                        {
+                            "message": f"Execution timeout: round_count={round_count}, session={session_id}",
+                            "category": "capacity",
+                            "component": "executor",
+                            "module": "poll",
+                            "tags": {"session_id": session_id[:16] if session_id else ""},
+                            "round_count": round_count,
+                            "elapsed_ms": _total_elapsed,
+                            "convergence_timeout_s": self.config.convergence_timeout_s,
+                            "session_id": session_id,
+                        },
+                        severity_number=13,
+                        severity_text="WARN",
+                        correlation_id=session_id,
+                    )
+                except Exception:
+                    logger.warning("System emit S-L2 failed", exc_info=True)
                 break
 
             # 等待轮询间隔

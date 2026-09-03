@@ -1,0 +1,78 @@
+# image-mode 安装的组件 → 镜像映射。
+# tag 与 image-packaging 产物对齐（acps/<id>:…）。归档文件名在 lookup 时由 tag 推导
+#（acps-<id>-<suffix>.image.tar.gz）— 无短名别名。
+# assemble / build-install-package 按 --image-platform 重写 tag 中的 linux-amd64|arm64。
+
+[meta]
+acps_version = "2.2.0"
+image_platform = "linux-arm64"
+control_platform = "darwin-arm64"
+platform = "linux-arm64"
+
+[images.postgresql]
+tag = "acps/postgres-pgvector:17-bookworm-2.2.0-linux-arm64"
+
+[images.redis]
+tag = "acps/redis:7-alpine-2.2.0-linux-arm64"
+cert_owner_user = "redis"
+
+[images.rabbitmq]
+tag = "acps/rabbitmq:4.2-management-alpine-2.2.0-linux-arm64"
+cert_owner_user = "rabbitmq"
+
+[images.registry_server]
+tag = "acps/registry-server:2.2.0-linux-arm64"
+cert_owner_user = "acps"
+
+[images.ca_server]
+tag = "acps/ca-server:2.2.0-linux-arm64"
+cert_owner_user = "acps"
+
+[images.discovery_server_cpu]
+tag = "acps/discovery-server:2.2.0-linux-arm64-cpu"
+cert_owner_user = "acps"
+
+[images.discovery_server_gpu]
+tag = "acps/discovery-server:2.2.0-linux-arm64-gpu"
+cert_owner_user = "acps"
+
+[images.mq_auth_server]
+tag = "acps/mq-auth-server:2.2.0-linux-arm64"
+cert_owner_user = "acps"
+
+[images.monitor_server]
+tag = "acps/monitor-server:2.2.0-linux-arm64"
+cert_owner_user = "acps"
+
+[images.keycloak]
+tag = "acps/keycloak:26.6.3-2.2.0-linux-arm64"
+
+[images.demo_partner]
+tag = "acps/demo-partner:2.2.0-linux-arm64"
+cert_owner_user = "appuser"
+
+[images.demo_leader]
+tag = "acps/demo-leader:2.2.0-linux-arm64"
+cert_owner_user = "appuser"
+
+# AMP Forwarder（image-packaging id=fluent-bit）
+[images.fluent_bit]
+tag = "acps/fluent-bit:3.2-2.2.0-linux-arm64"
+
+[images.redpanda]
+tag = "acps/redpanda:26.1.9-2.2.0-linux-arm64"
+
+[images.victoria_metrics]
+tag = "acps/victoria-metrics:1.111.0-2.2.0-linux-arm64"
+
+[images.clickhouse]
+tag = "acps/clickhouse:25.5-alpine-2.2.0-linux-arm64"
+
+[images.minio]
+tag = "acps/minio:2025-04-22T22-12-26Z-2.2.0-linux-arm64"
+
+[images.opensearch]
+tag = "acps/opensearch:2.19.2-2.2.0-linux-arm64"
+
+[control.acps_cli]
+file_glob = "acps-cli-*-app-release-*.tar.gz"

@@ -1,0 +1,525 @@
+---
+# T4 demo：skip | reissue（同 AIC 续签）| bootstrap（首装 / force_demo_bootstrap / advertise 例外）。
+# Expects cert_provision_profile in {demo-partner, demo-leader}
+#
+# B11：禁止先 pull 再 skip（会用目标树覆盖控制 staging，排障/打标签失控）。
+# B12：bootstrap 路径白名单覆盖包装模板；*.key 永不覆盖；真实 AIC 的 acs.json
+#      在 force renew（reissue）下不得用空模板踩坏。
+#
+# NOTE: set_fact on localhost is NOT visible when a task is delegated to a remote
+# 主机（Ansible 在委托 inventory 上下文中重新模板化）。任何委托
+# task 必须从 cert_provision_profile + groups 重新推导 demo 目标/路径。
+
+- name: Map demo T4 metadata
+  ansible.builtin.set_fact:
+    _profile: "{{ cert_provision_profile }}"
+    _target_group: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+    _staging_name: "{{ 'demo-partner' if cert_provision_profile == 'demo-partner' else 'demo-leader' }}"
+    _component_rel: "{{ 'components/demo_partner' if cert_provision_profile == 'demo-partner' else 'components/demo_leader' }}"
+
+- name: 解析 first target host for demo profile
+  ansible.builtin.set_fact:
+    _demo_target: "{{ groups[_target_group] | first }}"
+
+- name: 解析 advertise host for SAN patch
+  ansible.builtin.set_fact:
+    _cert_advertise_host: "{{ hostvars | acps_group_addr(groups, _target_group) }}"
+    _cert_extra_sans: []
+    _profile_outdir_name: "{{ _staging_name }}"
+
+- name: 确保 control 叶证绑定目录（demo advertise 指纹）
+  ansible.builtin.file:
+    path: "{{ acps_control_root }}/work/certs/{{ _profile_outdir_name }}"
+    state: directory
+    mode: "0700"
+
+- name: 绑定 demo advertise+SAN 指纹（变更则禁止跳过 T4）
+  ansible.builtin.include_tasks: ensure_advertise_binding.yml
+
+- name: 确保 control staging dir
+  ansible.builtin.file:
+    path: "{{ acps_control_root }}/work/staging/{{ _staging_name }}"
+    state: directory
+    mode: "0700"
+
+- name: 确保 target component root exists (expand templates if needed)
+  ansible.builtin.file:
+    path: "{{ hostvars[_dt].acps_runtime_root | default('/opt/acps') }}/{{ _crel }}"
+    state: directory
+    mode: "0755"
+  vars:
+    # 在委托上下文中重新推导（localhost 的 set_fact 在此不可见）。
+    _tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+    _dt: "{{ groups[_tg] | first }}"
+    _crel: "{{ 'components/demo_partner' if cert_provision_profile == 'demo-partner' else 'components/demo_leader' }}"
+    ansible_connection: "{{ hostvars[_dt].ansible_connection | default('ssh') }}"
+  delegate_to: "{{ _dt }}"
+  become: "{{ (hostvars[_dt].ansible_become | default(true)) | bool }}"
+
+- name: 展开 demo tree on target if ACS missing（仅补缺；已有文件 force:false 不覆盖）
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/templates/{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}/{{ 'partners' if cert_provision_profile == 'demo-partner' else 'leader' }}/"
+    dest: "{{ hostvars[_dt].acps_runtime_root | default('/opt/acps') }}/{{ _crel }}/{{ 'partners' if cert_provision_profile == 'demo-partner' else 'leader' }}/"
+    mode: "0644"
+    force: false
+  vars:
+    _tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+    _dt: "{{ groups[_tg] | first }}"
+    _crel: "{{ 'components/demo_partner' if cert_provision_profile == 'demo-partner' else 'components/demo_leader' }}"
+    ansible_connection: "{{ hostvars[_dt].ansible_connection | default('ssh') }}"
+  delegate_to: "{{ _dt }}"
+  become: "{{ (hostvars[_dt].ansible_become | default(true)) | bool }}"
+
+# B11：在目标机探测材料（不先 pull）。可 skip 时不得碰控制 staging。
+- name: Detect whether demo profile already has AIC + cert materials（on target）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ hostvars[_dt].acps_runtime_root | default('/opt/acps') }}/{{ _crel }}"
+    # 目标机用系统 python3（勿用控制面 acps_tools_python 路径）
+    if [[ "{{ cert_provision_profile }}" == "demo-partner" ]]; then
+      python3 - "$ROOT" <<'PY'
+    import json, sys
+    from pathlib import Path
+    root = Path(sys.argv[1]) / "partners" / "online"
+    aics = []
+    if root.is_dir():
+        for acs in sorted(root.glob("*/acs.json")):
+            data = json.loads(acs.read_text(encoding="utf-8"))
+            aic = (data.get("aic") or "").strip()
+            pem = acs.parent / "server.pem"
+            client = acs.parent / "client.pem"
+            if aic and pem.is_file() and client.is_file():
+                aics.append(aic)
+    print("aics=" + ",".join(aics))
+    print("yes" if aics else "no")
+    PY
+    else
+      ACS="$ROOT/leader/atr/acs.json"
+      PEM="$ROOT/leader/atr/client.pem"
+      python3 - "$ACS" "$PEM" <<'PY'
+    import json, sys
+    from pathlib import Path
+    acs, pem = Path(sys.argv[1]), Path(sys.argv[2])
+    aic = ""
+    if acs.is_file():
+        aic = (json.loads(acs.read_text(encoding="utf-8")).get("aic") or "").strip()
+    print("aics=" + (aic if aic and pem.is_file() else ""))
+    print("yes" if aic and pem.is_file() else "no")
+    PY
+    fi
+  args:
+    executable: /bin/bash
+  vars:
+    _tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+    _dt: "{{ groups[_tg] | first }}"
+    _crel: "{{ 'components/demo_partner' if cert_provision_profile == 'demo-partner' else 'components/demo_leader' }}"
+    ansible_connection: "{{ hostvars[_dt].ansible_connection | default('ssh') }}"
+  delegate_to: "{{ _dt }}"
+  become: "{{ (hostvars[_dt].ansible_become | default(true)) | bool }}"
+  register: _demo_already_bootstrapped
+  changed_when: false
+
+- name: 解析本地材料检测结果
+  ansible.builtin.set_fact:
+    _demo_materials_present: "{{ (_demo_already_bootstrapped.stdout_lines | last | default('no') | trim) == 'yes' }}"
+    _demo_local_aics: >-
+      {{
+        (
+          (_demo_already_bootstrapped.stdout_lines | select('match', '^aics=') | first | default('aics='))
+          | regex_replace('^aics=', '')
+          | trim
+        ).split(',')
+        | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+
+- name: 校验 Registry 是否已有对应 AIC（避免空库假幂等；reissue 亦要求存在）
+  when:
+    - _demo_materials_present | bool
+    - not (acps_force_demo_bootstrap | default(false) | bool)
+    - (_demo_local_aics | length) > 0
+  ansible.builtin.shell: |
+    set -euo pipefail
+    REG_HOST="{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+    REG_PORT="{{ registry_server_public_port | default(9001) }}"
+    BASE="http://${REG_HOST}:${REG_PORT}/acps-atr-v2"
+    missing=0
+    for AIC in {{ _demo_local_aics | map('quote') | join(' ') }}; do
+      code="$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 5 --max-time 15 \
+        "${BASE}/acs/${AIC}" || echo 000)"
+      # 200=存在且 active；403=存在但非 active（仍算已注册，避免误重刷）
+      if [[ "$code" != "200" && "$code" != "403" ]]; then
+        echo "registry_missing aic=${AIC} http=${code}"
+        missing=1
+      else
+        echo "registry_ok aic=${AIC} http=${code}"
+      fi
+    done
+    if [[ "$missing" -eq 0 ]]; then
+      echo "registry_present=yes"
+    else
+      echo "registry_present=no"
+    fi
+  args:
+    executable: /bin/bash
+  register: _demo_registry_presence
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 判定 Registry 侧是否齐备
+  ansible.builtin.set_fact:
+    _demo_registry_ok: >-
+      {{
+        (_demo_registry_presence is defined)
+        and ((_demo_registry_presence.stdout | default('')) is search('registry_present=yes'))
+      }}
+
+# 三态：skip | reissue（同 AIC 续签）| bootstrap（首装 / 显式重刷 / advertise 例外）
+- name: 判定 demo T4 leaf 模式
+  ansible.builtin.set_fact:
+    _demo_force_identity_bootstrap: >-
+      {{
+        (acps_force_demo_bootstrap | default(false) | bool)
+        or (_advertise_sans_changed | default(false) | bool)
+      }}
+    _demo_want_reissue: >-
+      {{
+        (acps_force_cert_renew | default(false) | bool)
+        and (_demo_materials_present | bool)
+        and (not (
+          (acps_force_demo_bootstrap | default(false) | bool)
+          or (_advertise_sans_changed | default(false) | bool)
+        ))
+      }}
+    _demo_skip_bootstrap: >-
+      {{
+        (_demo_materials_present | bool)
+        and (not (acps_force_cert_renew | default(false) | bool))
+        and (not (acps_force_demo_bootstrap | default(false) | bool))
+        and (not (_advertise_sans_changed | default(false) | bool))
+        and ((_advertise_bound_sha256 | default('') | length) > 0)
+        and (_advertise_bound_sha256 == _advertise_current_sha256)
+        and (
+          (_demo_registry_presence is defined)
+          and ((_demo_registry_presence.stdout | default('')) is search('registry_present=yes'))
+        )
+      }}
+
+- name: force renew 但目标无 AIC 材料 → fail-stop（禁止 silent bootstrap 换号）
+  when:
+    - (acps_force_cert_renew | default(false) | bool)
+    - not (_demo_materials_present | bool)
+    - not (_demo_force_identity_bootstrap | bool)
+  ansible.builtin.fail:
+    msg: >-
+      demo {{ _profile }}: acps_force_cert_renew set but target has no AIC+leaf materials.
+      Refuse bootstrap (would mint new AICs). Run site.yml first, or set
+      acps_force_demo_bootstrap=true for intentional identity rebuild.
+
+- name: reissue 要求 Registry 仍认识这些 AIC
+  when:
+    - _demo_want_reissue | bool
+    - not (_demo_registry_ok | bool)
+  ansible.builtin.fail:
+    msg: >-
+      demo {{ _profile }}: reissue requested but Registry missing one or more AICs
+      ({{ _demo_local_aics | join(',') }}). Refuse delete+recreate bootstrap.
+
+- name: 本地有材料但 Registry 缺失时继续 bootstrap
+  when:
+    - _demo_materials_present | bool
+    - not (_demo_skip_bootstrap | bool)
+    - not (_demo_want_reissue | bool)
+    - not (acps_force_demo_bootstrap | default(false) | bool)
+  ansible.builtin.debug:
+    msg: >-
+      demo {{ _profile }}: local AIC/certs present but Registry missing one or more agents
+      — continue T4 bootstrap (set acps_force_demo_bootstrap=true to always re-run)
+
+- name: 跳过 T4（本地材料齐全且 Registry 已有对应 agent）
+  when: _demo_skip_bootstrap | bool
+  ansible.builtin.debug:
+    msg: "demo {{ _profile }} already bootstrapped — skip ACS register/issue（B11：不 pull / 不 push）"
+
+- name: 宣告 demo leaf 模式
+  when: not (_demo_skip_bootstrap | bool)
+  ansible.builtin.debug:
+    msg: >-
+      demo {{ _profile }} want_reissue={{ _demo_want_reissue }}
+      force_identity_bootstrap={{ _demo_force_identity_bootstrap }}
+      materials={{ _demo_materials_present }} registry_ok={{ _demo_registry_ok }}
+
+- name: Pull ACS tree from target → control staging
+  when: not (_demo_skip_bootstrap | bool)
+  # B11：仅不可 skip 时 pull。Control≠target: tar+ssh；同机 local tar。
+  ansible.builtin.shell: |
+    set -euo pipefail
+    SRC_PATH="{{ hostvars[_demo_target].acps_runtime_root | default('/opt/acps') }}/{{ _component_rel }}"
+    DEST="{{ acps_control_root }}/work/staging/{{ _staging_name }}"
+    mkdir -p "$DEST"
+    CONN="{{ hostvars[_demo_target].ansible_connection | default('ssh') }}"
+    if [[ "$CONN" == "local" ]]; then
+      tar -C "$SRC_PATH" --exclude='*.pyc' --exclude='__pycache__' --exclude='._*' --exclude='.DS_Store' -cf - . \
+        | tar -C "$DEST" --exclude='._*' -xf -
+    else
+      SRC_HOST="{{ hostvars[_demo_target].ansible_user | default(lookup('env','USER')) }}@{{ hostvars[_demo_target].ansible_host | default(_demo_target) }}"
+      ssh "$SRC_HOST" "sudo tar -C '$SRC_PATH' --exclude='*.pyc' --exclude='__pycache__' --exclude='._*' --exclude='.DS_Store' -cf - ." \
+        | tar -C "$DEST" --exclude='._*' -xf -
+    fi
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  become: false
+
+# B12：bootstrap 路径白名单覆盖包装模板 → staging。
+# force renew（reissue）：永不 overlay 真实 AIC 的 acs.json；可不碰 leaf（本轮 reissue 重写）。
+# force_demo_bootstrap / advertise：允许 ACS 模板覆盖（身份重建例外）。
+- name: Overlay package demo templates onto staging（whitelist）
+  when:
+    - not (_demo_skip_bootstrap | bool)
+    - not (_demo_want_reissue | bool)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    PKG="{{ acps_release_root }}/templates/{{ 'demo_partner' if _profile == 'demo-partner' else 'demo_leader' }}"
+    STAGE="{{ acps_control_root }}/work/staging/{{ _staging_name }}"
+    ALLOW_ACS_OVERLAY="{{ (_demo_force_identity_bootstrap | default(false) | bool) | lower }}"
+    FORCE_RESIGN_PEM="{{ ((_demo_force_identity_bootstrap | default(false) | bool) or (acps_force_cert_renew | default(false) | bool)) | lower }}"
+    "$PY" - "$PKG" "$STAGE" "$ALLOW_ACS_OVERLAY" "$FORCE_RESIGN_PEM" <<'PY'
+    import json, shutil, sys
+    from pathlib import Path
+
+    pkg, stage = Path(sys.argv[1]), Path(sys.argv[2])
+    allow_acs_overlay = sys.argv[3].lower() in ("true", "1", "yes")
+    force_resign_pem = sys.argv[4].lower() in ("true", "1", "yes")
+    if not pkg.is_dir():
+        print(f"skip_overlay missing_pkg={pkg}")
+        raise SystemExit(0)
+    stage.mkdir(parents=True, exist_ok=True)
+    protected_names = {"server.pem", "client.pem", "server.key", "client.key"}
+    protected_suffixes = {".key"}
+    copied = skipped = 0
+    for src in pkg.rglob("*"):
+        if not src.is_file():
+            continue
+        if src.name.startswith("._") or src.name == ".DS_Store":
+            continue
+        rel = src.relative_to(pkg)
+        dest = stage / rel
+        # never overlay private keys
+        if src.suffix in protected_suffixes or src.name.endswith(".key"):
+            skipped += 1
+            continue
+        # leaf PEMs: keep existing unless this round will re-sign via bootstrap
+        if src.name in protected_names and dest.is_file() and not force_resign_pem:
+            skipped += 1
+            continue
+        # acs.json with real AIC: do not stomp unless explicit identity rebuild
+        if src.name == "acs.json" and dest.is_file() and not allow_acs_overlay:
+            try:
+                data = json.loads(dest.read_text(encoding="utf-8"))
+                aic = (data.get("aic") or "").strip()
+                if aic and aic not in ("CHANGE_ME", "TODO"):
+                    skipped += 1
+                    continue
+            except Exception:
+                pass
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        copied += 1
+    print(f"overlay_copied={copied} overlay_skipped={skipped} allow_acs={allow_acs_overlay}")
+    PY
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  become: false
+  register: _demo_template_overlay
+  changed_when: >-
+    (_demo_template_overlay.rc | default(1) | int) == 0
+    and ('overlay_copied=0' not in (_demo_template_overlay.stdout | default('overlay_copied=0')))
+
+- name: 修补 demo ACS（Public HTTPS + AMQP + altNames；清理空 AIC 占位）
+  when:
+    - not (_demo_skip_bootstrap | bool)
+    - not (_demo_want_reissue | bool)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    STAGE="{{ acps_control_root }}/work/staging/{{ _staging_name }}"
+    ADV="{{ _cert_advertise_host }}"
+    PARTNER_ADV="{{ hostvars | acps_group_addr(groups, 'demo_partner') }}"
+    # image 同机用 compose DNS rabbitmq；host 或跨机一律 acps_group_addr。
+    {% if acps_deploy_mode | default('image') == 'image' and (_demo_target in (groups['rabbitmq'] | default([]))) %}
+    RMQ_DNS="rabbitmq"
+    {% else %}
+    RMQ_DNS="{{ hostvars | acps_group_addr(groups, 'rabbitmq') }}"
+    {% endif %}
+    PY="{{ acps_tools_python | default('python3') }}"
+    SCRIPT="{{ acps_release_root }}/scripts/rewrite_acs_endpoints.py"
+    if [[ -d "$STAGE/partners/online" ]]; then
+      "$PY" "$SCRIPT" "$STAGE/partners/online" --advertise-host "$ADV" --amqp-host "$RMQ_DNS"
+    fi
+    if [[ -f "$STAGE/leader/atr/acs.json" ]]; then
+      "$PY" "$SCRIPT" "$STAGE/leader/atr/acs.json" --advertise-host "$ADV" --amqp-host "$RMQ_DNS"
+    fi
+    if [[ -d "$STAGE/leader/scenario" ]]; then
+      "$PY" "$SCRIPT" "$STAGE/leader/scenario" --advertise-host "$PARTNER_ADV" --amqp-host "$RMQ_DNS"
+    fi
+    if [[ -f "$STAGE/atr/acs.json" ]]; then
+      "$PY" "$SCRIPT" "$STAGE/atr/acs.json" --advertise-host "$ADV" --amqp-host "$RMQ_DNS"
+    fi
+    # 仅清理模板/陈旧空 AIC 占位（不擦真实 AIC）
+    "$PY" - "$STAGE" <<'PY'
+    import json, sys
+    from pathlib import Path
+    root = Path(sys.argv[1])
+    paths = list(root.glob("partners/online/*/acs.json")) + list(root.glob("leader/atr/acs.json")) + list(root.glob("atr/acs.json"))
+    for path in paths:
+        if not path.is_file():
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        aic = data.get("aic") or ""
+        if isinstance(aic, str) and aic.strip() in ("", "CHANGE_ME", "TODO"):
+            data["aic"] = ""
+            data["active"] = False
+            path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            print(f"cleared_placeholder_aic {path}")
+    PY
+  args:
+    executable: /bin/bash
+
+- name: 同 AIC 重签 demo 叶子（禁止 agent save/delete）
+  when: _demo_want_reissue | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    SCRIPT="{{ acps_release_root }}/scripts/reissue_profile_leaves.py"
+    CLI="{{ acps_control_root }}/acps-cli/venv/bin/acps-cli"
+    CFG="{{ acps_control_root }}/acps-cli/acps-cli.toml"
+    STAGE="{{ acps_control_root }}/work/staging/{{ _staging_name }}"
+    "$PY" "$SCRIPT" \
+      --profile "{{ _profile }}" \
+      --stage-dir "$STAGE" \
+      --cli-bin "$CLI" \
+      --cli-config "$CFG" \
+      --work-dir "$STAGE/.reissue-work"
+  args:
+    executable: /bin/bash
+  register: _demo_reissue_out
+  changed_when: true
+
+- name: 宣告 demo reissue 结果
+  when: _demo_want_reissue | bool
+  ansible.builtin.debug:
+    msg: "{{ _demo_reissue_out.stdout_lines | default([]) }}"
+
+- name: Bootstrap demo profile on control staging (AIC write-back happens here)
+  when:
+    - not (_demo_skip_bootstrap | bool)
+    - not (_demo_want_reissue | bool)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    export BOOTSTRAP_ADMIN_USERNAME='{{ registry_admin_username }}'
+    export BOOTSTRAP_ADMIN_PASSWORD='{{ registry_admin_password }}'
+    export BOOTSTRAP_REGISTRY_USERNAME='{{ registry_bootstrap_username | default(registry_admin_username) }}'
+    export BOOTSTRAP_REGISTRY_PASSWORD='{{ registry_bootstrap_password | default(registry_admin_password) }}'
+    OUT="{{ acps_control_root }}/work/certs"
+    CFG="{{ acps_control_root }}/acps-cli/acps-cli.toml"
+    CLI="{{ acps_control_root }}/acps-cli/venv/bin/acps-cli"
+    PY="{{ acps_control_root }}/acps-cli/venv/bin/python"
+    SCRIPT="{{ acps_control_root }}/acps-cli/scripts/bootstrap_runtime.py"
+    STAGE="{{ acps_control_root }}/work/staging/{{ _staging_name }}"
+    mkdir -p "$OUT"
+    EXTRA=()
+    if [[ "{{ _profile }}" == "demo-leader" ]]; then
+      PARTNER_STAGE="{{ acps_control_root }}/work/staging/demo-partner"
+      EXTRA+=(--partner-install-dir "$PARTNER_STAGE")
+    fi
+    # Do not echo private key paths contents; only directory names.
+    echo "bootstrap {{ _profile }} install-dir=$STAGE"
+    "$PY" "$SCRIPT" "{{ _profile }}" \
+      --config "$CFG" \
+      --cli-bin "$CLI" \
+      --output-dir "$OUT" \
+      --install-dir "$STAGE" \
+      ${EXTRA[@]+"${EXTRA[@]}"} \
+      --admin-username "{{ registry_admin_username }}" \
+      --admin-password "{{ registry_admin_password }}" \
+      --user-username "{{ registry_bootstrap_username | default(registry_admin_username) }}" \
+      --user-password "{{ registry_bootstrap_password | default(registry_admin_password) }}"
+  args:
+    executable: /bin/bash
+  no_log: false
+
+- name: Push bootstrapped/reissued ACS+certs back to target
+  when: not (_demo_skip_bootstrap | bool)
+  ansible.builtin.shell: |
+    set -euo pipefail
+    DEST_PATH="{{ hostvars[_demo_target].acps_runtime_root | default('/opt/acps') }}/{{ _component_rel }}"
+    SRC="{{ acps_control_root }}/work/staging/{{ _staging_name }}"
+    CONN="{{ hostvars[_demo_target].ansible_connection | default('ssh') }}"
+    if [[ "$CONN" == "local" ]]; then
+      mkdir -p "$DEST_PATH"
+      tar -C "$SRC" --exclude='._*' --exclude='.DS_Store' --exclude='__pycache__' --exclude='.reissue-work' -cf - . \
+        | tar -C "$DEST_PATH" -xf -
+    else
+      DEST_HOST="{{ hostvars[_demo_target].ansible_user | default(lookup('env','USER')) }}@{{ hostvars[_demo_target].ansible_host | default(_demo_target) }}"
+      ssh "$DEST_HOST" "sudo mkdir -p '$DEST_PATH'"
+      tar -C "$SRC" --exclude='._*' --exclude='.DS_Store' --exclude='__pycache__' --exclude='.reissue-work' -cf - . \
+        | ssh "$DEST_HOST" "sudo tar -C '$DEST_PATH' -xf -"
+    fi
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  become: false
+
+- name: Also expand web_app for leader if missing（无 demo-nginx；Web 由 demo-leader-web 同源反代）
+  when:
+    - not (_demo_skip_bootstrap | bool)
+    - not (_demo_want_reissue | bool)
+    - cert_provision_profile == 'demo-leader'
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/templates/demo_leader/web_app/"
+    dest: "{{ hostvars[_dt].acps_runtime_root | default('/opt/acps') }}/components/demo_leader/web_app/"
+    mode: "0644"
+    force: false
+  vars:
+    _tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+    _dt: "{{ groups[_tg] | first }}"
+    ansible_connection: "{{ hostvars[_dt].ansible_connection | default('ssh') }}"
+  delegate_to: "{{ _dt }}"
+  become: "{{ (hostvars[_dt].ansible_become | default(true)) | bool }}"
+
+# After sudo tar push, materials are root-owned; normalize before any recreate
+# （首装在 demo_* roles 完成；续签只跑 T4 + recreate）。
+- name: 规范化 demo ACS ownership on target
+  when: not (_demo_skip_bootstrap | bool)
+  ansible.builtin.include_tasks: demo_normalize.yml
+
+# site 重签 demo 叶证后进程不会自动 reload；单元未安装则跳过。
+# 委托 task 会在目标机上下文重模板化：禁止依赖 localhost set_fact（_demo_target/_profile）。
+- name: demo 证书重签后重启服务
+  when: not (_demo_skip_bootstrap | bool)
+  ansible.builtin.include_tasks: renew_recreate_host.yml
+  vars:
+    _renew_target_host: >-
+      {{
+        groups[
+          'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader'
+        ] | first
+      }}
+    _rr:
+      profile: "{{ cert_provision_profile }}"
+      compose_services: >-
+        {{
+          'demo_partner' if cert_provision_profile == 'demo-partner'
+          else 'demo_leader demo_leader_web'
+        }}
+
+- name: 写回 demo advertise+SAN 绑定指纹
+  ansible.builtin.include_tasks: persist_advertise_binding.yml
+
+- name: issuer 旋转 checklist 打勾（demo profile 已成功）
+  ansible.builtin.include_tasks: mark_issuer_checklist.yml

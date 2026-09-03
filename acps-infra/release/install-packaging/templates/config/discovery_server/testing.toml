@@ -1,0 +1,7 @@
+[server]
+reload = false
+uvicorn_log_level = "warning"
+
+[logging]
+level = "WARNING"
+format = "console"

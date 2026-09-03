@@ -1,0 +1,28 @@
+# config/development.toml — 开发环境覆盖配置
+
+[server]
+reload = true
+uvicorn_log_level = "debug"
+
+[database]
+pool_size = 2
+max_overflow = 5
+
+[logging]
+level = "DEBUG"
+format = "console"
+
+[cors]
+enabled = true
+origins = ["*"]          # 开发环境全放行，生产环境请务必改为具体域名列表或保持 disabled
+allow_credentials = true # 开发环境方便调试，生产环境根据实际鉴权方式
+
+[ca_server]
+mock = true
+
+[verification]
+auto_approve_identity = true
+auto_approve_org = true
+
+[rate_limit]
+enabled = false

@@ -4,18 +4,16 @@ import hashlib
 import re
 import secrets
 
-from app.core.config import settings
-
 from .utils import get_beijing_time
 
-# 规范来源：ACPs-spec-AIC-v02.01
+# 规范来源：ACPs-spec-AIC-v02.02
 # AIC 形如：
 #   1.2.156.3088.<VER>.<ARSP>.<VENDOR>.<ONTOLOGY_SN>.<INSTANCE_SN>.<CRC16>
 # 其中 CRC16 = CRC-16/CCITT-FALSE(0x1021, init=0xFFFF, refin/refout=false, xorout=0x0000)
 # 本实现支持对 CRC 计算加入盐：将环境变量 AIC_CRC_SALT（十六进制字符串）解析为字节后，
 # 追加到 body_1_9 的 ASCII 字节序列末尾参与 CRC 计算。
-
-AIC_CRC_SALT = settings.aic_crc_salt
+# 盐值每次从 Settings 读取，避免在模块导入时缓存；单测可 patch 本模块的 AIC_CRC_SALT。
+AIC_CRC_SALT: str | None = None
 
 # 由国家OID注册中心分配的前缀
 AIC_PREFIX = "1.2.156.3088"
@@ -23,13 +21,13 @@ AIC_PREFIX = "1.2.156.3088"
 # 第 5 级：AIC 版本号（1~Z，Base36）
 PROTOCOL_VERSION = "1"
 
-# 第 6/7 级：注册服务商/供应商标识（1~ZZZZZZ）。为兼容旧代码，这里沿用原常量名。
-MANAGER_CODE = "0001"  # ARSP
-PROVIDER_CODE = "00001"  # Vendor
-
-# 默认序列号长度（规范允许 1~9 位，这里默认生成 6 位；本体实例序列号为全 0）
+# 默认序列号长度（规范允许 1～9 位；未在 TOML 配置时默认生成 6 位）
+# 本体 AIC 第9级固定为字符 "0"（判断仍接受任意长度的全 0，以兼容历史 AIC）
+MIN_AIC_SERIAL_LEN = 1
+MAX_AIC_SERIAL_LEN = 9
 DEFAULT_ONTOLOGY_SERIAL_LEN = 6
 DEFAULT_INSTANCE_SERIAL_LEN = 6
+ONTOLOGY_INSTANCE_SERIAL = "0"
 
 # Base36 字母表（0-9, A-Z）
 BASE36_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -37,6 +35,8 @@ BASE36_INDEX = {ch: i for i, ch in enumerate(BASE36_ALPHABET)}
 
 _RE_BASE36 = re.compile(r"^[0-9A-Z]+$")
 _RE_BASE36_4 = re.compile(r"^[0-9A-Z]{4}$")
+_RE_AIC_LEVEL_CODE = re.compile(r"^[0-9A-Z]{1,6}$")
+_RE_AIC_PROTOCOL_VERSION = re.compile(r"^[1-9A-Z]$")
 _RE_DIGITS = re.compile(r"^[0-9]+$")
 
 
@@ -110,12 +110,112 @@ def _serial_from_ms_with_salt(ms_in_year: int, salt: bytes, kind: bytes, length:
     return s36
 
 
+def validate_aic_serial_len(value: object, *, name: str = "serial_len") -> int:
+    """校验 AIC 第8/9 级自动生成长度（规范允许 1～9）。
+
+    Args:
+        value: 待校验的长度。
+        name: 用于错误信息的字段名。
+
+    Returns:
+        合法的长度整数。
+
+    Raises:
+        ValueError: 非整数、布尔值，或不在 1～9。
+    """
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{name} 必须是 1～{MAX_AIC_SERIAL_LEN} 的整数")
+    if not (MIN_AIC_SERIAL_LEN <= value <= MAX_AIC_SERIAL_LEN):
+        raise ValueError(f"{name} 必须在 {MIN_AIC_SERIAL_LEN}～{MAX_AIC_SERIAL_LEN} 之间")
+    return value
+
+
+def _resolve_protocol_version(value: str | None = None) -> str:
+    """解析第5级版本号：显式参数优先，否则读 Settings。"""
+    if value is not None:
+        return normalize_aic_protocol_version(value)
+    from app.core.config import settings
+
+    return settings.aic_protocol_version
+
+
+def _resolve_ontology_serial_len(value: int | None = None) -> int:
+    """解析第8级自动生成长度：显式参数优先，否则读 Settings。"""
+    if value is not None:
+        return validate_aic_serial_len(value, name="ontology_serial_len")
+    from app.core.config import settings
+
+    return settings.aic_ontology_serial_len
+
+
+def _resolve_instance_serial_len(value: int | None = None) -> int:
+    """解析第9级自动生成长度：显式参数优先，否则读 Settings。"""
+    if value is not None:
+        return validate_aic_serial_len(value, name="instance_serial_len")
+    from app.core.config import settings
+
+    return settings.aic_instance_serial_len
+
+
+def _resolve_aic_crc_salt() -> str:
+    """解析 CRC 盐。优先使用测试 patch 的模块属性，否则每次读取 Settings。"""
+    module_salt = globals().get("AIC_CRC_SALT")
+    if isinstance(module_salt, str):
+        return module_salt
+    from app.core.config import settings
+
+    return settings.aic_crc_salt
+
+
 def _normalize_aic_text(text: str) -> str:
     """规范化：去除空白字符并转为大写（保留 '.' 分隔符）。"""
     if text is None:
         return ""
     # 去除所有空白（含\t/\n等）
     return re.sub(r"\s+", "", str(text)).upper()
+
+
+def normalize_aic_protocol_version(value: str) -> str:
+    """规范化 AIC 第5级版本号。
+
+    去首尾空白、转大写，要求恰好 1 位 Base36，取值 1～Z（禁止 ``0``）。
+
+    Args:
+        value: 原始版本号。
+
+    Returns:
+        规范化后的大写版本号。
+
+    Raises:
+        ValueError: 空值、非 1 位，或含非法字符（含 ``0``）。
+    """
+    normalized = value.strip().upper()
+    if not _RE_AIC_PROTOCOL_VERSION.fullmatch(normalized):
+        raise ValueError("AIC 第5级版本号必须是 1 位 Base36（1-9/A-Z）")
+    return normalized
+
+
+def normalize_aic_level_code(value: str) -> str:
+    """规范化 AIC 第6/7 级序号。
+
+    去首尾空白、转大写，要求 1～6 位 Base36（0-9/A-Z）。允许前导零，不自动补齐也不剥离前导零。
+    全 0（每一位都是 ``0``）非法。
+
+    Args:
+        value: 原始序号字符串。
+
+    Returns:
+        规范化后的大写序号。
+
+    Raises:
+        ValueError: 空值、超长、含非法字符或全 0。
+    """
+    normalized = value.strip().upper()
+    if not _RE_AIC_LEVEL_CODE.fullmatch(normalized):
+        raise ValueError("AIC 第6/7 级序号必须是 1～6 位 Base36（0-9/A-Z）")
+    if set(normalized) == {"0"}:
+        raise ValueError("AIC 第6/7 级序号不能为全 0")
+    return normalized
 
 
 def _split_aic(aic_text: str) -> list[str]:
@@ -151,9 +251,10 @@ def calculate_aic_checksum(body_1_9: str) -> str:
     其中 salt_bytes 由 AIC_CRC_SALT（十六进制字符串）解析得到。
     """
     normalized = _normalize_aic_text(body_1_9)
+    crc_salt = _resolve_aic_crc_salt()
     # 将十六进制字符串形式的 salt 解析为字节
     try:
-        salt_hex = AIC_CRC_SALT[2:] if AIC_CRC_SALT.lower().startswith("0x") else AIC_CRC_SALT
+        salt_hex = crc_salt[2:] if crc_salt.lower().startswith("0x") else crc_salt
         if len(salt_hex) % 2 != 0:
             salt_hex = "0" + salt_hex
         salt_bytes = bytes.fromhex(salt_hex)
@@ -165,7 +266,7 @@ def calculate_aic_checksum(body_1_9: str) -> str:
 
 
 def validate_aic(aic: str, *, expected_prefix: str = AIC_PREFIX) -> bool:
-    """验证 ACPs-spec-AIC-v02.01 AIC。
+    """验证 ACPs-spec-AIC-v02.02 AIC。
 
     规则：
     - 10 段（以 '.' 分隔）；
@@ -236,19 +337,38 @@ def _generate_nonzero_base36(kind: bytes, length: int) -> str:
     return serial
 
 
+def generate_aic_provider_code(*, length: int = 6) -> str:
+    """随机生成 AIC 第7级供应商序号（固定长度 Base36，首位非 0）。
+
+    管理员预置的自定义序号仍允许前导零；本函数只约束自动分配的随机串。
+    """
+    if not (1 <= length <= 6):
+        raise ValueError("length 必须在 1～6 之间")
+    # 随机分配的第7级首位不得为 0；其余位仍用完整 Base36。
+    first = secrets.choice(BASE36_ALPHABET[1:])
+    rest = "".join(secrets.choice(BASE36_ALPHABET) for _ in range(length - 1))
+    return normalize_aic_level_code(first + rest)
+
+
 def generate_aic(
-    protocol_version: str = PROTOCOL_VERSION,
-    manager_code: str = MANAGER_CODE,
-    provider_code: str = PROVIDER_CODE,
+    protocol_version: str | None = None,
+    *,
+    manager_code: str,
+    provider_code: str,
+    ontology_serial_len: int | None = None,
+    instance_serial_len: int | None = None,
 ) -> str:
-    """生成实体 AIC（第 9 级实例序列号不为全 0）。"""
-    # 第 5 级版本号：Base36 单字符
-    ver = _validate_base36_segment("protocol_version", protocol_version, min_len=1, max_len=1)
+    """生成实体 AIC（第 9 级实例序列号不为全 0）。
+
+    第5级默认来自 TOML ``[aic].protocol_version``；
+    第8、9 级长度默认来自 ``ontology_serial_len`` / ``instance_serial_len``。
+    """
+    ver = _resolve_protocol_version(protocol_version)
     arsp = _validate_base36_segment("manager_code", manager_code, min_len=1, max_len=6)
     vendor = _validate_base36_segment("provider_code", provider_code, min_len=1, max_len=6)
 
-    ontology_serial = _generate_nonzero_base36(b"ONT", DEFAULT_ONTOLOGY_SERIAL_LEN)
-    instance_serial = _generate_nonzero_base36(b"INS", DEFAULT_INSTANCE_SERIAL_LEN)
+    ontology_serial = _generate_nonzero_base36(b"ONT", _resolve_ontology_serial_len(ontology_serial_len))
+    instance_serial = _generate_nonzero_base36(b"INS", _resolve_instance_serial_len(instance_serial_len))
 
     body_1_9 = f"{AIC_PREFIX}.{ver}.{arsp}.{vendor}.{ontology_serial}.{instance_serial}"
     crc = calculate_aic_checksum(body_1_9)
@@ -288,28 +408,31 @@ def is_entity_aic(aic: str) -> bool:
 
 def get_ontology_aic_from_entity(entity_aic: str) -> str | None:
     """
-    从实体 AIC 提取对应的本体 AIC：将第 9 级替换为全 0 并重算 CRC。
+    从实体 AIC 提取对应的本体 AIC：将第 9 级替换为字符 ``0`` 并重算 CRC。
     """
     if not validate_aic(entity_aic):
         return None
     parts = _split_aic(entity_aic)
-    instance_serial = parts[8]
-    parts[8] = "0" * len(instance_serial)
+    parts[8] = ONTOLOGY_INSTANCE_SERIAL
     body_1_9 = ".".join(parts[:9])
     parts[9] = calculate_aic_checksum(body_1_9)
     return ".".join(parts)
 
 
-def generate_entity_aic_from_ontology(ontology_aic: str) -> str | None:
+def generate_entity_aic_from_ontology(
+    ontology_aic: str,
+    *,
+    instance_serial_len: int | None = None,
+) -> str | None:
     """
     基于本体 AIC 生成新的实体 AIC：保留 1~8 级，重生成第 9 级并重算 CRC。
+
+    第9级长度取 TOML ``[aic].instance_serial_len``（或显式参数），不沿用本体的 ``0`` 位数。
     """
     if not is_ontology_aic(ontology_aic):
         return None
     parts = _split_aic(ontology_aic)
-    # 第 9 级长度沿用本体输入
-    instance_len = len(parts[8])
-    parts[8] = _generate_nonzero_base36(b"ENT", instance_len)
+    parts[8] = _generate_nonzero_base36(b"ENT", _resolve_instance_serial_len(instance_serial_len))
     body_1_9 = ".".join(parts[:9])
     parts[9] = calculate_aic_checksum(body_1_9)
     return ".".join(parts)
@@ -324,17 +447,27 @@ def get_derived_entity_like_prefix(ontology_aic: str) -> str | None:
 
 
 def generate_ontology_aic(
-    protocol_version: str = PROTOCOL_VERSION,
-    manager_code: str = MANAGER_CODE,
-    provider_code: str = PROVIDER_CODE,
+    protocol_version: str | None = None,
+    *,
+    manager_code: str,
+    provider_code: str,
+    ontology_serial_len: int | None = None,
+    instance_serial_len: int | None = None,
 ) -> str:
-    """生成本体 AIC（第 9 级实例序列号全为 0）。"""
-    ver = _validate_base36_segment("protocol_version", protocol_version, min_len=1, max_len=1)
+    """生成本体 AIC（第 9 级实例序列号为字符 ``0``）。
+
+    第5级默认来自 TOML ``[aic].protocol_version``；
+    第8级长度默认来自 ``ontology_serial_len``。
+    第9级固定为 ``0``，不按 ``instance_serial_len`` 补齐。
+    """
+    ver = _resolve_protocol_version(protocol_version)
     arsp = _validate_base36_segment("manager_code", manager_code, min_len=1, max_len=6)
     vendor = _validate_base36_segment("provider_code", provider_code, min_len=1, max_len=6)
+    if instance_serial_len is not None:
+        validate_aic_serial_len(instance_serial_len, name="instance_serial_len")
 
-    ontology_serial = _generate_nonzero_base36(b"ONT", DEFAULT_ONTOLOGY_SERIAL_LEN)
-    instance_serial = "0" * DEFAULT_INSTANCE_SERIAL_LEN
+    ontology_serial = _generate_nonzero_base36(b"ONT", _resolve_ontology_serial_len(ontology_serial_len))
+    instance_serial = ONTOLOGY_INSTANCE_SERIAL
 
     body_1_9 = f"{AIC_PREFIX}.{ver}.{arsp}.{vendor}.{ontology_serial}.{instance_serial}"
     crc = calculate_aic_checksum(body_1_9)

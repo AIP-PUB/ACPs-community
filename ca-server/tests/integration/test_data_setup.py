@@ -206,19 +206,12 @@ def cleanup_test_data(db_session: Session):
         for req in ocsp_requests:
             db_session.delete(req)
 
-        # 6. 删除测试OCSP响应器
+        # 6. 删除所有 OCSP 响应器。
+        # 默认 responder 现在由应用启动和运行时幂等 bootstrap，因此测试环境需要在每个
+        # 用例前后把该表清空，避免 module-scope TestClient 与函数级 fixture 叠加出多个 active responder。
         responders = db_session.exec(select(OCSPResponder)).all()
         for responder in responders:
-            # 根据name字段或endpoints字段判断是否为测试数据
-            if "test" in responder.name.lower() or (
-                responder.endpoints
-                and any(
-                    "test" in str(endpoint).lower() or "example" in str(endpoint).lower()
-                    for endpoint in responder.endpoints.values()
-                    if isinstance(endpoint, str)
-                )
-            ):
-                db_session.delete(responder)
+            db_session.delete(responder)
 
         # 提交所有更改
         db_session.commit()

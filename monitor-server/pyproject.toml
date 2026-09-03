@@ -1,0 +1,245 @@
+[project]
+name = "monitor-server"
+version = "2.2.0"
+description = "AMP Monitor Server — Audit 日志收集、入库与查询"
+authors = [{ name = "Team", email = "team@ioa.pub" }]
+readme = "README.md"
+license = "MulanPSL-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.14,<4.0"
+dependencies = [
+    "acps-sdk[oidc]",
+    "fastapi>=0.136.1,<1.0.0",
+    "uvicorn[standard]>=0.46.0,<1.0.0",
+    "sqlalchemy>=2.0.49,<3.0.0",
+    "sqlmodel>=0.0.38,<1.0.0",
+    "alembic>=1.18.4,<2.0.0",
+    "asyncpg>=0.31.0,<1.0.0",
+    "psycopg[binary]>=3.3.3,<4.0.0",
+    "pydantic-settings>=2.14.2,<3.0.0",
+    "aiokafka>=0.12.0,<1.0.0",
+    "python-snappy>=0.7.3,<1.0.0",
+    "structlog>=25.5.0",
+    "cryptography>=48.0.1,<49.0.0",
+    "jcs>=0.2.1,<1.0.0",
+    "httpx>=0.28.1,<1.0.0",
+    "starlette>=1.3.1,<2.0.0",
+    "tenacity>=9.1.4,<10.0.0",
+    "greenlet>=3.5.0,<4.0.0",
+    "redis>=5.0",
+    "protobuf>=7.35.1",
+    "clickhouse-connect[async]>=0.8.0",
+    "opensearch-py[async]>=2.6,<3.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3,<10.0.0",
+    "pytest-cov>=7.1.0",
+    "pytest-xdist>=3.8.0",
+    "pytest-asyncio>=1.3.0",
+    "python-dotenv>=1.2.2,<2.0.0",
+    "factory-boy>=3.3.3",
+    "faker>=40.15.0",
+    "ruff>=0.15.12",
+    "bandit>=1.9.4",
+    "pip-audit>=2.10.0,<3.0.0",
+    "mypy>=1.20.2",
+    "pre-commit>=4.6.0",
+    "commitizen>=4.13.10",
+    "respx>=0.23.1",
+]
+
+[build-system]
+requires = ["hatchling>=1.27.0,<2.0.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# wheel 只打包应用代码目录，避免把测试与运维文件带入发布产物。
+packages = ["app"]
+
+[tool.pytest.ini_options]
+# 测试只从 tests/ 收集，避免把脚本和临时文件误识别为测试用例。
+testpaths = ["tests"]
+# 自动识别协程测试函数，适配项目中的 async 单测与集成测试。
+asyncio_mode = "auto"
+# 使用 session 级事件循环，避免跨测试复用 SQLAlchemy 引擎时出现
+# asyncpg「Future attached to a different loop」错误。
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+# 严格校验自定义 marker，并在结果摘要中保留跳过与失败原因。
+addopts = "--strict-markers -ra"
+filterwarnings = [
+    # httpx2 is not yet available; suppress starlette testclient deprecation from third-party code
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated:starlette.exceptions.StarletteDeprecationWarning",
+    # Python 3.16 will remove 'u' array type code; suppress from frozen importlib / third-party deps
+    "ignore:The 'u' type code is deprecated:DeprecationWarning",
+    # aiohttp connector warns on Python 3.14+ where the underlying issue is already fixed
+    "ignore:enable_cleanup_closed ignored:DeprecationWarning:aiohttp.connector",
+]
+# 统一测试分层标记，便于按层执行与区分质量门禁。
+markers = [
+    "unit: 单元测试",
+    "integration: 集成测试",
+    "e2e: 端到端测试",
+    "oidc: 依赖 Keycloak 的 OIDC 联调用例",
+]
+
+[tool.coverage.run]
+# 只统计应用代码覆盖率，避免测试与虚拟环境文件稀释结果。
+source = ["app"]
+omit = ["*/tests/*", "*/venv/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+fail_under = 70
+# 排除约定俗成的不计覆盖场景，减少无效噪声。
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+
+[tool.ruff]
+# 让 Ruff 按项目实际 Python 语法版本解析与升级代码。
+target-version = "py314"
+# 与仓库 Python 代码风格保持一致，减少无意义换行抖动。
+line-length = 120
+
+[tool.ruff.lint]
+# 覆盖风格、正确性、导入、安全、路径 API 与类型导入等基础静态检查。
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "S",   # flake8-bandit
+    "A",   # flake8-builtins
+    "C4",  # flake8-comprehensions
+    "DTZ", # flake8-datetimez
+    "T20", # flake8-print
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "PTH", # flake8-use-pathlib
+    "RUF", # ruff-specific rules
+]
+# 对项目内合理场景关闭误报或与框架约定冲突的规则。
+ignore = [
+    "S101",   # assert 用于测试
+    "RUF001", # 允许字符串中使用中文字符
+    "RUF002", # 允许 docstring 中使用中文标点
+    "RUF003", # 允许注释中使用中文标点
+    "B008",   # FastAPI Depends() 模式
+    "TC001",  # Pydantic/SQLModel BaseModel 子类需要在运行时解析注解，项目内导入不移入 TYPE_CHECKING
+    "TC002",  # FastAPI/Pydantic/SQLModel 运行时需要解析注解
+    "TC003",  # 同上，标准库 import 同理
+]
+
+[tool.ruff.lint.per-file-ignores]
+# 脚本允许命令行输出与部分路径字符串写法，避免运维脚本被应用规则误伤。
+"scripts/*" = ["T201", "PTH100", "PTH120"]
+# 测试中的示例凭据属于夹具与断言输入，不按硬编码密钥误报。
+"tests/*" = ["S105", "S106"]
+# 异常模块中的错误码字符串属于协议常量，不按硬编码密码误报。
+"app/**/exception*.py" = ["S105"]
+# Alembic 环境脚本需要在导入前调整路径，允许 E402 例外。
+"alembic/env.py" = ["E402"]
+# 集成测试中的 ClickHouse 查询全部参数化，S608 误报。
+"tests/integration/test_access_*.py" = ["S608", "E501"]
+"tests/integration/message/*.py" = ["S608", "E501"]
+# Access SQL 构建模块（sql.py / tables.py）全部使用 ClickHouse 参数化查询或 DDL 常量，
+# S608 误报；数据定义字典行不可任意拆行，允许 E501。
+"app/access/sql.py" = ["S608", "E501"]
+"app/access/tables.py" = ["S608", "E501"]
+"app/access/filters.py" = ["E501"]
+"app/access/store.py" = ["S608", "E501"]
+"app/access/service.py" = ["E501"]
+"app/access/trace_service.py" = ["E501"]
+# Message SQL 构建模块同上（同类参数化 ClickHouse 查询，S608 误报）。
+"app/message/sql.py" = ["S608", "E501"]
+"app/message/tables.py" = ["S608", "E501"]
+"app/message/store.py" = ["S608", "E501"]
+"app/message/service.py" = ["E501"]
+"app/message/lifecycle_service.py" = ["E501"]
+"app/message/destination_service.py" = ["E501"]
+# System 单测中 patch + pytest.raises 嵌套 with 为常见测试写法，SIM117 误报。
+"tests/unit/system/*" = ["SIM117"]
+# 迁移脚本允许较长 SQL、尾随空白清理例外与 pathlib 例外。
+"alembic/versions/*.py" = ["E402", "PTH120", "E501", "W291"]
+
+[tool.ruff.format]
+# 统一字符串引号风格，减少格式化差异。
+quote-style = "double"
+
+[tool.mypy]
+# 与运行时 Python 版本对齐，避免类型系统使用不一致的语法假设。
+python_version = "3.14"
+# 让 Pydantic 模型与配置类获得更准确的静态类型推断。
+strict = true
+# 使用 Pydantic 插件补足模型字段与设置类的类型行为。
+plugins = ["pydantic.mypy"]
+# 跳过 Alembic 迁移脚本，避免把一次性迁移逻辑纳入应用类型门禁。
+exclude = ["alembic/"]
+
+[[tool.mypy.overrides]]
+# 这些第三方依赖缺少稳定类型桩；忽略导入缺失后，mypy 可以继续聚焦仓库自身边界。
+module = [
+    "aiokafka.*",
+    "jcs.*",
+    "acps_sdk.*",
+    "snappy",
+    "respx",
+    "respx.*",
+    "clickhouse_connect.*",
+    "opensearchpy.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# 测试代码保留单独类型检查，但允许比应用代码更宽松的动态测试写法。
+module = ["tests", "tests.*"]
+strict = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+check_untyped_defs = true
+no_implicit_reexport = false
+warn_return_any = false
+disallow_any_generics = false
+
+[[tool.mypy.overrides]]
+# 单元测试需要更明确的辅助函数签名，减少 fixture 与 mock 带来的隐式 Any 扩散。
+module = ["tests.unit", "tests.unit.*"]
+warn_return_any = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+# 集成测试开启返回值 Any 告警，约束响应解析与 JSON helper 的类型边界。
+module = ["tests.integration", "tests.integration.*"]
+warn_return_any = true
+
+[[tool.mypy.overrides]]
+# 端到端测试开启返回值 Any 告警，避免黑盒断言链路悄然退化为未类型化数据流。
+module = ["tests.e2e", "tests.e2e.*"]
+warn_return_any = true
+
+[tool.bandit]
+# 测试与迁移脚本不纳入安全门禁，避免样例代码和一次性脚本稀释应用层问题。
+exclude_dirs = ["tests", "alembic"]
+
+[tool.uv.sources]
+# 使用本地 editable 安装，与 demo-leader / demo-partner 等项目保持一致。
+acps-sdk = { path = "../acps-sdk", editable = true }
+
+[tool.commitizen]
+# 使用 Conventional Commits 生成版本标签与变更日志。
+name = "cz_conventional_commits"
+# 与项目发布版本保持一致，便于本地校验和发布流程共享同一版本号。
+version = "2.2.0"
+# 标签统一采用 v<version> 形式，便于发布脚本和历史检索。
+tag_format = "v$version"

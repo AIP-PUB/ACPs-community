@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 from cachetools import TTLCache
-from fastapi import Request
-from fastapi.testclient import TestClient
+from fastapi import FastAPI, Request
+from httpx import ASGITransport, AsyncClient, Response
 from starlette.middleware.base import RequestResponseEndpoint
 
 from app.core.config import Settings
@@ -85,6 +85,45 @@ class InMemoryGroupAclStore:
         return
 
 
+class SyncASGIClient:
+    """同步包装的 ASGI client，替代已弃用的 TestClient。"""
+
+    def __init__(
+        self,
+        app: FastAPI,
+        *,
+        base_url: str,
+        raise_app_exceptions: bool = True,
+    ) -> None:
+        self._app = app
+        self._base_url = base_url
+        self._raise_app_exceptions = raise_app_exceptions
+        self.app = app
+
+    def request(self, method: str, url: str, **kwargs: Any) -> Response:
+        async def _send() -> Response:
+            transport = ASGITransport(
+                app=self._app,
+                raise_app_exceptions=self._raise_app_exceptions,
+            )
+            async with AsyncClient(transport=transport, base_url=self._base_url) as client:
+                return await client.request(method, url, **kwargs)
+
+        return asyncio.run(_send())
+
+    def get(self, url: str, **kwargs: Any) -> Response:
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs: Any) -> Response:
+        return self.request("POST", url, **kwargs)
+
+    def put(self, url: str, **kwargs: Any) -> Response:
+        return self.request("PUT", url, **kwargs)
+
+    def delete(self, url: str, **kwargs: Any) -> Response:
+        return self.request("DELETE", url, **kwargs)
+
+
 @dataclass
 class FakeRabbitMqManagementClient:
     calls: list[tuple[str, str]] = field(default_factory=list)
@@ -104,7 +143,7 @@ def build_test_client(
     store: InMemoryGroupAclStore | None = None,
     management_client: FakeRabbitMqManagementClient | None = None,
     caller_aic: str | None = None,
-) -> tuple[TestClient, GroupAclService, InMemoryGroupAclStore, FakeRabbitMqManagementClient]:
+) -> tuple[SyncASGIClient, GroupAclService, InMemoryGroupAclStore, FakeRabbitMqManagementClient]:
     resolved_store = store or InMemoryGroupAclStore()
     resolved_mgmt = management_client or FakeRabbitMqManagementClient()
     group_acl_service = GroupAclService(
@@ -146,7 +185,10 @@ def build_test_client(
             request.state.peer_common_name = caller_aic
             return await call_next(request)
 
-    client = TestClient(app, base_url=f"https://testserver:{listener_port}")
+    client = SyncASGIClient(
+        app,
+        base_url=f"https://testserver:{listener_port}",
+    )
     return client, group_acl_service, resolved_store, resolved_mgmt
 
 

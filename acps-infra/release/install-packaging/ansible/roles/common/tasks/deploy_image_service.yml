@@ -1,0 +1,36 @@
+---
+# deploy_image_service.yml
+# 期望：acps_compose_service_name；可选 acps_compose_force_recreate
+# （条件表达式由各 role 计算：材料/配置/上游闭包/显式 force；禁止无条件 true）
+# compose_ctl.sh 位于控制节点安装包；先 stage 到目标。
+
+- name: 将 compose_ctl.sh stage 到目标
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/scripts/compose_ctl.sh"
+    dest: "{{ acps_runtime_root }}/staging/compose_ctl.sh"
+    mode: "0755"
+
+- name: 通过 compose_ctl 执行 compose up 服务（禁止 -v）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    # shellcheck disable=SC2086
+    bash "{{ acps_runtime_root }}/staging/compose_ctl.sh" \
+      "{{ acps_compose_dir }}" \
+      "{{ acps_compose_project_prefix }}" \
+      "{{ acps_compose_dir }}/docker-compose.yml" \
+      "{{ 'up-recreate' if (acps_compose_force_recreate | default(false) | bool) else 'up' }}" \
+      {{ acps_compose_service_name }}
+  args:
+    executable: /bin/bash
+  register: _compose_up
+
+# 首装路径：compose up 成功后注册 current。
+# 升级路径必须在切换前调用 save_previous_state，再 commit_state。
+- name: compose up 后提交组件版本 state
+  when:
+    - acps_component_key is defined
+    - (acps_component_key | string | length) > 0
+    - acps_effective_image_tag is defined
+    - (acps_effective_image_tag | string | length) > 0
+    - not (acps_skip_state_commit | default(false) | bool)
+  ansible.builtin.include_tasks: commit_state.yml

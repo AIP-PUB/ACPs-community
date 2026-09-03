@@ -121,7 +121,7 @@ uv run pytest tests/integration/test_china_transport.py::TestChinaTransportDecis
 ```bash
 # 在项目根目录（demo-partner/）下运行
 # 先启动 Partner 服务
-just app start
+just dev start
 
 # 运行 E2E 测试（默认串行执行）
 uv run pytest tests/e2e/ -v -s
@@ -156,7 +156,7 @@ uv run pytest tests/unit/ -v
 uv run pytest tests/integration/ -v
 
 # 3. 运行 E2E 测试（默认串行，需要启动 Partner 服务）
-just app start
+just dev start
 uv run pytest tests/e2e/ -v -s
 ```
 

@@ -12,6 +12,7 @@ Leader Agent Platform - E2E Tests: Edge Cases
 注意：这些测试需要后端服务运行在 localhost:9011
 """
 
+import os
 import uuid
 from typing import Any
 
@@ -24,6 +25,7 @@ import pytest
 
 BASE_URL = "https://localhost:9011"
 API_PREFIX = "/api/v1"
+E2E_REQUEST_TIMEOUT = float(os.getenv("LEADER_E2E_REQUEST_TIMEOUT", "120"))
 
 
 # =============================================================================
@@ -92,7 +94,7 @@ class TestSessionManagement:
         场景：不带 sessionId 创建新会话
         预期：返回新的 sessionId，会话初始化正确
         """
-        with httpx.Client(timeout=30.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             submit_data = submit_query(client, "你好")
 
             session_id = submit_data["result"]["sessionId"]
@@ -110,7 +112,7 @@ class TestSessionManagement:
         场景：带 sessionId 复用已有会话
         预期：返回相同的 sessionId，会话状态保持
         """
-        with httpx.Client(timeout=30.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             # 创建会话
             submit_data1 = submit_query(client, "你好")
             session_id = submit_data1["result"]["sessionId"]
@@ -150,7 +152,7 @@ class TestErrorHandling:
         场景：提交空查询
         预期：返回验证错误或按闲聊处理
         """
-        with httpx.Client(timeout=10.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             payload = {
                 "query": "",
                 "mode": "direct_rpc",
@@ -222,7 +224,7 @@ class TestIdempotency:
         场景：相同 sessionId + clientRequestId 重复提交相同内容
         预期：返回相同结果（幂等）
         """
-        with httpx.Client(timeout=30.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             # 第一次提交（创建 session）
             client_request_id = generate_client_request_id()
             payload1 = {

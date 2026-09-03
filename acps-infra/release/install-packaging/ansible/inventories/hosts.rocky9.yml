@@ -1,0 +1,63 @@
+# inventories/hosts.rocky9.yml
+# 单机 host 模式示例：Rocky Linux 9 / RHEL 9 系列业务节点（本设计 §1.3）。
+# 全部组件落在 rhel9.acps.local；控制节点为本机 Ansible 控制机。
+# 准备 inventories/secrets.yml。SSH 用户与本机无密登录账号对齐。
+
+all:
+  vars:
+    acps_deploy_mode: host
+    ansible_user: huxiaofeng
+    # 多拓扑并行时设独立控制面路径（可覆盖 common/defaults；勿与其它解包目录共用）：
+    # acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control-host-rhel9"
+    # become 由 playbook / role 任务显式开启；勿在 inventory 全局设 ansible_become，
+    # 否则会污染控制节点 delegate_to: localhost（macOS 无密 sudo 常失败）。
+  children:
+    postgresql:
+      hosts:
+        rhel9.acps.local:
+          ansible_host: rhel9.acps.local
+    redis:
+      hosts:
+        rhel9.acps.local:
+    rabbitmq:
+      hosts:
+        rhel9.acps.local:
+    keycloak:
+      hosts:
+        rhel9.acps.local:
+    redpanda:
+      hosts:
+        rhel9.acps.local:
+    victoria_metrics:
+      hosts:
+        rhel9.acps.local:
+    clickhouse:
+      hosts:
+        rhel9.acps.local:
+    minio:
+      hosts:
+        rhel9.acps.local:
+    opensearch:
+      hosts:
+        rhel9.acps.local:
+    registry_server:
+      hosts:
+        rhel9.acps.local:
+    ca_server:
+      hosts:
+        rhel9.acps.local:
+    discovery_server:
+      hosts:
+        rhel9.acps.local:
+    mq_auth_server:
+      hosts:
+        rhel9.acps.local:
+    monitor_server:
+      hosts:
+        rhel9.acps.local:
+    demo_partner:
+      hosts:
+        rhel9.acps.local:
+    demo_leader:
+      hosts:
+        rhel9.acps.local:

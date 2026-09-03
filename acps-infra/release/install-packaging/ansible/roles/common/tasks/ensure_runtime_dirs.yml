@@ -1,0 +1,41 @@
+---
+- name: 确保 runtime / data / compose / staging / state directories
+  become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ acps_runtime_root }}"
+    - "{{ acps_data_root }}"
+    - "{{ acps_log_root }}"
+    - "{{ acps_compose_dir }}"
+    - "{{ acps_compose_services_dir }}"
+    - "{{ acps_runtime_root }}/config"
+    - "{{ acps_runtime_root }}/certs"
+    - "{{ acps_runtime_root }}/staging/images"
+    - "{{ acps_runtime_root }}/staging/apps"
+    - "{{ acps_runtime_root }}/staging/vendor"
+    - "{{ acps_runtime_root }}/state/components"
+    - "{{ acps_runtime_root }}/state/control"
+
+# 以下为 image 模式专属（docker MTU + compose 共享网络 + root compose 文件）；host
+# 业务机通常无 docker，须整体跳过——否则每个 app role 的第一步（ensure_runtime_dirs）
+# 就会因 docker 命令不存在而 fail（本设计 §5.1，host 不开 Docker）。
+- name: 确保 Docker daemon / 共享网络 MTU
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.include_tasks: ensure_docker_mtu.yml
+
+- name: 渲染 compose root file (includes services/*)
+  when: acps_deploy_mode == 'image'
+  ansible.builtin.copy:
+    dest: "{{ acps_compose_dir }}/docker-compose.yml"
+    mode: "0644"
+    content: |
+      # 由 ACPs install-packaging 生成 — 长期变更请勿手改。
+      # 服务片段在 services/*.yml；本文件只声明共享 network。
+      name: {{ acps_compose_project_prefix }}
+      networks:
+        {{ acps_docker_network }}:
+          name: {{ acps_docker_network }}
+          external: true

@@ -1,0 +1,77 @@
+# inventories/hosts-multi.example.yml
+# 多机示例：与 pack2 实跑拓扑同构（app 一机 + 依赖基座一机）。
+# 控制节点不在业务组内；playbook 的 hosts: localhost 在控制机执行。
+#
+# 用法：
+#   cp inventories/hosts-multi.example.yml inventories/hosts.yml
+#   cp inventories/host_vars/acps-app.example.yml \
+#      inventories/host_vars/<你的 app 主机 FQDN>.yml
+#   cp inventories/host_vars/acps-deps.example.yml \
+#      inventories/host_vars/<你的 deps 主机 FQDN>.yml
+#   # 编辑上述 host_vars：ansible_host / acps_advertise_host / ansible_user
+#   # 将本文件中的 acps-app.example / acps-deps.example 改成真实 FQDN
+#
+# 三机拆分变体见 acps-docs/tutorials/install-package-ansible-deploy-3nodes.md
+
+all:
+  vars:
+    acps_deploy_mode: image
+    # 多拓扑并行时设独立控制面路径（可覆盖 common/defaults；勿与其它解包目录共用）：
+    # acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control-host-multi"
+    # 产品路径常用（可按现场覆盖）：
+    # keycloak_enabled: true
+    # demo_partner_enabled: true
+    # demo_leader_enabled: true
+    # monitor_server_enabled: true
+  children:
+    # --- deps：数据面 / 中间件 / AMP 存储 ---
+    postgresql:
+      hosts:
+        acps-deps.example:
+    redis:
+      hosts:
+        acps-deps.example:
+    rabbitmq:
+      hosts:
+        acps-deps.example:
+    redpanda:
+      hosts:
+        acps-deps.example:
+    victoria_metrics:
+      hosts:
+        acps-deps.example:
+    clickhouse:
+      hosts:
+        acps-deps.example:
+    minio:
+      hosts:
+        acps-deps.example:
+    opensearch:
+      hosts:
+        acps-deps.example:
+
+    # --- app：平台服务 + Keycloak + demo + Monitor ---
+    keycloak:
+      hosts:
+        acps-app.example:
+    registry_server:
+      hosts:
+        acps-app.example:
+    ca_server:
+      hosts:
+        acps-app.example:
+    discovery_server:
+      hosts:
+        acps-app.example:
+    mq_auth_server:
+      hosts:
+        acps-app.example:
+    monitor_server:
+      hosts:
+        acps-app.example:
+    demo_partner:
+      hosts:
+        acps-app.example:
+    demo_leader:
+      hosts:
+        acps-app.example:

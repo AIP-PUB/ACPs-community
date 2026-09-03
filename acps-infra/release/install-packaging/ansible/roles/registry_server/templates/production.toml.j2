@@ -1,0 +1,46 @@
+# Rendered by install-packaging
+
+[server]
+reload = false
+uvicorn_log_level = "warning"
+enable_mtls_listener = {{ 'true' if (registry_server_enable_mtls_listener | bool) else 'false' }}
+root_path = ""
+
+[database]
+pool_size = 20
+max_overflow = 10
+pool_recycle = 1800
+pool_timeout = 30
+
+[logging]
+level = "INFO"
+format = "json"
+
+[cors]
+enabled = false
+origins = []
+allow_credentials = false
+
+[ca_server]
+mock = false
+base_url = "http://{{ _ca_host }}:{{ ca_server_port }}"
+
+[verification]
+auto_approve_identity = true
+auto_approve_org = true
+
+{% if keycloak_enabled | bool %}
+{# JWT iss = Keycloak --hostname（advertise URL）；校验 issuer 必须与之一致（单机/多机相同）。 #}
+[oidc]
+enabled = true
+issuer = "http://{{ _keycloak_host }}:{{ keycloak_port }}/realms/acps-registry"
+audience = "registry-api"
+allowed_azp = ["registry-web", "registry-cli", "registry-install"]
+client_id = "registry-api"
+algorithms = ["EdDSA"]
+require_https = false
+role_source_client_id = "registry-api"
+{% else %}
+[oidc]
+enabled = false
+{% endif %}

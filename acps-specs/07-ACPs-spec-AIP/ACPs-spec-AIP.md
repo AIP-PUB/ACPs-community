@@ -1,12 +1,12 @@
 [首页](../README.md)
 
-AIP：智能体交互协议（ACPs-spec-AIP-v02.01）
+AIP：智能体交互协议（ACPs-spec-AIP-v02.02）
 
 # 1. 文档定义
 
-本文档为 ACPs 智能体协作协议体系中的智能体交互协议（Agent Interaction Protocol，AIP）标准定义，版本号 v02.01。
+本文档为 ACPs 智能体协作协议体系中的智能体交互协议（Agent Interaction Protocol，AIP）标准定义，版本号 v02.02。
 
-文档全称为 ACPs-spec-AIP-v02.01。
+文档全称为 ACPs-spec-AIP-v02.02。
 
 文档编写者：李珂（北京邮电大学），禹可（北京邮电大学），李胤铭（北京邮电大学），宋昊哲（北京邮电大学），郭小练（北京邮电大学），刘军（北京邮电大学），胡晓峰（北京邮电大学），马镝（北京邮电大学），陈科良（北京邮电大学）。
 
@@ -48,7 +48,7 @@ AIP：智能体交互协议（ACPs-spec-AIP-v02.01）
 
 群组模式下，由 Leader 创建并维护一个 Session，该 Session 中智能体间的交互信息通过一个消息队列（Message Queue）进行分发。Leader 创建 Session 后，邀请相关的 Partner 加入群组并在消息队列中订阅该 Session 中的信息。Leader 和 Partner 之间的交互信息发送至消息队列，再由消息队列进行分发。同一群组内的智能体均可通过消息分发模块发送和接收消息。
 
-**v02.01 补充说明：**
+**v02.02 补充说明：**
 
 - **群组邀请方式**：Leader 优先通过 MQ Inbox（Agent 固定个人收件箱队列）向 Partner 发送 `InboxGroupInvitation` 邀请消息，Partner 收到后主动加入群组。此方式无需 Partner 暴露公网 HTTP 端点，只需对外建立出站连接至 MQ Server。当 Partner 的 ACS 中声明了可达的 HTTP/JSONRPC 端点时，Leader 可 fallback 使用 Direct RPC 方式发送邀请（向后兼容）。
 - **传输安全**：消息队列通信采用 AMQPS（TLS 1.3），智能体与 MQ Server 之间使用 mTLS（基于 ACPs CA 颁发的智能体身份证书）进行双向认证，替代明文 accessToken 凭据。
@@ -204,6 +204,16 @@ export interface Message {
   sessionId?: string;
 }
 ```
+
+**Message 适用边界**
+
+AIP 中所有由 Agent 发出、可独立投递、代表一次 AIP 语义交互的 payload，MUST 继承 `Message` 或包含与 `Message.senderId` 等价的必填身份字段。传输信封、协议错误、配置对象、嵌入值对象不属于 Message，不得使用其自身字段替代 `senderId` 做身份认证。
+
+属于 Message 的交互 payload 包括但不限于：
+`TaskCommand`、`TaskResult`、`TaskStatusUpdateEvent`、`ProductChunkEvent`、`GroupMgmtCommand`、`GroupMgmtResult`、`InboxGroupInvitation`、`InboxGroupInvitationError`。
+
+不属于 Message 的对象包括：
+`JSONRPCRequest`、`JSONRPCResponse`、`JSONRPCError`、`Product`、`DataItem`、`TaskStatus`、`NotificationConfig`、`AMQPConfig`、`GroupInfo` 等。
 
 ## 4.4 任务命令（TaskCommand）
 
@@ -813,6 +823,31 @@ AIP 协议遵循 JSON-RPC 2.0 规范的错误处理机制，同时定义了特�
 - 流式传输方式（Streaming Style）：用于流式传输数据的 RPC 方法，适用于大文件分块、实时日志推送或长时间运行的数据传输场景。
 - 异步通知方式（Notification Style）：基于事件驱动的异步回调方法，用于智能体在特定条件触发时（如任务状态变更、资源就绪或异常发生）向其他智能体发送通知。
 
+## 6.0 直连模式身份绑定规则
+
+当 `identity_binding_enabled=true` 时，直连模式接收方**必须**从 mTLS peer certificate 中提取对端 AIC，并与入站业务消息 `senderId` 做一致性校验。AIC 提取规则如下：
+
+1. 证书 Subject `CN` 作为 AIC 主来源；
+2. 若 `SubjectAlternativeName` 中存在 `URI:acps://{AIC}`，则作为补充身份信息；
+3. 若 CN AIC 与 SAN AIC 同时存在但不一致，MUST 判定证书身份无效；
+4. 若 CN 缺失或不是合法 AIC，MUST 判定证书身份无效。
+
+接收方**必须**至少校验以下入站消息：
+
+- `RpcRequest.params.command.senderId == peer AIC`
+- `StreamRequest.params.message.senderId == peer AIC`
+- `NotificationStartRequest.params.message.senderId == peer AIC`
+- Notification callback 请求体 `TaskResult.senderId == peer AIC`
+
+调用方在收到直连响应或流事件时，也**必须**从 TLS server certificate 中提取被调用方 AIC，并同时校验：
+
+- TLS server AIC == 发现/配置得到的 expected callee AIC
+- 响应 payload `senderId` == TLS server AIC
+
+若 `identity_binding_enabled=true` 且客户端无法取得 TLS server AIC，或缺少 expected callee AIC，MUST 拒绝该响应，不能只依赖业务消息中的 `senderId` 自行声称完成身份绑定。
+
+校验失败时，缺少证书身份或证书身份无效应返回 `AuthenticationRequiredError`（`-32008`）；证书身份存在但与业务身份不一致应返回 `AuthorizationFailedError`（`-32009`）。
+
 ## 6.1 远程调用方式（RPC Style）
 
 下面是基于远程调用方式（RPC Style）​​ 的智能体交互接口规范，明确了交互的方式及数据格式，用于实现客户端与服务器之间的结构化远程交互。
@@ -1270,8 +1305,11 @@ export interface StreamRequest extends JSONRPCRequest {
 export interface StreamResponse extends JSONRPCResponse {
   /**
    * 流式传输响应结果
+   * 正常事件时存在；当 re-stream 请求因事件已过期无法续传时，result 缺失，
+   * 使用 error 字段描述原因（继承自 JSONRPCResponse）。
+   * result 与 error 互斥：二者有且仅有其一存在。
    */
-  result: {
+  result?: {
     /**
      * 事件的顺序索引
      * 不要求连续，但必须单调递增，用于客户端排序
@@ -1291,6 +1329,20 @@ export interface StreamResponse extends JSONRPCResponse {
   };
 }
 ```
+
+> **说明**：当 `re-stream` 请求的 `lastEventSeq` 对应事件已超出 Partner 的缓冲范围（已过期），Partner 返回仅含 `error` 字段的 `StreamResponse` 后关闭 SSE 连接，例如：
+>
+> ```json
+> data: {
+>   "jsonrpc": "2.0",
+>   "id": "2",
+>   "error": {
+>     "code": -32001,
+>     "message": "Stream events expired",
+>     "data": { "lastAvailableSeq": 10 }
+>   }
+> }
+> ```
 
 ### 6.2.3 TaskStatusUpdateEvent 定义
 
@@ -1798,10 +1850,35 @@ Leader 通过该接口启动任务，并指定使用已注册的通知配置，�
 
 - **URL**: `notification/start`
 - **HTTP 方法**: `POST`
-- **Request**: `RpcRequest` （与普通 RPC 请求相同。需要 command 是 start，commandParams 是 NotificationStartParams）
+- **Request**: `NotificationStartRequest`
 - **Response**: `RpcResponse`（与普通 RPC 响应相同）
 
+#### NotificationStartRequest 定义
+
+```typescript
+export interface NotificationStartRequest extends JSONRPCRequest {
+  /**
+   * 方法名称，固定为 "notification/start"
+   */
+  method: "notification/start";
+
+  /**
+   * 请求参数
+   * 与 StreamRequest.params 保持一致，使用 message 字段携带 TaskCommand
+   */
+  params: {
+    /**
+     * 要发送的任务命令对象
+     * command 字段必须是 "start"，commandParams 中指定通知配置
+     */
+    message: TaskCommand;
+  };
+}
+```
+
 #### NotificationStartParams 定义
+
+`TaskCommand.commandParams` 中携带的通知启动参数：
 
 ```typescript
 export interface NotificationStartParams {
@@ -1831,7 +1908,7 @@ Partner 在任务状态变化、产出物生成等合适时机，向 Leader 注�
 - **HTTP 方法**: `POST`
 - **请求头**:
   - `Content-Type`: `application/json`
-  - `X-ACPS-AIP-Notification-Token`: `your_token`
+  - `X-ACPs-AIP-Notification-Token`: `your_token`
 - **请求体**: TaskResult 对象
 - **响应**:
   - **HTTP 状态码**: `200 OK` 表示通知成功接收，其他状态码表示失败。
@@ -1945,7 +2022,7 @@ Partner 在任务状态变化、产出物生成等合适时机，向 Leader 注�
   "id": "4",
   "method": "notification/start",
   "params": {
-    "command": {
+    "message": {
       "type": "task-command",
       "id": "msg-1234",
       "sentAt": "2025-09-01T11:59:30+08:00",
@@ -2002,7 +2079,7 @@ Partner 在任务状态变化、产出物生成等合适时机，向 Leader 注�
 POST /notifications HTTP/1.1
 Host: example.com
 Content-Type: application/json
-X-ACPS-AIP-Notification-Token: your_token
+X-ACPs-AIP-Notification-Token: your_token
 ```
 
 **请求体**:
@@ -2036,13 +2113,26 @@ HTTP/1.1 200 OK
 
 群组模式下，由 Leader 创建并维护一个群组，邀请多个 Partner 加入，通过消息队列实现 Leader 与多个 Partner 之间的交互。所有业务消息必须严格通过群组消息队列传输，确保透明性，使所有群组成员可知。
 
-v02.01 中，群组消息队列采用 AMQPS（TLS 1.3），智能体与 MQ Server 之间使用 mTLS（基于 ACPs CA 签发的智能体身份证书）进行双向认证。MQ Server 上所有 Agent 共享同一 `acps` vhost；群组专用 Exchange 命名规范为 `group_{leader-aic}_{group-id}`，各 Agent 的群组队列命名规范为 `group_{leader-aic}_{group-id}_{aic}`，Inbox 队列命名规范为 `inbox_{aic}`。
+v02.02 中，群组消息队列采用 AMQPS（TLS 1.3），智能体与 MQ Server 之间使用 mTLS（基于 ACPs CA 签发的智能体身份证书）进行双向认证。MQ Server 上所有 Agent 共享同一 `acps` vhost；群组专用 Exchange 命名规范为 `group_{leader-aic}_{group-id}`，各 Agent 的群组队列命名规范为 `group_{leader-aic}_{group-id}_{aic}`，Inbox 队列命名规范为 `inbox_{aic}`。
+
+## 7.0 群组模式身份绑定规则
+
+群组模式下，Agent 连接 MQ Server **必须**使用 mTLS。MQ Server **必须**从客户端证书 Subject `CN` 中提取 AIC 作为 authenticated username；若证书同时包含 SAN `URI:acps://{AIC}`，则其 AIC **必须**与 CN 一致。
+
+当 `identity_binding_enabled=true` 时：
+
+1. 发布方**必须**设置 AMQP message property `user_id`，且 `user_id == normalize(senderId)`；
+2. RabbitMQ **必须**依赖 validated user-id 语义校验 `user_id == authenticated username`；
+3. 普通 Agent 不得拥有允许伪造 `user_id` 的权限或 tag（例如 `impersonator`）；
+4. 消费方 SDK 在进入业务 handler 前**必须**校验 `body.senderId == AMQP user_id`，并校验 `body.groupId` 与当前群组上下文一致。
+
+若群组消息缺少 `user_id`、缺少 `senderId`、`senderId != user_id`、或 `groupId` 与当前群组上下文不一致，消费方**必须**拒绝处理该消息。
 
 ## 7.1 创建群组与成员加入
 
 Leader 邀请 Partner 加入群组有两种途径，按优先级选择：
 
-**优先路径：MQ Inbox 邀请（v02.01）**
+**优先路径：MQ Inbox 邀请（v02.02）**
 
 适用于 Partner 的 ACS `endPoints` 中声明了 AMQP 传输端点的场景（即 Partner 已接入 MQ Server）。
 
@@ -2054,11 +2144,20 @@ Leader 邀请 Partner 加入群组有两种途径，按优先级选择：
 
 如果 Partner 无法或拒绝加入，Partner 向 Leader 的 Inbox（`inbox_{leader-aic}`）回复 `InboxGroupInvitationError` 消息；Leader 收到后清理该 Partner 的 ACL 记录。
 
+`InboxGroupInvitation` 与 `InboxGroupInvitationError` 属于独立投递的控制消息，因此**必须**具备 Message 级身份语义：
+
+- `InboxGroupInvitation.senderRole` **必须**为 `"leader"`；
+- `InboxGroupInvitation.senderId` **必须**等于 `group.leader.aic`；
+- `InboxGroupInvitation.groupId` **必须**等于 `group.groupId`；
+- `InboxGroupInvitationError.senderRole` **必须**为 `"partner"`；
+- `InboxGroupInvitationError.senderId` **必须**为发送该错误消息的 Partner AIC；
+- `InboxGroupInvitationError.partnerAic` 为兼容字段，必须标记为 Deprecated；若该字段存在，则其值**必须**等于 `senderId`。新 SDK / demo 代码**必须不**发送或依赖该字段。
+
 **回退路径：Direct RPC 邀请（向后兼容）**
 
 适用于 Partner 的 ACS 中未声明 AMQP 端点但声明了 JSONRPC 端点的场景。Leader 通过直连 RPC 调用 Partner 的 `group` 方法发送邀请，Partner 仍通过创建队列、绑定 Exchange、广播 `GroupMgmtResult` 的方式加入群组。
 
-v02.01 对 Direct RPC 邀请格式的变更：
+v02.02 对 Direct RPC 邀请格式的变更：
 
 - `server.port`：从 `5672`（明文 AMQP）更新为 `5671`（AMQPS）
 - `server.vhost`：从每 Leader 独享 vhost 更新为共享 `acps` vhost
@@ -2229,7 +2328,7 @@ Leader 解散群组分为两阶段：
 
 ## 7.3 示例
 
-#### （1）Leader 创建群组 — MQ Inbox 方式（v02.01 首选路径）
+#### （1）Leader 创建群组 — MQ Inbox 方式（v02.02 首选路径）
 
 本示例采用遵循 AMQP 协议的消息队列 RabbitMQ ≥ 4.2。Leader 通过 Inbox 机制向 Partner 发送群组邀请，Partner 无需暴露公网 HTTP 端点。
 
@@ -2240,6 +2339,11 @@ Leader 解散群组分为两阶段：
 ```json
 {
   "type": "group-invitation",
+  "id": "invite-1001",
+  "sentAt": "2025-09-01T12:00:00+08:00",
+  "senderRole": "leader",
+  "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+  "groupId": "group123",
   "protocol": "rabbitmq:4.2",
   "invitationToken": "dGhpcyBpcyBhIHRlc3QgdG9rZW4",
   "expiresAt": "2025-09-01T04:05:00Z",
@@ -2287,6 +2391,10 @@ Leader 解散群组分为两阶段：
 ```json
 {
   "type": "group-invitation-error",
+  "id": "invite-err-1001",
+  "sentAt": "2025-09-01T12:00:02+08:00",
+  "senderRole": "partner",
+  "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU1",
   "groupId": "group123",
   "partnerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU1",
   "invitationToken": "dGhpcyBpcyBhIHRlc3QgdG9rZW4",
@@ -2301,9 +2409,11 @@ Leader 解散群组分为两阶段：
 }
 ```
 
+其中 `partnerAic` 为 Deprecated 兼容字段，仅用于解析旧消息；新 SDK / demo 不得发送该字段。
+
 #### （2）Leader 创建群组 — Direct RPC 方式（向后兼容路径）
 
-当 Partner 的 ACS 中未声明 AMQP 端点但声明了 JSONRPC 端点时，Leader 通过直连 RPC 发送邀请。v02.01 中 `server.accessToken` 已废弃，`server.port` 更新为 `5671`（AMQPS），`server.vhost` 更新为共享 `acps` vhost。这个请求把当前情况下要加入群组的所有 Partner 的 AIC 都发给了该新加入的 Partner。
+当 Partner 的 ACS 中未声明 AMQP 端点但声明了 JSONRPC 端点时，Leader 通过直连 RPC 发送邀请。v02.02 中 `server.accessToken` 已废弃，`server.port` 更新为 `5671`（AMQPS），`server.vhost` 更新为共享 `acps` vhost。这个请求把当前情况下要加入群组的所有 Partner 的 AIC 都发给了该新加入的 Partner。
 
 **请求**
 
@@ -2342,7 +2452,7 @@ Leader 解散群组分为两阶段：
 }
 ```
 
-> **说明**：`server.accessToken` 字段在 v02.01 中已标记废弃，v02.01 的 MQ Server 使用 mTLS 认证，Partner 凭借 ACPs CA 签发的身份证书直接连接 AMQPS 端口。若仍需对 v02.00 MQ Server 保持兼容，发送方可保留 `server.accessToken` 字段，Partner 根据该字段是否存在判断认证方式。
+> **说明**：`server.accessToken` 字段在 v02.02 中已标记废弃，v02.02 的 MQ Server 使用 mTLS 认证，Partner 凭借 ACPs CA 签发的身份证书直接连接 AMQPS 端口。若仍需对 v02.00 MQ Server 保持兼容，发送方可保留 `server.accessToken` 字段，Partner 根据该字段是否存在判断认证方式。
 
 **响应**
 

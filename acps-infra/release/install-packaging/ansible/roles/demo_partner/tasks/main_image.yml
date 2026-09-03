@@ -1,0 +1,292 @@
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: stage demo_partner 镜像
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: demo_partner
+    acps_artifact_kind: app_release
+
+- name: 派生对等主机
+  ansible.builtin.set_fact:
+    _advertise: "{{ acps_advertise_host | default(ansible_host) | default('127.0.0.1') }}"
+    _rmq_host: "{{ hostvars | acps_group_addr(groups, 'rabbitmq') }}"
+    _registry_host: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+    _ca_host: "{{ hostvars | acps_group_addr(groups, 'ca_server') }}"
+    _discovery_host: "{{ hostvars | acps_group_addr(groups, 'discovery_server') }}"
+    _mq_host: "{{ hostvars | acps_group_addr(groups, 'mq_auth_server') }}"
+    _pg_host: "{{ hostvars | acps_group_addr(groups, 'postgresql') }}"
+
+# 同机：docker exec 已有 postgresql 容器；跨机：本机 psql 客户端连 advertise（勿 docker run 上游 postgres:*-alpine）。
+- name: "派生 acps_psql.sh mode 参数（同机 image 用 container；跨机用 host/--host）"
+  ansible.builtin.set_fact:
+    _pg_psql_mode_args: >-
+      {{
+        ('--mode image --container ' ~ acps_compose_project_prefix ~ '-postgresql-1')
+        if inventory_hostname in (groups['postgresql'] | default([]))
+        else ('--mode host --host ' ~ _pg_host ~ ' --port ' ~ (postgresql_port | default(5432) | string))
+      }}
+
+- name: 准备 demo_partner 目录
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ acps_runtime_root }}/config/demo_partner"
+    - "{{ acps_runtime_root }}/components/demo_partner"
+
+- name: 展开 demo_partner partners 树（初始 ACS）
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/templates/demo_partner/partners/"
+    dest: "{{ acps_runtime_root }}/components/demo_partner/partners/"
+    mode: "0644"
+    force: false
+
+- name: 渲染 demo_partner env
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ acps_runtime_root }}/config/demo_partner/.env"
+    mode: "0600"
+  register: _demo_partner_env_render
+
+- name: 渲染 demo_partner compose
+  ansible.builtin.template:
+    src: compose.yml.j2
+    dest: "{{ acps_compose_services_dir }}/demo_partner.yml"
+    mode: "0644"
+  register: _demo_partner_compose_render
+
+- name: 断言 partner ACS 已 bootstrap（存在 AIC）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    missing=0
+    for acs in "{{ acps_runtime_root }}/components/demo_partner/partners/online"/*/acs.json; do
+      PY="{{ ansible_python_interpreter | default('python3') }}"
+      aic=$("$PY" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("aic") or "")' "$acs")
+      if [[ -z "${aic}" ]]; then
+        echo "missing AIC in $acs" >&2
+        missing=1
+      fi
+      for f in server.pem server.key client.pem client.key trust-bundle.pem; do
+        if [[ ! -f "$(dirname "$acs")/$f" ]]; then
+          echo "missing $f beside $acs" >&2
+          missing=1
+        fi
+      done
+    done
+    exit "${missing}"
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+# ACS Public=advertise；AMQP=同机 rabbitmq / 跨机 group_addr。模板 localhost 须改写。
+# APPROVED agent 不能经 Registry user API 更新，因此回写本地 ACS 并 patch Registry JSONB。
+- name: stage ACS rewrite/assert scripts
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_acs_rewrite_scripts.yml
+
+- name: 重写 partner ACS 全部端点（HTTPS + AMQP + altNames）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ acps_runtime_root }}/components/demo_partner/partners/online"
+    RMQ_DNS="{% if inventory_hostname in (groups['rabbitmq'] | default([])) %}rabbitmq{% else %}{{ _rmq_host }}{% endif %}"
+    ADV="{{ _advertise }}"
+    PY="{{ ansible_python_interpreter | default('python3') }}"
+    SCRIPT="{{ acps_runtime_root }}/staging/rewrite_acs_endpoints.py"
+    "$PY" "$SCRIPT" "$ROOT" --advertise-host "$ADV" --amqp-host "$RMQ_DNS"
+    # partner config.toml rabbitmq.host（与 ACS AMQP 对齐）
+    "$PY" - "$ROOT" "$RMQ_DNS" <<'PY'
+    import sys
+    from pathlib import Path
+    root = Path(sys.argv[1])
+    rmq_dns = sys.argv[2].strip() or "rabbitmq"
+    for path in sorted(root.glob("*/acs.json")):
+        cfg = path.parent / "config.toml"
+        if not cfg.is_file():
+            continue
+        text = cfg.read_text(encoding="utf-8")
+        lines = []
+        in_rmq = False
+        cfg_dirty = False
+        for line in text.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("[") and stripped.endswith("]"):
+                in_rmq = stripped.lower() in ("[rabbitmq]", "[mq]", "[amqp]")
+            if in_rmq and stripped.startswith("host"):
+                new_line = f'host = "{rmq_dns}"'
+                if line != new_line:
+                    cfg_dirty = True
+                lines.append(new_line)
+                continue
+            lines.append(line)
+        if cfg_dirty:
+            cfg.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            print(f"rewrote_config {cfg}")
+    PY
+  args:
+    executable: /bin/bash
+  register: _partner_acs_rewrite
+
+- name: 断言 partner ACS 无 localhost 对外端点
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ ansible_python_interpreter | default('python3') }}"
+    SCRIPT="{{ acps_runtime_root }}/staging/assert_acs_endpoints.py"
+    "$PY" "$SCRIPT" "{{ acps_runtime_root }}/components/demo_partner/partners/online" \
+      --advertise-host "{{ _advertise }}"
+  args:
+    executable: /bin/bash
+  changed_when: false
+
+- name: 将 acps_psql.sh stage 到目标
+  when: postgresql_enabled | default(true) | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_acps_psql.yml
+
+- name: 修补 Registry APPROVED partner ACS（JSONB：HTTPS/AMQP/active）
+  when: postgresql_enabled | default(true) | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ acps_runtime_root }}/components/demo_partner/partners/online"
+    PSQL="{{ acps_runtime_root }}/staging/acps_psql.sh"
+    DB_USER="{{ registry_db_user }}"
+    DB_NAME="{{ registry_db_name }}"
+    ADV="{{ _advertise }}"
+    PY="{{ ansible_python_interpreter | default('python3') }}"
+    "$PY" - "$ROOT" "$DB_USER" "$DB_NAME" "{{ registry_db_password }}" "$PSQL" "{{ _pg_psql_mode_args }}" "$ADV" <<'PY'
+    import hashlib, json, os, subprocess, sys
+    from pathlib import Path
+    root, db_user, db_name, db_pass, psql_bin, pg_mode_args, advertise = sys.argv[1:8]
+    os.environ["PGPASSWORD"] = db_pass
+
+    def psql(sql: str) -> str:
+        return subprocess.check_output(
+            [psql_bin, *pg_mode_args.split(), "--user", db_user, "--db", db_name,
+             "--tuples-only", "--no-align", "--sql", sql],
+            text=True,
+        ).strip()
+
+    updated = 0
+    for path in sorted(Path(root).glob("*/acs.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        aic = (data.get("aic") or "").strip()
+        if not aic:
+            continue
+        data["active"] = True
+        current = psql(f"SELECT acs::text FROM agent WHERE aic = '{aic.replace(chr(39), chr(39)+chr(39))}' AND is_active")
+        if not current:
+            print(f"skip_missing {aic}")
+            continue
+        needs = (
+            "https://localhost:" in current
+            or "https://127.0.0.1:" in current
+            or "amqps://localhost:" in current
+            or "amqps://127.0.0.1:" in current
+            or "amqps://rabbitmq:" in current
+            or '"active": false' in current
+            or '"active":false' in current
+            or (advertise and f"https://{advertise}:" not in current)
+        )
+        if not needs:
+            print(f"registry_ok {aic}")
+            continue
+        payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        tag = "acsjson"
+        sql = (
+            f"UPDATE agent SET acs = ${tag}${payload}${tag}$::jsonb, "
+            f"acs_hash = '{digest}', acs_version = COALESCE(acs_version, 0) + 1 "
+            f"WHERE aic = '{aic.replace(chr(39), chr(39)+chr(39))}' AND is_active"
+        )
+        psql(sql)
+        updated += 1
+        print(f"registry_updated {aic}")
+    print(f"registry_acs_updated={updated}")
+    PY
+  args:
+    executable: /bin/bash
+  no_log: true
+  register: _partner_registry_acs_patch
+
+- name: 解析 demo_partner 镜像 uid/gid 以设置证书所有权
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+
+- name: 将 demo_partner 证书所有权规范化为镜像用户
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ acps_runtime_root }}/components/demo_partner/partners/online"
+    UID_GID="{{ acps_cert_owner_uid }}:{{ acps_cert_owner_gid }}"
+    if ! chown -R "$UID_GID" "$ROOT" 2>/dev/null; then
+      docker run --rm -v "$ROOT:/work" -u 0 alpine:3.20 chown -R "$UID_GID" /work
+    fi
+    find "$ROOT" -type f \( -name '*.key' -o -name '*.pem' \) -exec chmod 600 {} \;
+    find "$ROOT" -type f -name 'acs.json' -exec chmod 644 {} \;
+    # trust-bundle 须对容器用户可读（ssl load_verify_locations）。
+    find "$ROOT" -type f -name 'trust-bundle.pem' -exec chmod 644 {} \;
+  args:
+    executable: /bin/bash
+
+- name: 确保 demo_partner AMP 日志目录（amp_forwarder 主机 bind）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_data_dir.yml
+  vars:
+    acps_data_dir: "{{ acps_log_root }}/demo_partner"
+    acps_data_dir_mode: "0755"
+
+- name: 解析本轮上游 broker bounce
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_tls_upstream_bounce.yml
+
+- name: 判定 demo_partner 是否应 force recreate
+  ansible.builtin.set_fact:
+    _demo_partner_force_recreate: >-
+      {{
+        (_demo_partner_env_render is changed)
+        or (_demo_partner_compose_render is changed)
+        or (_acps_rabbitmq_bounced_this_run | default(false) | bool)
+        or (acps_force_demo_bootstrap | default(false) | bool)
+        or (acps_force_demo_partner_restart | default(false) | bool)
+      }}
+
+- name: 部署 demo_partner
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_compose_service.yml
+  vars:
+    acps_compose_service_name: demo_partner
+    acps_compose_force_recreate: "{{ _demo_partner_force_recreate | bool }}"
+
+- name: 等待 demo_partner TCP 端口
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: "{{ item }}"
+    timeout: 120
+  loop:
+    - "{{ demo_partner_port_food | default(9021) }}"
+    - "{{ demo_partner_port_rural | default(9022) }}"
+    - "{{ demo_partner_port_urban | default(9023) }}"
+    - "{{ demo_partner_port_hotel | default(9024) }}"
+    - "{{ demo_partner_port_transport | default(9025) }}"
+
+- name: 开放 demo_partner 广告端口（firewalld/ufw；与 host 同构）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ demo_partner_port_food | default(9021) }}"
+      - "{{ demo_partner_port_rural | default(9022) }}"
+      - "{{ demo_partner_port_urban | default(9023) }}"
+      - "{{ demo_partner_port_hotel | default(9024) }}"
+      - "{{ demo_partner_port_transport | default(9025) }}"

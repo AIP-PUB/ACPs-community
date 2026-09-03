@@ -29,3 +29,5 @@
 (8)[数据同步协议（Data Synchronization Protocol，DSP）规范](08-ACPs-spec-DSP/ACPs-spec-DSP.md)
 
 (9)[智能体监控协议（Agent Monitoring Protocol，AMP）规范](09-ACPs-spec-AMP/ACPs-spec-AMP.md)
+
+(10)[智能体访问控制（Agent Access Control，AAC）规范](10-ACPs-spec-AAC/ACPs-spec-AAC.md)

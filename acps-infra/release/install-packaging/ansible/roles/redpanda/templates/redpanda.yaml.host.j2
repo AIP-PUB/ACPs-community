@@ -1,0 +1,23 @@
+# Redpanda host-mode redpanda.yaml（单节点；Kafka 监听广告端口）
+redpanda:
+  data_directory: {{ acps_data_root }}/redpanda
+  empty_seed_starts_cluster: true
+  seed_servers: []
+  rpc_server:
+    address: 0.0.0.0
+    port: 33145
+  advertised_rpc_api:
+    address: {{ _redpanda_advertise_host }}
+    port: 33145
+  kafka_api:
+    - name: external
+      address: 0.0.0.0
+      port: {{ redpanda_kafka_port }}
+  advertised_kafka_api:
+    - name: external
+      address: {{ _redpanda_advertise_host }}
+      port: {{ redpanda_kafka_port }}
+  admin:
+    - address: 0.0.0.0
+      port: 9644
+  developer_mode: true

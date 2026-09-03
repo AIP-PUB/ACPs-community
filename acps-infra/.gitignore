@@ -26,7 +26,6 @@ htmlcov/
 # 日志
 logs/
 dev-infra/certs/
-stage-infra/certs/
 plans/
 
 # uv

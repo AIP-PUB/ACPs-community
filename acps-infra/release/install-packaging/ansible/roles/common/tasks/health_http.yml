@@ -1,0 +1,13 @@
+---
+# health_http.yml — 期望：acps_health_url；可选 acps_health_curl_extra（列表）
+
+- name: 探测 HTTP health
+  ansible.builtin.uri:
+    url: "{{ acps_health_url }}"
+    method: GET
+    status_code: [200]
+    validate_certs: false
+  register: _health
+  retries: "{{ acps_common_health_retries }}"
+  delay: "{{ acps_common_health_delay }}"
+  until: _health is succeeded

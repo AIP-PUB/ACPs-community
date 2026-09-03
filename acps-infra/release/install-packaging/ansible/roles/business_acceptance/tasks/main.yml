@@ -1,0 +1,27 @@
+---
+# Demo 后业务验收流水线。
+# 固定顺序 A→B→C→D；失败即停。
+# 下方内部 tags 仅供实现者 — 非产品分段 API。
+
+- name: "步骤 A — Discovery 同步与 NL 查询"
+  tags: [business_step_a]
+  ansible.builtin.include_tasks: step_a.yml
+
+- name: "步骤 B — Leader↔Partner direct_rpc"
+  tags: [business_step_b]
+  ansible.builtin.include_tasks: step_b.yml
+
+- name: "步骤 C — Leader↔Partner 群组 / inbox"
+  tags: [business_step_c]
+  ansible.builtin.include_tasks: step_c.yml
+
+- name: "步骤 D — 可观测性收敛（D1 Monitor + D2 Discovery）"
+  tags: [business_step_d]
+  ansible.builtin.include_tasks: step_d.yml
+
+- name: 业务验收 pipeline checkpoint
+  ansible.builtin.debug:
+    msg: >-
+      business.yml Steps A–D complete (Discovery NL + direct_rpc + group inbox
+      + Monitor AMP five types + Discovery alive). Product path runs this playbook
+      once — no acps_business_tests / segment product switches.

@@ -143,7 +143,7 @@ def test_login_or_register_user_registers_when_user_not_found(tmp_path, monkeypa
         "demo-client",
         "demo123",
         name="Demo Client",
-        org_name="ACPS Demo",
+        org_name="ACPs Demo",
     )
 
     assert result["status"] == "registered"
@@ -180,6 +180,53 @@ def test_login_or_register_user_rejects_invalid_credentials(tmp_path, monkeypatc
     assert register_calls == []
 
 
+def test_logout_uses_auth_when_local_access_token_exists(tmp_path, monkeypatch):
+    client = _build_client(tmp_path)
+    client.token_store.save({"access_token": "token", "token_type": "bearer"})
+    captured: dict[str, object] = {}
+
+    def fake_request(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        captured["auth_required"] = kwargs["auth_required"]
+        return {"success": True, "message": "Successfully logged out"}
+
+    monkeypatch.setattr(client, "_request", fake_request)
+
+    result = client.logout()
+
+    assert result["success"] is True
+    assert captured == {
+        "method": "POST",
+        "path": "/auth/logout",
+        "auth_required": True,
+    }
+
+
+def test_reset_user_password_uses_admin_endpoint(tmp_path, monkeypatch):
+    client = _build_client(tmp_path)
+    captured: dict[str, object] = {}
+
+    def fake_request(method: str, path: str, **kwargs):
+        captured["method"] = method
+        captured["path"] = path
+        captured["auth_required"] = kwargs["auth_required"]
+        captured["json_body"] = kwargs["json_body"]
+        return {"message": "Password reset successfully"}
+
+    monkeypatch.setattr(client, "_request", fake_request)
+
+    result = client.reset_user_password("user-123", "ResetPass123!")
+
+    assert result["message"] == "Password reset successfully"
+    assert captured == {
+        "method": "PUT",
+        "path": "/account/user/user-123/password",
+        "auth_required": True,
+        "json_body": {"new_password": "ResetPass123!"},
+    }
+
+
 def test_register_entity_via_atr_returns_result(tmp_path, monkeypatch):
     client = _build_client(tmp_path)
     ontology_aic = "1.2.3.4.5.6.7.000000.9.10"
@@ -195,6 +242,10 @@ def test_register_entity_via_atr_returns_result(tmp_path, monkeypatch):
         assert kwargs["json_body"] == {
             "ontologyAic": ontology_aic,
             "entityMeta": {"region": "beijing"},
+            "certificate": {
+                "altNames": {"dns": ["entity.example.com"]},
+                "requestedValidity": 365,
+            },
         }
         return {
             "status": "ok",
@@ -205,7 +256,13 @@ def test_register_entity_via_atr_returns_result(tmp_path, monkeypatch):
 
     result = client.register_entity_via_atr(
         ontology_aic,
-        entity_payload={"entityMeta": {"region": "beijing"}},
+        entity_payload={
+            "entityMeta": {"region": "beijing"},
+            "certificate": {
+                "altNames": {"dns": ["entity.example.com"]},
+                "requestedValidity": 365,
+            },
+        },
     )
 
     assert result == {"entityAic": "1.2.3.4.5.6.7.8.9.10"}

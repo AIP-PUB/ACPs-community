@@ -1,5 +1,5 @@
 [server]
-reload = true
+reload = false
 uvicorn_log_level = "debug"
 
 [logging]
@@ -18,3 +18,9 @@ base_url = "https://www.dmxapi.com/v1/"
 
 [polling]
 server_url = ""
+
+[alive_sync]
+enabled = false
+auto_start = true
+provider_base_url = "http://localhost:9009/acps-amp-v1/heartbeat"
+kafka_bootstrap_servers = "localhost:19092"

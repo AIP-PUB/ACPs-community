@@ -16,8 +16,11 @@ class TokenStore:
     def load(self) -> dict[str, str] | None:
         if not self.file_path.exists():
             return None
-        with open(self.file_path, encoding="utf-8") as file:
-            raw = json.load(file)
+        try:
+            with open(self.file_path, encoding="utf-8") as file:
+                raw = json.load(file)
+        except json.JSONDecodeError:
+            return None
         if not isinstance(raw, dict):
             return None
         return {k: str(v) for k, v in raw.items() if isinstance(k, str)}

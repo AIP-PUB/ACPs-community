@@ -1,0 +1,56 @@
+[registry]
+base_url = "http://{{ _registry_host }}:{{ registry_server_public_port }}"
+mtls_base_url = "https://{{ _registry_host }}:{{ registry_server_mtls_port }}"
+mtls_server_ca_file = "{{ acps_control_root }}/work/certs/registry-server-9002/trust-bundle.pem"
+timeout_seconds = 30
+
+{% if keycloak_enabled | bool %}
+{# JWT iss 必须与 Keycloak --hostname（advertise URL）一致；多机时不可用 docker DNS keycloak:8080。 #}
+{% set _cli_oidc_issuer_reg = ('http://' ~ _keycloak_host ~ ':' ~ (keycloak_port | string) ~ '/realms/acps-registry') %}
+[registry.auth]
+mode = "oidc"
+# JWT iss = Keycloak advertise URL（image/host 相同）；token 拉取走可达 public base。
+issuer = "{{ _cli_oidc_issuer_reg }}"
+client_id = "{{ keycloak_registry_install_client_id | default('registry-install') }}"
+scopes = ["openid", "profile", "email"]
+require_https = false
+{% else %}
+[registry.auth]
+mode = "local"
+{% endif %}
+
+[auth]
+user_token_file = "{{ acps_control_root }}/work/tokens/registry-user.json"
+admin_token_file = "{{ acps_control_root }}/work/tokens/registry-admin.json"
+
+[ca]
+base_url = "http://{{ _ca_host }}:{{ ca_server_port }}"
+account_keys_dir = "{{ acps_control_root }}/work/keyfiles/accounts"
+private_keys_dir = "{{ acps_control_root }}/work/keyfiles/private"
+certs_dir = "{{ acps_control_root }}/work/keyfiles/certs"
+csr_dir = "{{ acps_control_root }}/work/keyfiles/csr"
+trust_bundle_path = "{{ acps_control_root }}/work/keyfiles/trust-bundle.pem"
+
+[discovery]
+base_url = "http://{{ _discovery_host }}:{{ discovery_server_port }}"
+
+[mq]
+group_api_url = "https://{{ _mq_host }}:{{ mq_auth_server_group_api_port }}"
+auth_api_url = "https://{{ _mq_host }}:{{ mq_auth_server_auth_api_port }}"
+ca_cert_file = "{{ acps_control_root }}/work/certs/mq-auth-server/acps-root-ca.pem"
+probe_cert_file = "{{ acps_control_root }}/work/certs/mq-auth-server/client.pem"
+probe_key_file = "{{ acps_control_root }}/work/certs/mq-auth-server/client.key"
+
+{% if keycloak_enabled | bool and monitor_server_enabled | bool %}
+{% set _cli_oidc_issuer_mon = ('http://' ~ _keycloak_host ~ ':' ~ (keycloak_port | string) ~ '/realms/acps-monitor') %}
+[monitor]
+base_url = "http://{{ _monitor_host }}:{{ monitor_server_port }}"
+
+[monitor.auth]
+mode = "oidc"
+token_file = "{{ acps_control_root }}/work/tokens/monitor-admin.json"
+issuer = "{{ _cli_oidc_issuer_mon }}"
+client_id = "{{ keycloak_monitor_install_client_id | default('monitor-install') }}"
+scopes = ["openid", "profile", "email"]
+require_https = false
+{% endif %}

@@ -1,0 +1,202 @@
+---
+# TLS 平面 fail-closed 探测（真实协议握手，非 TCP-only）。
+# 由 smoke_basic / renew-certs / refresh-trust-bundle 调用。
+# B13：advertise 平面；B14：image 同机再加 Colocated；B15：mq-auth 为 AMQPS auth 硬前提。
+
+- name: Advertise 平面 TCP 预检（失败即停；防防火墙未生效假绿）
+  ansible.builtin.wait_for:
+    host: "{{ item.host }}"
+    port: "{{ item.port }}"
+    timeout: "{{ acps_advertise_tcp_timeout | default(10) }}"
+  loop: "{{ _adv_ports }}"
+  loop_control:
+    label: "{{ item.host }}:{{ item.port }}"
+  vars:
+    _redis: "{{ hostvars | acps_group_addr(groups, 'redis') }}"
+    _rmq: "{{ hostvars | acps_group_addr(groups, 'rabbitmq') }}"
+    _mqa: "{{ hostvars | acps_group_addr(groups, 'mq_auth_server') }}"
+    _reg: "{{ hostvars | acps_group_addr(groups, 'registry_server') }}"
+    _adv_ports: >-
+      {{
+        ([{'host': _redis, 'port': redis_port}] if (redis_enabled | bool) else [])
+        + ([{'host': _rmq, 'port': rabbitmq_amqps_port}] if (rabbitmq_enabled | bool) else [])
+        + ([{'host': _mqa, 'port': mq_auth_server_group_api_port}]
+           if (mq_auth_server_enabled | bool) else [])
+        + ([{'host': _reg, 'port': registry_server_mtls_port}]
+           if (registry_server_enabled | bool)
+              and (registry_server_enable_mtls_listener | default(false) | bool)
+           else [])
+      }}
+
+- name: 运行 TLS 平面握手验收（advertise）
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    SCRIPT="{{ acps_release_root }}/scripts/tls_plane_smoke.py"
+    CERTS="{{ acps_control_root }}/work/certs"
+    ARGS=(--control-certs "$CERTS" --timeout "{{ acps_tls_smoke_timeout | default(10) }}")
+
+    {% if redis_enabled | bool %}
+    ARGS+=(--redis-host "{{ hostvars | acps_group_addr(groups, 'redis') }}")
+    ARGS+=(--redis-port "{{ redis_port }}")
+    {% endif %}
+
+    {% if mq_auth_server_enabled | bool %}
+    ARGS+=(--mq-auth-host "{{ hostvars | acps_group_addr(groups, 'mq_auth_server') }}")
+    ARGS+=(--mq-auth-port "{{ mq_auth_server_group_api_port }}")
+    {% endif %}
+
+    {% if rabbitmq_enabled | bool %}
+    ARGS+=(--rabbitmq-host "{{ hostvars | acps_group_addr(groups, 'rabbitmq') }}")
+    ARGS+=(--rabbitmq-port "{{ rabbitmq_amqps_port }}")
+    {% if mq_auth_server_enabled | bool %}
+    ARGS+=(--require-mq-auth-for-amqps)
+    {% endif %}
+    {% endif %}
+
+    {% if registry_server_enabled | bool %}
+    ARGS+=(--registry-host "{{ hostvars | acps_group_addr(groups, 'registry_server') }}")
+    ARGS+=(--registry-mtls-port "{{ registry_server_mtls_port }}")
+    {% endif %}
+
+    {% if (demo_partner_enabled | bool) and (acps_smoke_include_demo | default(true) | bool) %}
+    ARGS+=(--demo-partner-host "{{ hostvars | acps_group_addr(groups, 'demo_partner') }}")
+    ARGS+=(--demo-partner-ports "{{ [
+      demo_partner_port_food | default(9021),
+      demo_partner_port_rural | default(9022),
+      demo_partner_port_urban | default(9023),
+      demo_partner_port_hotel | default(9024),
+      demo_partner_port_transport | default(9025),
+    ] | join(',') }}")
+    ARGS+=(--demo-partner-staging "{{ acps_control_root }}/work/staging/demo-partner")
+    {% endif %}
+
+    "$PY" "$SCRIPT" "${ARGS[@]}"
+  args:
+    executable: /bin/bash
+  environment:
+    ACPS_TLS_SMOKE_REDIS_PASSWORD: "{{ redis_password | default('') }}"
+  register: _tls_plane_smoke
+  changed_when: false
+  retries: "{{ acps_tls_smoke_retries | default(5) }}"
+  delay: "{{ acps_tls_smoke_delay | default(3) }}"
+  until: _tls_plane_smoke.rc == 0
+
+- name: TLS advertise 平面探测摘要
+  ansible.builtin.debug:
+    msg: "{{ _tls_plane_smoke.stdout_lines | default([]) }}"
+
+# B14：image 同机 Colocated AMQPS（Compose DNS rabbitmq:5671）。host/多机无同栈 DNS 则跳过。
+- name: Colocated AMQPS 探针（image Compose DNS；fail-closed）
+  when:
+    - acps_deploy_mode == 'image'
+    - rabbitmq_enabled | bool
+    - (acps_tls_smoke_colocated | default(true) | bool)
+    - (groups['rabbitmq'] | default([]) | length) > 0
+    # 同机：rabbitmq 与任一业务侧共主机才跑 Colocated（单机全栈恒真；纯 deps 多机跳过）。
+    - (groups['rabbitmq'] | first) in (
+        (groups['demo_partner'] | default([]))
+        + (groups['demo_leader'] | default([]))
+        + (groups['mq_auth_server'] | default([]))
+        + (groups['registry_server'] | default([]))
+      )
+  block:
+    # play 为 connection:local（控制面）。委托 connection 必须写在各 delegate_to 任务上，
+    # 不可挂在本 block 父 task（否则会污染控制面连接）。默认 ssh；同机 host_vars 为 local。
+    - name: Stage tls_plane_smoke.py 到 RabbitMQ 主机（/tmp，免提权改 /opt/acps）
+      ansible.builtin.copy:
+        src: "{{ acps_release_root }}/scripts/tls_plane_smoke.py"
+        dest: /tmp/acps-tls_plane_smoke.py
+        mode: "0755"
+      delegate_to: "{{ groups['rabbitmq'] | first }}"
+      vars:
+        ansible_connection: "{{ hostvars[groups['rabbitmq'] | first].ansible_connection | default('ssh') }}"
+        ansible_host: "{{ hostvars[groups['rabbitmq'] | first].ansible_host | default(groups['rabbitmq'] | first) }}"
+
+    - name: 准备 colocated 探测材料目录
+      ansible.builtin.file:
+        path: /tmp/acps-tls-colocated/rabbitmq
+        state: directory
+        mode: "0755"
+      delegate_to: "{{ groups['rabbitmq'] | first }}"
+      vars:
+        ansible_connection: "{{ hostvars[groups['rabbitmq'] | first].ansible_connection | default('ssh') }}"
+        ansible_host: "{{ hostvars[groups['rabbitmq'] | first].ansible_host | default(groups['rabbitmq'] | first) }}"
+
+    - name: Stage rabbitmq client 材料（自 control；避运行时 0600 key）
+      ansible.builtin.copy:
+        src: "{{ acps_control_root }}/work/certs/rabbitmq/{{ item }}"
+        dest: "/tmp/acps-tls-colocated/rabbitmq/{{ item }}"
+        mode: "0644"
+      loop:
+        - acps-root-ca.pem
+        - rabbitmq-client.pem
+        - rabbitmq-client.key
+      delegate_to: "{{ groups['rabbitmq'] | first }}"
+      vars:
+        ansible_connection: "{{ hostvars[groups['rabbitmq'] | first].ansible_connection | default('ssh') }}"
+        ansible_host: "{{ hostvars[groups['rabbitmq'] | first].ansible_host | default(groups['rabbitmq'] | first) }}"
+
+    - name: 经 Compose 网络探测 rabbitmq:AMQPS
+      ansible.builtin.shell: |
+        set -euo pipefail
+        DOCKER="$(command -v docker || true)"
+        if [[ -z "${DOCKER}" ]]; then
+          for c in /usr/bin/docker /usr/local/bin/docker /opt/homebrew/bin/docker; do
+            if [[ -x "${c}" ]]; then
+              DOCKER="${c}"
+              break
+            fi
+          done
+        fi
+        if [[ -z "${DOCKER}" ]]; then
+          echo "B14 colocated: docker executable not found in PATH or known locations" >&2
+          exit 1
+        fi
+        PREFIX="{{ acps_compose_project_prefix }}"
+        NET="{{ acps_docker_network | default('acps-net') }}"
+        SCRIPT=/tmp/acps-tls_plane_smoke.py
+        PROBE=/tmp/acps-tls-colocated
+        IMG=""
+        for c in "${PREFIX}-registry_server-1" "${PREFIX}-mq_auth_server-1" "${PREFIX}-demo_partner-1"; do
+          if "$DOCKER" inspect "$c" >/dev/null 2>&1; then
+            IMG=$("$DOCKER" inspect -f '{% raw %}{{.Config.Image}}{% endraw %}' "$c")
+            break
+          fi
+        done
+        if [[ -z "$IMG" ]]; then
+          echo "B14 colocated: no python-capable ACPS container on $(hostname -f 2>/dev/null || hostname)" >&2
+          "$DOCKER" ps --format '{% raw %}{{.Names}}{% endraw %}' | head -20 >&2 || true
+          exit 1
+        fi
+        if ! "$DOCKER" network inspect "$NET" >/dev/null 2>&1; then
+          echo "B14 colocated: compose network $NET missing" >&2
+          "$DOCKER" network ls >&2 || true
+          exit 1
+        fi
+        "$DOCKER" run --rm --network "$NET" \
+          -v "$PROBE:/certs:ro" \
+          -v "$SCRIPT:/tls_plane_smoke.py:ro" \
+          --entrypoint python3 \
+          "$IMG" \
+          /tls_plane_smoke.py \
+            --control-certs /certs \
+            --timeout "{{ acps_tls_smoke_timeout | default(10) }}" \
+            --rabbitmq-host rabbitmq \
+            --rabbitmq-port "{{ rabbitmq_amqps_port }}" \
+            --plane-label amqps-colocated
+      args:
+        executable: /bin/bash
+      delegate_to: "{{ groups['rabbitmq'] | first }}"
+      vars:
+        ansible_connection: "{{ hostvars[groups['rabbitmq'] | first].ansible_connection | default('ssh') }}"
+        ansible_host: "{{ hostvars[groups['rabbitmq'] | first].ansible_host | default(groups['rabbitmq'] | first) }}"
+      register: _tls_colocated_smoke
+      changed_when: false
+      retries: "{{ acps_tls_smoke_retries | default(5) }}"
+      delay: "{{ acps_tls_smoke_delay | default(3) }}"
+      until: _tls_colocated_smoke.rc == 0
+
+    - name: Colocated AMQPS 探测摘要
+      ansible.builtin.debug:
+        msg: "{{ _tls_colocated_smoke.stdout_lines | default([]) }}"

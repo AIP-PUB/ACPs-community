@@ -1,12 +1,12 @@
 [首页](../README.md)
 
-ADP：智能体发现过程（ACPs-spec-ADP-v02.01）
+ADP：智能体发现过程（ACPs-spec-ADP-v02.02）
 
 # 1. 文档定义
 
-本文档为 ACPs 智能体协作协议体系中的智能体发现流程（Agent Discovery Protocol，ADP）标准定义，版本号 v02.01。
+本文档为 ACPs 智能体协作协议体系中的智能体发现流程（Agent Discovery Protocol，ADP）标准定义，版本号 v02.02。
 
-文档全称为 ACPs-spec-ADP-v02.01。
+文档全称为 ACPs-spec-ADP-v02.02。
 
 文档编写者：李珂（北京邮电大学），张茂彬（北京邮电大学），王垚烨（北京邮电大学），禹可（北京邮电大学），胡晓峰（北京邮电大学），刘军（北京邮电大学），马镝（北京邮电大学），陈科良（北京邮电大学）。
 
@@ -469,6 +469,26 @@ export interface DiscoveryResult {
    * 主要用于调试和归因，客户端正常使用时可只关注 agents 和 acsMap。
    */
   routes?: DiscoveryRoute[];
+
+  /**
+   * 发现结果中各 AIC 的存活状态（可选）。
+   * 键为智能体身份码（AIC），与 acsMap 键对应，值包含：
+   * - alive：是否处于存活状态（true 表示监控系统确认最近有活动迹象）。
+   * - aliveLastSeenAt：最后一次活动时间戳（ISO 8601 UTC），仅供展示参考，不构成强一致新鲜度承诺。
+   *
+   * 此字段仅在发现服务器启用了 AMP Heartbeat alive 同步功能时出现；
+   * 未启用时字段不存在，客户端不得将字段缺失解读为"智能体已下线"。
+   * 数据来源为发现服务器本地维护的 alive 副本，通过 AMP Heartbeat alive-delta
+   * 同步协议与监控服务器保持准实时一致（参见 ACPs-spec-AMP §6.2）。
+   *
+   * 查找方式与 acsMap 相同：以 DiscoveryAgentSkill.aic 为键查表。
+   * 键缺失表示该 AIC 的存活状态当前未知（如 alive sync 尚未覆盖该 AIC）；
+   * 键存在且 alive=false 表示监控系统确认该 AIC 当前不活跃。
+   */
+  aliveMap?: Record<string, {
+    alive: boolean;
+    aliveLastSeenAt?: string;
+  }>;
 }
 
 /**
@@ -612,13 +632,13 @@ export interface DiscoveryAgentSkill {
 
 **示例 1：简单条件（AND 逻辑）**
 
-查询 active 且协议版本为 02.01、支持 JSONRPC、有流式响应的智能体：
+查询 active 且协议版本为 02.02、支持 JSONRPC、有流式响应的智能体：
 
 ```json
 {
   "conditions": [
     { "field": "active", "op": "eq", "value": true },
-    { "field": "protocolVersion", "op": "in", "value": ["02.01"] },
+    { "field": "protocolVersion", "op": "in", "value": ["02.02"] },
     { "field": "endPoints.transport", "op": "in", "value": ["JSONRPC"] },
     { "field": "capabilities.streaming", "op": "eq", "value": true },
     { "field": "skills.tags", "op": "anyOf", "value": ["数据处理", "北京"] }
@@ -713,6 +733,14 @@ export interface DiscoveryAgentSkill {
 聚合转发时，发现服务器需要为每个下游请求维护独立的 `DiscoveryRoute`，并在 `agents` 中返回去重排序后的汇总结果。`routes` 为可选字段，主要用于调试和归因；若某条路由失败，可通过 `status` 字段体现具体原因，便于请求智能体做容错处理。
 
 `agents` 和 `DiscoveryRoute.agentGroups` 中的 `DiscoveryAgentGroup` 至少应包含一个分组。若业务无需分组（如简单的单意图查询），仍应返回包含单个默认分组的数组，`group` 可设为原始查询文本或空字符串，以保持响应结构统一。
+
+`aliveMap` 是可选的存活状态附加信息，由发现服务器从本地维护的 AMP alive 副本中按 AIC 批量填充。查找方式与 `acsMap` 相同，以 `DiscoveryAgentSkill.aic` 为键。客户端消费时应遵守以下规则：
+
+- **字段缺失**：发现服务器未启用 AMP alive 同步，客户端不得据此判断智能体存活状态。
+- **键缺失**（`aliveMap` 存在但不含某 AIC）：该 AIC 的存活状态当前未知（alive sync 尚未覆盖），不等于不活跃。
+- **`alive=false`**：监控服务器已确认该 AIC 当前不活跃（如心跳超时），客户端可据此降低优先级或跳过该 AIC。
+- **`aliveLastSeenAt`**：仅供展示参考，不保证与监控服务器当前态严格一致，不得用于精确新鲜度判断。
+- **转发场景**：`aliveMap` 反映**结果来源发现服务器**本地 alive 副本，故仅由产出该批结果的来源服务器填充。中间（转发/聚合）发现服务器对下游返回的结果应**原样透传** `aliveMap`，**不得**用自身本地副本去**覆盖或合并**下游条目（来源节点对其智能体的存活状态更具权威性，跨节点合并会引入不一致与误导）。换言之：每个 AIC 的 `aliveMap` 条目至多来自一个来源——产出它的那个发现服务器。
 
 ## 4.3. 示例请求与响应
 
@@ -1023,6 +1051,74 @@ X-Span-Id: span-ds-a-004
   }
 }
 ```
+
+### 4.3.6. 携带 aliveMap 的响应（AMP alive 同步已启用）
+
+当发现服务器启用了 AMP Heartbeat alive 同步功能时，响应中会附带 `aliveMap` 字段，客户端可据此感知候选智能体的存活状态。本例中 `AIC-NLP-AGENT-003` 当前被监控系统标记为不活跃，客户端可在选择时降低其优先级。
+
+**请求示例**
+
+```http
+POST /discover HTTP/1.1
+Host: ds-a.example.com
+Content-Type: application/json
+X-Trace-Id: trace-20251125-qrst7890
+X-Span-Id: span-client-005
+
+{
+  "type": "explicit",
+  "query": "我需要一个自然语言处理智能体"
+}
+```
+
+**响应示例**
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Trace-Id: trace-20251125-qrst7890
+X-Span-Id: span-ds-a-005
+
+{
+  "result": {
+    "acsMap": {
+      "AIC-NLP-AGENT-001": {
+        "aic": "AIC-NLP-AGENT-001",
+        "name": "NLP Agent Alpha",
+        "skills": [{ "id": "nlp-001", "name": "文本分类", "tags": ["NLP", "分类"] }]
+      },
+      "AIC-NLP-AGENT-003": {
+        "aic": "AIC-NLP-AGENT-003",
+        "name": "NLP Agent Gamma",
+        "skills": [{ "id": "nlp-003", "name": "命名实体识别", "tags": ["NLP", "NER"] }]
+      }
+    },
+    "agents": [
+      {
+        "group": "自然语言处理",
+        "skills": [
+          { "aic": "AIC-NLP-AGENT-001", "skillId": "nlp-001", "score": 0.95 },
+          { "aic": "AIC-NLP-AGENT-003", "skillId": "nlp-003", "score": 0.82 }
+        ]
+      }
+    ],
+    "aliveMap": {
+      "AIC-NLP-AGENT-001": {
+        "alive": true,
+        "aliveLastSeenAt": "2025-11-25T03:41:00Z"
+      },
+      "AIC-NLP-AGENT-003": {
+        "alive": false,
+        "aliveLastSeenAt": "2025-11-25T01:12:33Z"
+      }
+    }
+  }
+}
+```
+
+> **客户端消费提示**：`aliveMap` 键与 `acsMap` 键对应。本例中 `AIC-NLP-AGENT-003` 的 `alive=false`，
+> 客户端可优先选用 `AIC-NLP-AGENT-001`，或在 UI 上为 `AIC-NLP-AGENT-003` 展示"离线"标记。
+> `aliveMap` 字段缺失时，客户端应按"存活状态未知"处理，不得将缺失视为全部离线。
 
 # 5. 补充说明
 

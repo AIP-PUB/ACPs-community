@@ -1,0 +1,114 @@
+---
+# cutover_host_current.yml — 将 current 指到已 stage 的 releases/<ver>
+#
+# 期望：
+#   acps_component_key
+#   acps_host_release_dest — 绝对路径 …/{component}/releases/<ver>
+# 可选：
+#   acps_host_component_root — 默认 {{ acps_runtime_root }}/{{ acps_component_key }}
+#
+# 使用相对 symlink：current -> releases/<ver>（禁止写死长期绝对版本路径进 unit；
+# unit 仍经 current，见 render_host_systemd）。
+
+- name: cutover 要求 staged release dest
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - (acps_component_key | string | length) > 0
+      - acps_host_release_dest is defined
+      - (acps_host_release_dest | string | length) > 0
+    fail_msg: "cutover_host_current.yml requires acps_component_key and acps_host_release_dest"
+
+- name: 解析 cutover 路径
+  ansible.builtin.set_fact:
+    # 候选 root：显式 acps_host_component_root（空串 → default true 回落）。
+    # 若候选与 acps_host_release_dest 不一致（同机上一组件 set_fact 残留），
+    # 强制回落到 runtime/<本组件>，避免 keycloak root 误拒 registry cutover。
+    _acps_cut_root_candidate: >-
+      {{
+        acps_host_component_root
+        | default(acps_runtime_root ~ '/' ~ acps_component_key, true)
+      }}
+    _acps_cut_dest: "{{ acps_host_release_dest | string }}"
+
+- name: 选定 cutover 根（拒绝跨组件残留 root）
+  ansible.builtin.set_fact:
+    _acps_cut_root: >-
+      {{
+        _acps_cut_root_candidate
+        if (_acps_cut_dest | string).startswith(_acps_cut_root_candidate ~ '/releases/')
+        else (acps_runtime_root ~ '/' ~ acps_component_key)
+      }}
+
+- name: 校验 staged release 目录存在
+  ansible.builtin.stat:
+    path: "{{ _acps_cut_dest }}"
+  register: _acps_cut_dest_stat
+
+- name: staged release 缺失时失败（保留现场）
+  when: not (_acps_cut_dest_stat.stat.exists | default(false) | bool)
+  ansible.builtin.fail:
+    msg: >-
+      cutover_host_current: staged release missing at {{ _acps_cut_dest }}
+      (component={{ acps_component_key }}). Refuse symlink cutover.
+
+- name: staged dest 必须位于组件 releases/ 下
+  ansible.builtin.assert:
+    that:
+      - (_acps_cut_dest | string).startswith(_acps_cut_root ~ '/releases/')
+      - (_acps_cut_dest | string) != (_acps_cut_root ~ '/releases/')
+    fail_msg: >-
+      cutover_host_current: acps_host_release_dest={{ _acps_cut_dest }}
+      is not under {{ _acps_cut_root }}/releases/. Refuse cutover.
+
+- name: 计算相对 symlink 目标（releases/<ver>）
+  ansible.builtin.set_fact:
+    _acps_cut_rel: "{{ _acps_cut_dest | regex_replace('^' ~ (_acps_cut_root | regex_escape) ~ '/', '') }}"
+
+- name: ln -sfn staged release → current
+  ansible.builtin.file:
+    src: "{{ _acps_cut_rel }}"
+    dest: "{{ _acps_cut_root }}/current"
+    state: link
+    force: true
+  become: "{{ ((ansible_connection | default('ssh')) != 'local') and (ansible_become | default(true) | bool) }}"
+
+# venv console shebang 在创建时写死绝对路径；经 current 切版本后须统一改写，
+# 否则回滚/再升级后 ExecStart 可能 exit 126（bad interpreter）。
+- name: cutover 后改写 venv shebang 为经 current（若有）
+  when: true
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ _acps_cut_root }}"
+    DEST="{{ _acps_cut_dest }}"
+    if [[ -d "${DEST}/venv/bin" ]]; then
+      for f in "${DEST}/venv/bin"/*; do
+        [[ -f "${f}" && -x "${f}" ]] || continue
+        hdr="$(head -1 "${f}" 2>/dev/null || true)"
+        case "${hdr}" in
+          "#!${ROOT}/venv/"*|"#!${ROOT}/releases/"*)
+            sed -i "1s|^#!${ROOT}/.*/venv/|#!${ROOT}/current/venv/|" "${f}" || true
+            ;;
+        esac
+      done
+    fi
+    # 扁平兼容软链（旧 PATH / 误用绝对 venv 时兜底）
+    if [[ -d "${DEST}/venv" || -L "${DEST}/venv" ]]; then
+      ln -sfn current/venv "${ROOT}/venv" || true
+    fi
+  args:
+    executable: /bin/bash
+  become: "{{ (ansible_connection | default('ssh')) != 'local' }}"
+
+- name: cutover 后刷新 unit/runtime facts（经 current）
+  ansible.builtin.set_fact:
+    acps_host_layout: releases
+    acps_host_release_path: "{{ _acps_cut_dest }}"
+    acps_host_app_install_dest: "{{ _acps_cut_root }}/current"
+    acps_app_install_venv: "{{ _acps_cut_root }}/current/venv"
+    acps_app_install_python: "{{ _acps_cut_root }}/current/venv/bin/python"
+    acps_vendor_unit_root: "{{ _acps_cut_root }}/current"
+    # 树仍在 staged release；unit 经 current。勿把 install_dest 改成 current
+    # 以免误把「写树」与「运行指针」混为一谈——role 写树用 stage dest。
+    acps_vendor_stage_dest: "{{ _acps_cut_dest }}"
+    acps_host_cutover_done: true

@@ -7,7 +7,7 @@ import json
 
 import pytest
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, padding, rsa
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
 from app.acme.exception import AcmeError, AcmeException
@@ -45,6 +45,19 @@ def _make_ec_jws(protected: dict, payload: dict, private_key: ec.EllipticCurvePr
     coord_len = 32  # P-256
     raw_sig = r.to_bytes(coord_len, "big") + s.to_bytes(coord_len, "big")
     return f"{protected_b64}.{payload_b64}.{_b64url_encode(raw_sig)}"
+
+
+def _make_eddsa_jws(
+    protected: dict,
+    payload: dict,
+    private_key: ed25519.Ed25519PrivateKey,
+) -> str:
+    """用 Ed25519 私钥生成一条合法 JWS 字符串。"""
+    protected_b64 = _b64url_encode(json.dumps(protected, separators=(",", ":")).encode())
+    payload_b64 = _b64url_encode(json.dumps(payload, separators=(",", ":")).encode())
+    signing_input = f"{protected_b64}.{payload_b64}".encode("ascii")
+    signature = private_key.sign(signing_input)
+    return f"{protected_b64}.{payload_b64}.{_b64url_encode(signature)}"
 
 
 # ---------- base64url_decode / encode ----------
@@ -175,6 +188,9 @@ class TestVerifyProtectedHeader:
         for alg in ["ES256", "ES384", "ES512"]:
             self.verifier._verify_protected_header({"alg": alg, "jwk": self.dummy_jwk}, self.dummy_jwk)
 
+    def test_valid_eddsa_alg_passes(self) -> None:
+        self.verifier._verify_protected_header({"alg": "EdDSA", "jwk": self.dummy_jwk}, self.dummy_jwk)
+
     def test_nonce_missing_raises(self) -> None:
         with pytest.raises(AcmeException) as exc_info:
             self.verifier._verify_protected_header(
@@ -231,6 +247,14 @@ class TestVerifyProtectedHeader:
             self.verifier._verify_protected_header({"alg": "RS256", "jwk": different_jwk}, self.dummy_jwk)
         assert exc_info.value.error_name == AcmeError.MALFORMED
 
+    def test_jwk_with_private_material_raises(self) -> None:
+        with pytest.raises(AcmeException) as exc_info:
+            self.verifier._verify_protected_header(
+                {"alg": "RS256", "jwk": {**self.dummy_jwk, "d": "secret"}},
+                self.dummy_jwk,
+            )
+        assert exc_info.value.error_name == AcmeError.MALFORMED
+
     def test_kid_accepted_without_jwk_check(self) -> None:
         # kid 存在时不要求 jwk 匹配
         self.verifier._verify_protected_header(
@@ -258,11 +282,22 @@ class TestJWKToPublicKey:
         key = verifier._jwk_to_public_key(ec_public_jwk)
         assert isinstance(key, ec.EllipticCurvePublicKey)
 
-    def test_unsupported_kty_raises(self) -> None:
+    def test_okp_ed25519_key_conversion(self, ed25519_public_jwk: dict) -> None:
+        verifier = JWSVerifier()
+        key = verifier._jwk_to_public_key(ed25519_public_jwk)
+        assert isinstance(key, ed25519.Ed25519PublicKey)
+
+    def test_okp_missing_curve_raises(self) -> None:
         verifier = JWSVerifier()
         with pytest.raises(AcmeException) as exc_info:
             verifier._jwk_to_public_key({"kty": "OKP", "x": "abc"})
-        assert exc_info.value.error_name == AcmeError.UNSUPPORTED_ALGORITHM
+        assert exc_info.value.error_name == AcmeError.MALFORMED
+
+    def test_okp_private_material_raises(self, ed25519_public_jwk: dict) -> None:
+        verifier = JWSVerifier()
+        with pytest.raises(AcmeException) as exc_info:
+            verifier._jwk_to_public_key({**ed25519_public_jwk, "d": "secret"})
+        assert exc_info.value.error_name == AcmeError.MALFORMED
 
     def test_invalid_rsa_n_raises(self) -> None:
         verifier = JWSVerifier()
@@ -332,6 +367,12 @@ class TestComputeJWKThumbprint:
         t2 = verifier.compute_jwk_thumbprint(ec_public_jwk)
         assert t1 == t2
 
+    def test_okp_thumbprint_is_deterministic(self, ed25519_public_jwk: dict) -> None:
+        verifier = JWSVerifier()
+        t1 = verifier.compute_jwk_thumbprint(ed25519_public_jwk)
+        t2 = verifier.compute_jwk_thumbprint(ed25519_public_jwk)
+        assert t1 == t2
+
     def test_rsa_ec_thumbprints_differ(self, rsa_public_jwk: dict, ec_public_jwk: dict) -> None:
         verifier = JWSVerifier()
         t_rsa = verifier.compute_jwk_thumbprint(rsa_public_jwk)
@@ -377,6 +418,15 @@ class TestVerifyJWSSignature:
 
         result = verifier.verify_jws_signature(jws_string, ec_public_jwk)
         assert result["ec"] == "test"
+
+    def test_valid_eddsa_jws(self, ed25519_private_key: ed25519.Ed25519PrivateKey, ed25519_public_jwk: dict) -> None:
+        verifier = JWSVerifier()
+        protected = {"alg": "EdDSA", "jwk": ed25519_public_jwk}
+        payload = {"okp": "test"}
+        jws_string = _make_eddsa_jws(protected, payload, ed25519_private_key)
+
+        result = verifier.verify_jws_signature(jws_string, ed25519_public_jwk)
+        assert result["okp"] == "test"
 
     def test_invalid_signature_raises(self, rsa_public_jwk: dict) -> None:
         verifier = JWSVerifier()

@@ -2,7 +2,7 @@
 Integration Test Fixtures - conftest.py
 
 提供集成测试所需的 fixtures，包括：
-- FastAPI TestClient
+- 同步包装的 ASGI client
 - 真实 Agent 访问
 - 测试数据工厂
 """
@@ -12,14 +12,16 @@ import os
 import sys
 import tomllib
 from collections.abc import Callable, Generator
+from contextlib import AbstractAsyncContextManager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import TracebackType
 from typing import Any
 
 import pytest
 from dotenv import load_dotenv
-from fastapi.testclient import TestClient
-from httpx import ASGITransport, AsyncClient
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient, Response
 
 # 确保项目根目录在 Python 路径中
 PROJECT_ROOT = str(Path(__file__).resolve().parents[2])
@@ -27,6 +29,9 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 load_dotenv(Path(PROJECT_ROOT) / ".env", override=False)
+
+# ASGITransport 不携带真实 TLS 证书；集成测试默认关闭身份绑定。
+os.environ.setdefault("AIP_IDENTITY_BINDING_ENABLED", "false")
 
 from acps_sdk.aip.aip_base_model import (  # noqa: E402
     TaskCommand,
@@ -97,23 +102,96 @@ _first_agent_name = next(iter(_test_agents)) if _test_agents else None
 _first_agent_path = _test_agents.get(_first_agent_name, "") if _first_agent_name else ""
 
 
-# --- FastAPI TestClient ---
+# --- 同步包装的 ASGI client ---
+class SyncASGIClient:
+    """同步包装的 ASGI client，替代已弃用的 TestClient。"""
+
+    def __init__(
+        self,
+        app: FastAPI,
+        *,
+        base_url: str = "http://testserver",
+        raise_app_exceptions: bool = True,
+    ) -> None:
+        self._app = app
+        self._base_url = base_url
+        self._raise_app_exceptions = raise_app_exceptions
+        self._runner: asyncio.Runner | None = None
+        self._lifespan_cm: AbstractAsyncContextManager[Any] | None = None
+        self._client: AsyncClient | None = None
+
+    def __enter__(self) -> SyncASGIClient:
+        self._runner = asyncio.Runner()
+        self._runner.__enter__()
+
+        async def _startup() -> None:
+            lifespan_cm = self._app.router.lifespan_context(self._app)
+            self._lifespan_cm = lifespan_cm
+            await lifespan_cm.__aenter__()
+            self._client = AsyncClient(
+                transport=ASGITransport(
+                    app=self._app,
+                    raise_app_exceptions=self._raise_app_exceptions,
+                ),
+                base_url=self._base_url,
+            )
+
+        self._runner.run(_startup())
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        self.close()
+        if self._runner is not None:
+            self._runner.__exit__(exc_type, exc, tb)
+            self._runner = None
+
+    def close(self) -> None:
+        if self._runner is None:
+            return
+
+        async def _shutdown() -> None:
+            if self._client is not None:
+                await self._client.aclose()
+            if self._lifespan_cm is not None:
+                await self._lifespan_cm.__aexit__(None, None, None)
+
+        self._runner.run(_shutdown())
+        self._client = None
+        self._lifespan_cm = None
+
+    def request(self, method: str, url: str, **kwargs: Any) -> Response:
+        if self._runner is None or self._client is None:
+            raise RuntimeError("SyncASGIClient must be used as a context manager")
+        return self._runner.run(self._client.request(method, url, **kwargs))
+
+    def get(self, url: str, **kwargs: Any) -> Response:
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs: Any) -> Response:
+        return self.request("POST", url, **kwargs)
+
+
 @pytest.fixture(scope="module")
-def client():
+def client() -> Generator[SyncASGIClient]:
     """
-    提供 FastAPI TestClient 实例。
+    提供同步包装的 ASGI client。
     scope="module" 确保在每个测试模块中只创建一次。
     使用第一个 online agent 创建测试应用。
     """
     if not _first_agent_name:
         pytest.skip("No online agents available")
     test_app = create_agent_app(_first_agent_name, _first_agent_path)
-    with TestClient(test_app) as c:
+    with SyncASGIClient(test_app) as c:
         yield c
 
 
 @pytest.fixture(scope="module")
-def async_client():
+def async_client() -> AsyncClient:
     """提供异步 HTTP 客户端"""
     if not _first_agent_name:
         pytest.skip("No online agents available")
@@ -122,12 +200,12 @@ def async_client():
 
 
 @pytest.fixture
-def client_for_agent() -> Generator[Callable[[str], TestClient]]:
-    """按 agent 名称懒加载并缓存对应的 TestClient。"""
+def client_for_agent() -> Generator[Callable[[str], SyncASGIClient]]:
+    """按 agent 名称懒加载并缓存对应的同步 ASGI client。"""
 
-    active_clients: dict[str, TestClient] = {}
+    active_clients: dict[str, SyncASGIClient] = {}
 
-    def _get(agent_name: str) -> TestClient:
+    def _get(agent_name: str) -> SyncASGIClient:
         agent_path = _test_agents.get(agent_name)
         if not agent_path:
             pytest.fail(f"Unknown online agent: {agent_name}")
@@ -135,7 +213,7 @@ def client_for_agent() -> Generator[Callable[[str], TestClient]]:
         client = active_clients.get(agent_name)
         if client is None:
             test_app = create_agent_app(agent_name, agent_path)
-            client = TestClient(test_app)
+            client = SyncASGIClient(test_app)
             client.__enter__()
             active_clients[agent_name] = client
 

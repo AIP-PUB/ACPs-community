@@ -1,0 +1,17 @@
+---
+# stage_acps_psql.yml
+# 将 scripts/acps_psql.sh stage 到目标（{{ acps_runtime_root }}/staging/），供各
+# 组件 role 内联 shell/python 任务调用（DB 执行抽象，本设计 §5.3）。凡需在业务
+# role 里对 PostgreSQL 跑内联 SQL 的任务，须先 include 本文件。
+# 按需确保本机 psql 客户端（host 模式；或 image 跨机连远程 PG）。
+
+- name: 按需确保本机 psql 客户端
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_psql_client.yml
+
+- name: 将 acps_psql.sh stage 到目标
+  ansible.builtin.copy:
+    src: "{{ acps_release_root }}/scripts/acps_psql.sh"
+    dest: "{{ acps_runtime_root }}/staging/acps_psql.sh"
+    mode: "0755"

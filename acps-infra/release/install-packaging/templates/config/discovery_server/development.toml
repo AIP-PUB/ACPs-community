@@ -1,0 +1,20 @@
+[server]
+reload = true
+uvicorn_log_level = "debug"
+
+[logging]
+level = "DEBUG"
+format = "console"
+
+[embedding.cpu]
+base_url = "https://www.dmxapi.com/v1/"
+
+[embedding.gpu]
+model_path = "BAAI/bge-m3"
+devices = "mps"
+
+[llm.discovery]
+base_url = "https://www.dmxapi.com/v1/"
+
+[polling]
+server_url = ""

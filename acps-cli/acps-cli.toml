@@ -6,7 +6,7 @@
 base_url = "http://localhost:9001"
 # 可选：auth login 在 auto-register 时使用的默认显示名称与组织名
 # display_name = "Demo Client"
-# org_name = "ACPS Demo"
+# org_name = "ACPs Demo"
 # `9002` 本体证书 mTLS 平面入口
 mtls_base_url = "http://localhost:9002"
 # 本体 mTLS 证书材料目录（默认 ./ .registry-client/ontology-mtls）

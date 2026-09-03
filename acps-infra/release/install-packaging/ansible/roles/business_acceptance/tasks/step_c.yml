@@ -1,0 +1,67 @@
+---
+# 步骤 C — Leader↔Partner 群组 happy path，收件箱邀请硬断言。
+# 无 mq-auth CLI 探测。RPC invitationRoute → 失败。
+
+- name: 解析步骤 C 用 Leader advertise 主机
+  ansible.builtin.set_fact:
+    _biz_leader_host: "{{ hostvars | acps_group_addr(groups, 'demo_leader') }}"
+    _biz_leader_api: >-
+      http://{{ hostvars | acps_group_addr(groups, 'demo_leader') }}:{{
+        demo_leader_web_port | default(9030) }}/api/v1
+    _biz_leader_token_file: "{{ acps_control_root }}/work/tokens/leader-user.json"
+
+- name: 步骤 C 前刷新 Leader OIDC 会话（Keycloak）
+  when: keycloak_enabled | bool
+  ansible.builtin.shell: |
+    set -euo pipefail
+    PY="{{ acps_tools_python | default('python3') }}"
+    SCRIPT="{{ acps_release_root }}/scripts/oidc_password_login.py"
+    KC_HOST="{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+    PUBLIC_BASE="http://${KC_HOST}:{{ keycloak_port }}"
+    FETCH_ISSUER="${PUBLIC_BASE}/realms/acps-leader"
+    TOK="{{ acps_control_root }}/work/tokens"
+    mkdir -p "$TOK"
+    export ACPS_OIDC_PUBLIC_BASE_FILE="{{ acps_control_root }}/work/oidc_public_base"
+    printf '%s\n' "$PUBLIC_BASE" > "$ACPS_OIDC_PUBLIC_BASE_FILE"
+    "$PY" "$SCRIPT" \
+      --issuer "$FETCH_ISSUER" --public-base "$PUBLIC_BASE" \
+      --client-id "{{ keycloak_leader_install_client_id | default('leader-install') }}" \
+      --username "{{ leader_oidc_user_username | default('leader-user') }}" \
+      --password "{{ leader_oidc_user_password | default('demo123') }}" \
+      --token-file "$TOK/leader-user.json" \
+      --service leader --account-kind user \
+      --session-issuer "http://${KC_HOST}:{{ keycloak_port }}/realms/acps-leader"
+    test -s "$TOK/leader-user.json"
+    echo "OIDC_LEADER_SESSION_OK_STEP_C"
+  args:
+    executable: /bin/bash
+
+- name: 运行群组收件箱验收（步骤 C）
+  ansible.builtin.command:
+    argv: >-
+      {{
+        [
+          acps_tools_python | default('python3'),
+          acps_release_root ~ '/scripts/business_acceptance_step_c.py',
+          '--api-base-url', _biz_leader_api,
+          '--group-poll-interval-seconds', (acps_business_step_c_group_poll_interval_seconds | default(2) | string),
+          '--group-poll-timeout-seconds', (acps_business_step_c_group_poll_timeout_seconds | default(600) | string),
+          '--group-min-members', (acps_business_step_c_group_min_members | default(2) | string),
+          '--http-timeout-seconds', (acps_business_step_c_http_timeout_seconds | default(180) | string),
+          '--llm-retries', (acps_business_step_c_llm_retries | default(2) | string),
+          '--llm-retry-delay-seconds', (acps_business_step_c_llm_retry_delay_seconds | default(3) | string),
+        ]
+        + (
+          ['--token-file', _biz_leader_token_file]
+          if (keycloak_enabled | bool)
+          else []
+        )
+      }}
+  environment:
+    ACPS_OIDC_PUBLIC_BASE_FILE: "{{ acps_control_root }}/work/oidc_public_base"
+  register: _biz_c
+  changed_when: false
+
+- name: 步骤 C 摘要
+  ansible.builtin.debug:
+    msg: "{{ _biz_c.stdout_lines | default([]) }}"

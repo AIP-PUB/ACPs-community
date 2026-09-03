@@ -1,0 +1,38 @@
+---
+# ensure_psql_client.yml
+# 本机需要 `psql` 客户端时安装（Debian/Ubuntu → postgresql-client；RHEL/Rocky → postgresql）。
+#
+# 触发场景：
+# - host 模式：acps_psql.sh --mode host（PG 可在本机或对等节点）
+# - image 模式且当前主机不在 postgresql 组：跨机 Registry ACS JSONB 等须 --mode host
+#   连 advertise（禁止 docker run 上游 postgres:*-alpine / 依赖 Docker Hub）
+#
+# image 且与 PG 同机：走 docker exec 已有容器，不需要本机客户端。
+
+- name: 判定是否需要本机 psql 客户端
+  ansible.builtin.set_fact:
+    _acps_need_psql_client: >-
+      {{
+        (acps_deploy_mode | default('image')) == 'host'
+        or (
+          (acps_deploy_mode | default('image')) == 'image'
+          and inventory_hostname not in (groups['postgresql'] | default([]))
+        )
+      }}
+
+- name: 探测本机 psql
+  when: _acps_need_psql_client | bool
+  ansible.builtin.command:
+    argv: [bash, -lc, "command -v psql"]
+  register: _acps_psql_client_which
+  changed_when: false
+  failed_when: false
+
+- name: 安装 PostgreSQL 客户端（本机无 psql 时）
+  when:
+    - _acps_need_psql_client | bool
+    - (_acps_psql_client_which.rc | default(1)) != 0
+  ansible.builtin.include_tasks: ensure_os_packages.yml
+  vars:
+    acps_pkg_names: "{{ 'postgresql-client' if ansible_os_family == 'Debian' else 'postgresql' }}"
+    acps_pkg_state: present

@@ -55,6 +55,11 @@ class User(UUIDMixin, TimestampMixin, SQLModel, table=True):
     email: str | None = Field(default=None, index=True, unique=True)
     phone: str | None = Field(default=None, index=True, unique=True)
     hashed_password: str | None = None
+    auth_provider: str = Field(default="local", index=True)
+    external_issuer: str | None = Field(default=None, index=True)
+    external_subject: str | None = Field(default=None, index=True)
+    external_principal_id: str | None = Field(default=None, index=True, unique=True)
+    external_username: str | None = None
 
     # 个人资料信息
     name: str | None = None
@@ -65,6 +70,9 @@ class User(UUIDMixin, TimestampMixin, SQLModel, table=True):
     org_code: str | None = None
     org_address: str | None = None
 
+    # AIC 第7级供应商序号；可空，非空值唯一。由发号与管理接口写入并规范化为大写。
+    aic_provider_code: str | None = Field(default=None, max_length=6, unique=True)
+
     # Token 信息
     access_token: str | None = None
     refresh_token: str | None = None
@@ -72,6 +80,7 @@ class User(UUIDMixin, TimestampMixin, SQLModel, table=True):
         default=None,
         sa_column=Column(TIMESTAMP(timezone=True)),  # 使用带时区的时间戳
     )
+    last_login_at: datetime | None = Field(default=None, sa_column=Column(TIMESTAMP(timezone=True)))
 
     # 状态信息
     is_active: bool = Field(default=True)

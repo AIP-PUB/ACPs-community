@@ -17,19 +17,40 @@ import httpx
 CLI_REPO = Path(__file__).resolve().parents[1]
 WORKSPACE_ROOT = CLI_REPO.parent
 
-DEFAULT_REGISTRY_URL = "http://localhost:9001"
-DEFAULT_CA_URL = "http://localhost:9003"
-DEFAULT_DISCO_URL = "http://localhost:9005"
-DEFAULT_MQ_GROUP_URL = "https://localhost:9007"
-DEFAULT_MQ_AUTH_URL = "https://localhost:9008"
+DEFAULT_REGISTRY_URL = os.getenv("REGISTRY_URL", "http://localhost:9001")
+DEFAULT_REGISTRY_MTLS_URL = os.getenv("REGISTRY_MTLS_URL", "https://127.0.0.1:9002")
+DEFAULT_CA_URL = os.getenv("CA_URL", "http://localhost:9003")
+DEFAULT_DISCO_URL = os.getenv("DISCO_URL", "http://localhost:9005")
+DEFAULT_MONITOR_URL = os.getenv("MONITOR_URL", os.getenv("MONITOR_BASE_URL", "http://localhost:9009"))
+DEFAULT_MQ_GROUP_URL = os.getenv("MQ_GROUP_API_URL", "https://localhost:9007")
+DEFAULT_MQ_AUTH_URL = os.getenv("MQ_AUTH_API_URL", "https://localhost:9008")
 MQ_AUTH_REPO = WORKSPACE_ROOT / "mq-auth-server"
 MQ_AUTH_CERTS_DIR = MQ_AUTH_REPO / "certs"
+MONITOR_REPO = WORKSPACE_ROOT / "monitor-server"
 MANAGED_DISCOVERY_DATABASE_URL_ENV = "ACPS_CLI_MANAGED_DISCOVERY_DATABASE_URL"
 DEFAULT_CA_INTERNAL_API_TOKEN = "test-ca-internal-token"
-DEFAULT_REGISTRY_TEST_DATABASE_URL = "postgresql+psycopg://registry:registry@localhost:5432/agent_registry_test"
-DEFAULT_CA_TEST_DATABASE_URL = "postgresql://ca:ca@localhost:5432/agent_ca_test"
-DEFAULT_DISCOVERY_DATABASE_URL = "postgresql+asyncpg://discovery:discovery@localhost:5432/agent_discovery"
-DEFAULT_DISCOVERY_TEST_DATABASE_URL = "postgresql+asyncpg://discovery:discovery@localhost:5432/agent_discovery_test"
+DEFAULT_REGISTRY_TEST_DATABASE_URL = os.getenv(
+    "ACPS_CLI_MANAGED_REGISTRY_DATABASE_URL",
+    "postgresql+psycopg://registry:registry@localhost:5432/agent_registry_test",
+)
+DEFAULT_CA_TEST_DATABASE_URL = os.getenv(
+    "ACPS_CLI_MANAGED_CA_DATABASE_URL",
+    "postgresql://ca:ca@localhost:5432/agent_ca_test",
+)
+DEFAULT_DISCOVERY_DATABASE_URL = os.getenv(
+    "ACPS_CLI_MANAGED_DISCOVERY_DATABASE_URL",
+    "postgresql+asyncpg://discovery:discovery@localhost:5432/agent_discovery",
+)
+DEFAULT_DISCOVERY_TEST_DATABASE_URL = os.getenv(
+    "ACPS_CLI_MANAGED_DISCOVERY_TEST_DATABASE_URL",
+    "postgresql+asyncpg://discovery:discovery@localhost:5432/agent_discovery_test",
+)
+DEFAULT_MONITOR_TEST_DATABASE_URL = os.getenv(
+    "ACPS_CLI_MANAGED_MONITOR_DATABASE_URL",
+    "postgresql+asyncpg://monitor:monitor@localhost:5432/agent_monitor_test",
+)
+DEFAULT_MONITOR_TEST_REDIS_URL = os.getenv("TEST_REDIS_URL", "redis://localhost:6379/3")
+PUBLIC_DOCKER_CONFIG_DIR = CLI_REPO / ".tmp" / "docker-public-config"
 DEFAULT_REGISTRY_ADMIN_USERNAME = "admin"
 DEFAULT_REGISTRY_ADMIN_PASSWORD = "admin123"
 DEFAULT_REGISTRY_STAFF_USERNAME = "staff"
@@ -50,7 +71,7 @@ class LocalServiceRuntime:
     registry_mtls_key_file: Path | None = None
     registry_mtls_probe_cert_file: Path | None = None
     registry_mtls_probe_key_file: Path | None = None
-    shared_infra_prepared: bool = False
+    prepared_infra_services: set[str] = field(default_factory=set)
     mq_cert_dir: Path | None = None
 
 
@@ -84,6 +105,24 @@ def _load_dotenv_values(repo_path: Path) -> dict[str, str]:
         key, value = line.split("=", 1)
         values[key.strip()] = value.strip().strip('"').strip("'")
     return values
+
+
+def _ensure_public_docker_config_dir() -> Path:
+    """创建最小 Docker config，避免 public 镜像拉取卡在本机凭据助手。"""
+
+    PUBLIC_DOCKER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    (PUBLIC_DOCKER_CONFIG_DIR / "config.json").write_text("{}\n", encoding="utf-8")
+    source_cli_plugins = Path.home() / ".docker" / "cli-plugins"
+    target_cli_plugins = PUBLIC_DOCKER_CONFIG_DIR / "cli-plugins"
+    if source_cli_plugins.is_dir():
+        if target_cli_plugins.is_symlink():
+            if target_cli_plugins.resolve() != source_cli_plugins.resolve():
+                target_cli_plugins.unlink()
+        elif target_cli_plugins.exists():
+            shutil.rmtree(target_cli_plugins)
+        if not target_cli_plugins.exists():
+            target_cli_plugins.symlink_to(source_cli_plugins, target_is_directory=True)
+    return PUBLIC_DOCKER_CONFIG_DIR
 
 
 def wait_for_service(
@@ -165,7 +204,7 @@ def _ensure_registry_mtls_artifacts(runtime: LocalServiceRuntime) -> None:
             "缺少 registry 真实 mTLS listener 所需的开发 PKI 材料：" + " / ".join(str(path) for path in required_paths)
         )
 
-    runtime.registry_mtls_url = "https://127.0.0.1:9002"
+    runtime.registry_mtls_url = DEFAULT_REGISTRY_MTLS_URL
     runtime.registry_mtls_ca_file = trust_bundle_path
     runtime.registry_mtls_cert_file = server_cert_path
     runtime.registry_mtls_key_file = server_key_path
@@ -180,9 +219,15 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
 
     discovery_repo_path = WORKSPACE_ROOT / "discovery-server"
     discovery_env_values = _load_dotenv_values(discovery_repo_path)
-    discovery_database_url = str(discovery_env_values.get("DATABASE_URL") or DEFAULT_DISCOVERY_DATABASE_URL)
+    discovery_database_url = str(
+        os.getenv(MANAGED_DISCOVERY_DATABASE_URL_ENV)
+        or discovery_env_values.get("DATABASE_URL")
+        or DEFAULT_DISCOVERY_DATABASE_URL
+    )
     discovery_test_database_url = str(
-        discovery_env_values.get("TEST_DATABASE_URL") or DEFAULT_DISCOVERY_TEST_DATABASE_URL
+        os.getenv("ACPS_CLI_MANAGED_DISCOVERY_TEST_DATABASE_URL")
+        or discovery_env_values.get("TEST_DATABASE_URL")
+        or DEFAULT_DISCOVERY_TEST_DATABASE_URL
     )
 
     registry_admin_username = os.getenv("REGISTRY_ADMIN_USERNAME", DEFAULT_REGISTRY_ADMIN_USERNAME)
@@ -284,12 +329,18 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
         )
     )
 
+    registry_port = str(urlsplit(DEFAULT_REGISTRY_URL).port or 9001)
+    registry_mtls_port = str(urlsplit(DEFAULT_REGISTRY_MTLS_URL).port or 9002)
+    ca_port = str(urlsplit(DEFAULT_CA_URL).port or 9003)
+    discovery_port = str(urlsplit(DEFAULT_DISCO_URL).port or 9005)
+    monitor_port = str(urlsplit(DEFAULT_MONITOR_URL).port or 9009)
+
     return {
         "registry": LocalServiceSpec(
             name="registry-server",
             repo_path=WORKSPACE_ROOT / "registry-server",
             default_base_url=DEFAULT_REGISTRY_URL,
-            health_urls=("http://localhost:9001/health",),
+            health_urls=(_derive_health_url(DEFAULT_REGISTRY_URL),),
             startup_timeout_seconds=10,
             prepare_commands=(
                 (
@@ -310,7 +361,7 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
                     "--host",
                     "127.0.0.1",
                     "--port",
-                    "9001",
+                    registry_port,
                 ),
                 (
                     str(WORKSPACE_ROOT / "registry-server" / ".venv/bin/python"),
@@ -323,10 +374,12 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
                 "DATABASE_URL": DEFAULT_REGISTRY_TEST_DATABASE_URL,
                 "TEST_DATABASE_URL": DEFAULT_REGISTRY_TEST_DATABASE_URL,
                 "CA_SERVER_MOCK": "false",
+                "CA_SERVER_BASE_URL": DEFAULT_CA_URL,
                 "CA_SERVER_INTERNAL_API_TOKEN": DEFAULT_CA_INTERNAL_API_TOKEN,
                 "REGISTRY_SERVER_MTLS_CERT_FILE": str(runtime.registry_mtls_cert_file),
                 "REGISTRY_SERVER_MTLS_KEY_FILE": str(runtime.registry_mtls_key_file),
                 "REGISTRY_SERVER_MTLS_CA_CERT_FILE": str(runtime.registry_mtls_ca_file),
+                "REGISTRY_SERVER_MTLS_PORT": registry_mtls_port,
                 "PYTHONPATH": str(WORKSPACE_ROOT / "registry-server"),
             },
         ),
@@ -334,7 +387,7 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
             name="ca-server",
             repo_path=WORKSPACE_ROOT / "ca-server",
             default_base_url=DEFAULT_CA_URL,
-            health_urls=("http://localhost:9003/health",),
+            health_urls=(_derive_health_url(DEFAULT_CA_URL),),
             startup_timeout_seconds=10,
             prepare_commands=(
                 (
@@ -350,7 +403,7 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
                     "--host",
                     "127.0.0.1",
                     "--port",
-                    "9003",
+                    ca_port,
                 ),
             ),
             env={
@@ -358,6 +411,8 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
                 "DATABASE_URL": DEFAULT_CA_TEST_DATABASE_URL,
                 "TEST_DATABASE_URL": DEFAULT_CA_TEST_DATABASE_URL,
                 "REGISTRY_SERVER_MOCK": "false",
+                "REGISTRY_SERVER_URL": f"{DEFAULT_REGISTRY_URL}/acps-atr-v2",
+                "ACME_DIRECTORY_URL": f"{DEFAULT_CA_URL}/acps-atr-v2/acme",
                 "CA_SERVER_ADMIN_API_TOKEN": runtime.ca_admin_api_token,
                 "CA_SERVER_INTERNAL_API_TOKEN": DEFAULT_CA_INTERNAL_API_TOKEN,
                 "PYTHONPATH": str(WORKSPACE_ROOT / "ca-server"),
@@ -367,7 +422,7 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
             name="discovery-server",
             repo_path=discovery_repo_path,
             default_base_url=DEFAULT_DISCO_URL,
-            health_urls=("http://localhost:9005/health",),
+            health_urls=(_derive_health_url(DEFAULT_DISCO_URL),),
             startup_timeout_seconds=30,
             prepare_commands=(
                 (
@@ -392,15 +447,19 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
                     "--host",
                     "127.0.0.1",
                     "--port",
-                    "9005",
+                    discovery_port,
                 ),
             ),
             env={
                 "APP_ENV": "development",
-                "UVICORN_PORT": "9005",
+                "UVICORN_PORT": discovery_port,
                 "UVICORN_RELOAD": "false",
                 "DATABASE_URL": discovery_test_database_url,
                 "TEST_DATABASE_URL": discovery_test_database_url,
+                "TEST_DATABASE_ADMIN_URL": os.getenv(
+                    "ACPS_CLI_MANAGED_DISCOVERY_DATABASE_ADMIN_URL",
+                    "postgresql://postgres:devpass@localhost:5432/postgres",
+                ),
                 "DISCOVERY_MODE": "cpu",
                 "DSP_BASE_URL": f"{DEFAULT_REGISTRY_URL}/acps-dsp-v2",
                 "DSP_WEBHOOK_RECEIVE_URL": f"{DEFAULT_DISCO_URL}/admin/dsp/webhooks/receive",
@@ -426,6 +485,10 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
                 "APP_ENV": "development",
                 # RABBITMQ_MGMT_PASS 为必填字段，使用 dev-infra 默认密码
                 "RABBITMQ_MGMT_PASS": "devpass",
+                "RABBITMQ_MGMT_URL": os.getenv("RABBITMQ_MGMT_URL", "http://localhost:15672"),
+                "REDIS_URL": os.getenv("ACPS_CLI_MANAGED_MQ_REDIS_URL", "redis://localhost:6379/0"),
+                "MQ_AUTH_GROUP_API_PORT": str(urlsplit(DEFAULT_MQ_GROUP_URL).port or 9007),
+                "MQ_AUTH_AUTH_API_PORT": str(urlsplit(DEFAULT_MQ_AUTH_URL).port or 9008),
                 "PYTHONPATH": str(MQ_AUTH_REPO),
             },
             health_cert=(
@@ -433,6 +496,57 @@ def _service_specs(runtime: LocalServiceRuntime) -> dict[str, LocalServiceSpec]:
                 str(MQ_AUTH_CERTS_DIR / "client.key"),
             ),
             health_ca=str(MQ_AUTH_CERTS_DIR / "acps-root-ca.pem"),
+        ),
+        "monitor": LocalServiceSpec(
+            name="monitor-server",
+            repo_path=MONITOR_REPO,
+            default_base_url=DEFAULT_MONITOR_URL,
+            health_urls=(_derive_health_url(DEFAULT_MONITOR_URL),),
+            startup_timeout_seconds=30,
+            prepare_commands=(
+                (
+                    str(MONITOR_REPO / ".venv/bin/alembic"),
+                    "upgrade",
+                    "head",
+                ),
+                (
+                    str(MONITOR_REPO / ".venv/bin/python"),
+                    "-c",
+                    (
+                        "import asyncio\n"
+                        "from tests.support.clickhouse_helper import ensure_test_schema\n"
+                        "asyncio.run(ensure_test_schema())\n"
+                    ),
+                ),
+            ),
+            launch_commands=(
+                (
+                    str(MONITOR_REPO / ".venv/bin/uvicorn"),
+                    "app.main:app",
+                    "--host",
+                    "127.0.0.1",
+                    "--port",
+                    monitor_port,
+                ),
+            ),
+            env={
+                "APP_ENV": "development",
+                "DATABASE_URL": DEFAULT_MONITOR_TEST_DATABASE_URL,
+                "TEST_DATABASE_URL": DEFAULT_MONITOR_TEST_DATABASE_URL,
+                "REDIS_URL": DEFAULT_MONITOR_TEST_REDIS_URL,
+                "CLICKHOUSE_DATABASE": "amp_test",
+                "KAFKA_BOOTSTRAP_SERVERS": os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:19092"),
+                "CLICKHOUSE_HOST": os.getenv("CLICKHOUSE_HOST", "localhost"),
+                "CLICKHOUSE_PORT": os.getenv("CLICKHOUSE_PORT", "8123"),
+                "VM_QUERY_URL": os.getenv("VM_QUERY_URL", "http://localhost:8428"),
+                "VM_REMOTE_WRITE_URL": os.getenv("VM_REMOTE_WRITE_URL", "http://localhost:8428"),
+                "MINIO_ENDPOINT": os.getenv("MINIO_ENDPOINT", "http://localhost:19000"),
+                "MINIO_ACCESS_KEY": os.getenv("MINIO_ACCESS_KEY", "admin"),
+                "MINIO_SECRET_KEY": os.getenv("MINIO_SECRET_KEY", "devpass"),
+                "OPENSEARCH_HOSTS": os.getenv("OPENSEARCH_HOSTS", "http://localhost:9200"),
+                "OPENSEARCH_VERIFY_CERTS": "false",
+                "PYTHONPATH": str(MONITOR_REPO),
+            },
         ),
     }
 
@@ -469,6 +583,12 @@ def get_managed_registry_mtls_probe_materials(
 def _merge_env(extra_env: dict[str, str]) -> dict[str, str]:
     passthrough_keys = {
         "ALL_PROXY",
+        "DOCKER_CERT_PATH",
+        "DOCKER_CONFIG",
+        "DOCKER_CONTEXT",
+        "DOCKER_HOST",
+        "DOCKER_TLS_VERIFY",
+        "DEV_INFRA_COMPOSE_FILE",
         "HOME",
         "HTTP_PROXY",
         "HTTPS_PROXY",
@@ -488,6 +608,8 @@ def _merge_env(extra_env: dict[str, str]) -> dict[str, str]:
     }
     env = {key: value for key, value in os.environ.items() if key in passthrough_keys}
     env.pop("VIRTUAL_ENV", None)
+    if "DOCKER_CONFIG" not in env:
+        env["DOCKER_CONFIG"] = str(_ensure_public_docker_config_dir())
     env.update(extra_env)
     return env
 
@@ -583,25 +705,32 @@ def _uses_default_local_url(base_url: str, default_base_url: str) -> bool:
     return base_url.rstrip("/") == default_base_url.rstrip("/")
 
 
-def _ensure_shared_infra(runtime: LocalServiceRuntime) -> None:
-    """按需启动共享 PostgreSQL 和 Redis。"""
+def _ensure_shared_infra(runtime: LocalServiceRuntime, *, required_services: list[str]) -> None:
+    """按需启动共享 infra，并等待所需依赖就绪。"""
 
-    if runtime.shared_infra_prepared:
+    infra_services: list[str] = ["postgres", "redis"]
+    if "mq" in required_services:
+        infra_services.append("rabbitmq")
+    if "monitor" in required_services:
+        infra_services.extend(["kafka", "victoria-metrics", "clickhouse", "opensearch"])
+
+    missing_services = [service for service in infra_services if service not in runtime.prepared_infra_services]
+    if not missing_services:
         return
 
     _run_command(
-        ("just", "infra", "up", "postgres"),
+        ("just", "infra", "up", *missing_services),
         cwd=CLI_REPO,
         env={},
-        purpose="启动共享 PostgreSQL",
+        purpose=f"启动共享 infra：{', '.join(missing_services)}",
     )
     _run_command(
-        ("just", "infra", "up", "redis"),
+        ("just", "infra", "wait", *missing_services),
         cwd=CLI_REPO,
         env={},
-        purpose="启动共享 Redis",
+        purpose=f"等待共享 infra 就绪：{', '.join(missing_services)}",
     )
-    runtime.shared_infra_prepared = True
+    runtime.prepared_infra_services.update(missing_services)
 
 
 def ensure_local_services(
@@ -634,7 +763,7 @@ def ensure_local_services(
     if not services_to_start:
         return
 
-    _ensure_shared_infra(runtime)
+    _ensure_shared_infra(runtime, required_services=services_to_start)
 
     for service_name in services_to_start:
         spec = specs[service_name]

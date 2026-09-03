@@ -1,0 +1,32 @@
+# 本地单节点 host_vars（控制节点 == 目标）。
+# 实际运行请复制 hosts.example.yml → hosts.yml；主机名为 acps-node-1 时应用本文件。
+
+ansible_connection: local
+ansible_become: false
+ansible_python_interpreter: "{{ ansible_playbook_python | default('/usr/bin/env python3') }}"
+# Ansible 连本机可用 loopback；业务 advertise 见下方（image-mode 禁止 loopback）。
+ansible_host: 127.0.0.1
+
+# image-mode 同机验收：必须设为控制节点与其它容器都能访问的非 loopback 地址
+#（局域网 IP 或可解析主机名）。不要用 127.0.0.1 / localhost——Keycloak OIDC /
+# JWKS、ACS 改写、跨容器调用会失败。预检会拒绝 loopback / 空值。
+#
+# 推荐二选一（勿留空串）：
+#   export ACPS_ADVERTISE_HOST=192.168.x.x
+#   或把下一行改成字面量 IP/DNS（不要再用 env lookup 空串）。
+acps_advertise_host: "{{ lookup('env', 'ACPS_ADVERTISE_HOST') }}"
+
+# macOS / 非 root 本地验证的可写默认值（生产环境请覆盖）。
+acps_runtime_root: "{{ lookup('env', 'HOME') }}/.local/share/acps"
+acps_data_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/data"
+acps_log_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/logs"
+acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control"
+
+# 阶段 3 E2E（arm64 Docker Desktop）：Keycloak OIDC + demo + Monitor/Discovery。
+acps_platform: linux-arm64
+acps_control_platform: darwin-arm64
+keycloak_enabled: true
+monitor_server_enabled: true
+discovery_server_enabled: true
+demo_partner_enabled: true
+demo_leader_enabled: true

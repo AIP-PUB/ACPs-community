@@ -1,0 +1,198 @@
+---
+# preflight_host_os_repos.yml
+# host 模式 os_package 组件（PG/Redis/RMQ）安装前的 OS 源可达性门禁（本设计 §6.1）。
+# 轻量：基线 dnf/apt 元数据刷新 + 将装组件所需外部源 HEAD 探测；失败即停。
+
+- name: 判定本机是否承载托管 os_package 组件
+  ansible.builtin.set_fact:
+    _preflight_os_package_needed: >-
+      {{
+        (
+          (postgresql_enabled | default(false) | bool)
+          and (postgresql_managed | default(true) | bool)
+          and ('postgresql' in group_names)
+        )
+        or (
+          (redis_enabled | default(false) | bool)
+          and (redis_managed | default(true) | bool)
+          and ('redis' in group_names)
+        )
+        or (
+          (rabbitmq_enabled | default(false) | bool)
+          and (rabbitmq_managed | default(true) | bool)
+          and ('rabbitmq' in group_names)
+        )
+      }}
+    _preflight_el_major: "{{ acps_el_major | default(ansible_distribution_major_version) | string }}"
+
+- name: 跳过 OS 源门禁（本机无托管 os_package）
+  when: not (_preflight_os_package_needed | bool)
+  ansible.builtin.debug:
+    msg: "host os repo preflight: skip (no managed os_package on {{ inventory_hostname }})"
+    verbosity: 1
+
+- name: OS 源可达性门禁（托管 PG/Redis/RMQ）
+  when: _preflight_os_package_needed | bool
+  block:
+    # 慢速/受限出口上 `dnf check-update` 可能长时间卡在元数据刷新；加 timeout，
+    # 超时后回退到 `repolist`（只验证已启用仓库可枚举，仍 fail-fast 于完全不可达）。
+    - name: RedHat — 校验 dnf 基线仓库可达（限时 check-update）
+      when: ansible_os_family == 'RedHat'
+      become: true
+      ansible.builtin.command:
+        argv: [timeout, "120", dnf, -q, check-update]
+      register: _preflight_dnf_check
+      changed_when: false
+      failed_when: false
+
+    - name: RedHat — check-update 超时则回退 repolist
+      when:
+        - ansible_os_family == 'RedHat'
+        - (_preflight_dnf_check.rc | default(1) | int) == 124
+      become: true
+      ansible.builtin.command:
+        argv: [timeout, "60", dnf, -q, repolist, enabled]
+      register: _preflight_dnf_repolist
+      changed_when: false
+      failed_when: (_preflight_dnf_repolist.rc | default(1) | int) != 0
+
+    - name: RedHat — 断言 dnf 基线可达
+      when: ansible_os_family == 'RedHat'
+      ansible.builtin.assert:
+        that:
+          - (_preflight_dnf_check.rc | default(1) | int) in [0, 100]
+            or (
+              (_preflight_dnf_check.rc | default(1) | int) == 124
+              and (_preflight_dnf_repolist.rc | default(1) | int) == 0
+            )
+        fail_msg: >-
+          dnf baseline repo check failed on {{ inventory_hostname }}
+          (check-update rc={{ _preflight_dnf_check.rc | default('n/a') }},
+          repolist rc={{ _preflight_dnf_repolist.rc | default('skipped') }}).
+
+    - name: Debian — 校验 apt 基线仓库可达
+      when: ansible_os_family == 'Debian'
+      become: true
+      ansible.builtin.command:
+        argv: [apt-get, update, -qq]
+      register: _preflight_apt_update
+      changed_when: false
+
+    - name: 探测 PGDG 仓库 RPM 可达（RedHat + 托管 PostgreSQL）
+      when:
+        - ansible_os_family == 'RedHat'
+        - postgresql_enabled | default(false) | bool
+        - postgresql_managed | default(true) | bool
+        - ('postgresql' in group_names)
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -fsSIL
+          - >-
+            https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ _preflight_el_major }}-{{ 'aarch64' if ansible_architecture in ['aarch64', 'arm64'] else 'x86_64' }}/pgdg-redhat-repo-latest.noarch.rpm
+      register: _preflight_pgdg_rpm
+      changed_when: false
+
+    - name: 探测 PGDG apt live 仓库可达（ubuntu22 + 托管 PostgreSQL）
+      when:
+        - ansible_os_family == 'Debian'
+        - (acps_os_id | default('')) != 'ubuntu20'
+        - postgresql_enabled | default(false) | bool
+        - postgresql_managed | default(true) | bool
+        - ('postgresql' in group_names)
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -fsSIL
+          - "https://apt.postgresql.org/pub/repos/apt/dists/{{ ansible_distribution_release }}-pgdg/InRelease"
+      register: _preflight_pgdg_apt
+      changed_when: false
+
+    - name: 探测 PGDG apt-archive 可达（ubuntu20 + 托管 PostgreSQL；live focal 已下线）
+      when:
+        - ansible_os_family == 'Debian'
+        - (acps_os_id | default('')) == 'ubuntu20'
+        - postgresql_enabled | default(false) | bool
+        - postgresql_managed | default(true) | bool
+        - ('postgresql' in group_names)
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -fsSIL
+          - "https://apt-archive.postgresql.org/pub/repos/apt/dists/focal-pgdg/InRelease"
+      register: _preflight_pgdg_archive
+      changed_when: false
+
+    - name: 探测 redis.io 仓库可达（Debian + 托管 Redis）
+      when:
+        - ansible_os_family == 'Debian'
+        - redis_enabled | default(false) | bool
+        - redis_managed | default(true) | bool
+        - ('redis' in group_names)
+      ansible.builtin.command:
+        argv:
+          - curl
+          - -fsSIL
+          - "https://packages.redis.io/deb/dists/{{ ansible_distribution_release }}/InRelease"
+      register: _preflight_redis_repo
+      changed_when: false
+
+    - name: 探测 Remi / EPEL 可达（rocky8 + 托管 Redis）
+      when:
+        - ansible_os_family == 'RedHat'
+        - (acps_os_id | default('')) == 'rocky8'
+        - redis_enabled | default(false) | bool
+        - redis_managed | default(true) | bool
+        - ('redis' in group_names)
+      block:
+        - name: 探测 remi-release-8 RPM
+          ansible.builtin.command:
+            argv:
+              - curl
+              - -fsSIL
+              - "https://rpms.remirepo.net/enterprise/remi-release-8.rpm"
+          register: _preflight_remi_rpm
+          changed_when: false
+
+        - name: 探测 EPEL release RPM 可达（curl；避免慢速 dnf list）
+          ansible.builtin.command:
+            argv:
+              - curl
+              - -fsSIL
+              - --connect-timeout
+              - "15"
+              - --max-time
+              - "60"
+              - "https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm"
+          register: _preflight_epel_rpm
+          changed_when: false
+
+    - name: 探测 Team RabbitMQ apt 仓库可达（Debian + 托管 RabbitMQ）
+      when:
+        - ansible_os_family == 'Debian'
+        - rabbitmq_enabled | default(false) | bool
+        - rabbitmq_managed | default(true) | bool
+        - ('rabbitmq' in group_names)
+      ansible.builtin.command:
+        # 目录索引常被 CDN 403；探测 InRelease 才是 apt 源可达性的可靠信号。
+        argv:
+          - curl
+          - -fsSIL
+          - "https://deb1.rabbitmq.com/rabbitmq-erlang/ubuntu/{{ ansible_distribution_release }}/dists/{{ ansible_distribution_release }}/InRelease"
+      register: _preflight_rmq_apt
+      changed_when: false
+
+    - name: 探测 Team RabbitMQ yum 仓库可达（RedHat + 托管 RabbitMQ）
+      when:
+        - ansible_os_family == 'RedHat'
+        - rabbitmq_enabled | default(false) | bool
+        - rabbitmq_managed | default(true) | bool
+        - ('rabbitmq' in group_names)
+      ansible.builtin.command:
+        # 目录索引常 403/404；探测 repomd.xml 才是仓库元数据可达性的可靠信号。
+        argv:
+          - curl
+          - -fsSIL
+          - "https://yum1.rabbitmq.com/erlang/el/{{ _preflight_el_major }}/{{ ansible_architecture }}/repodata/repomd.xml"
+      register: _preflight_rmq_yum
+      changed_when: false

@@ -9,6 +9,8 @@ from acps_cli.shared.runtime import RootCliRuntime
 from acps_cli.shared.unified_config import (
     build_ca_legacy_section,
     build_discovery_runtime_context,
+    build_monitor_auth_config,
+    build_registry_auth_config,
     build_registry_legacy_section,
 )
 
@@ -84,3 +86,68 @@ def test_discovery_bridge_uses_new_base_url(tmp_path: Path) -> None:
     context = build_discovery_runtime_context(runtime, cli_base_url=None)
 
     assert context["server_base_url"] == "http://discovery.example.test:9005"
+
+
+def test_registry_auth_config_defaults_to_local_mode(tmp_path: Path) -> None:
+    runtime = _runtime(tmp_path, {})
+
+    user_config = build_registry_auth_config(runtime, admin=False)
+    admin_config = build_registry_auth_config(runtime, admin=True)
+
+    assert user_config.mode == "local"
+    assert admin_config.mode == "local"
+    assert user_config.token_file.endswith("registry-user.json")
+    assert admin_config.token_file.endswith("registry-admin.json")
+
+
+def test_registry_auth_config_reads_oidc_section(tmp_path: Path) -> None:
+    runtime = _runtime(
+        tmp_path,
+        {
+            "registry": {
+                "auth": {
+                    "mode": "oidc",
+                    "issuer": "https://issuer.example/realms/acps-registry",
+                    "client_id": "registry-cli",
+                    "scopes": ["openid", "profile", "email"],
+                }
+            },
+            "auth": {
+                "user_token_file": "tokens/registry-user.json",
+            },
+        },
+    )
+
+    user_config = build_registry_auth_config(runtime, admin=False)
+
+    assert user_config.mode == "oidc"
+    assert user_config.token_file.endswith("tokens/registry-user.json")
+    assert user_config.oidc is not None
+    assert user_config.oidc.client_id == "registry-cli"
+    assert user_config.oidc.scopes == ("openid", "profile", "email")
+
+
+def test_registry_auth_config_requires_openid_scope(tmp_path: Path) -> None:
+    runtime = _runtime(
+        tmp_path,
+        {
+            "registry": {
+                "auth": {
+                    "mode": "oidc",
+                    "issuer": "https://issuer.example/realms/acps-registry",
+                    "client_id": "registry-cli",
+                    "scopes": ["profile"],
+                }
+            }
+        },
+    )
+
+    with pytest.raises(ClickException, match="must include openid"):
+        build_registry_auth_config(runtime, admin=False)
+
+
+def test_monitor_auth_config_rejects_invalid_mode(tmp_path: Path) -> None:
+    runtime = _runtime(tmp_path, {"monitor": {"auth": {"mode": "password"}}})
+
+    with pytest.raises(ClickException, match=r"monitor\.auth\.mode must be one of"):
+        build_monitor_auth_config(runtime)

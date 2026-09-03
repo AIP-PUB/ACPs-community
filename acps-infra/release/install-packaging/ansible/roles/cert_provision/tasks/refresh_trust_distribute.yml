@@ -1,0 +1,118 @@
+---
+# 构建已启用 trust consumer（profile 文件名）并分发。
+# 期望：acps_trust_bundle_local、acps_trust_bundle_sha256
+# 设置：acps_trust_bundle_consumers、acps_trust_bundle_changed_profiles，
+# acps_cert_renew_meta_by_profile（供可选 recreate 复用）
+
+- name: 构建 trust consumer metadata (per-profile filenames)
+  ansible.builtin.set_fact:
+    _tb_all_meta:
+      - profile: registry-9002
+        enabled: "{{ registry_server_enabled | bool }}"
+        trust_name: trust-bundle.pem
+        outdir: registry-server-9002
+        target_group: registry_server
+        target_certs_rel: certs/registry_server
+        owner_user: acps
+        component_key: registry_server
+        compose_services: registry_server_mtls
+        kind: static
+      - profile: redis
+        enabled: "{{ redis_enabled | bool }}"
+        trust_name: acps-root-ca.pem
+        outdir: redis
+        target_group: redis
+        target_certs_rel: certs/redis
+        owner_user: redis
+        component_key: redis
+        compose_services: redis
+        kind: static
+      - profile: rabbitmq
+        enabled: "{{ rabbitmq_enabled | bool }}"
+        trust_name: acps-root-ca.pem
+        outdir: rabbitmq
+        target_group: rabbitmq
+        target_certs_rel: certs/rabbitmq
+        owner_user: rabbitmq
+        component_key: rabbitmq
+        compose_services: rabbitmq
+        kind: static
+      - profile: mq-auth-server
+        enabled: "{{ mq_auth_server_enabled | bool }}"
+        trust_name: acps-root-ca.pem
+        outdir: mq-auth-server
+        target_group: mq_auth_server
+        target_certs_rel: certs/mq_auth_server
+        owner_user: acps
+        component_key: mq_auth_server
+        compose_services: mq_auth_server
+        kind: static
+      - profile: demo-partner
+        enabled: "{{ demo_partner_enabled | bool }}"
+        trust_name: trust-bundle.pem
+        outdir: demo-partner
+        target_group: demo_partner
+        target_certs_rel: components/demo_partner/partners/online
+        owner_user: ""
+        component_key: demo_partner
+        compose_services: demo_partner
+        kind: demo_partner
+      - profile: demo-leader
+        enabled: "{{ demo_leader_enabled | bool }}"
+        trust_name: trust-bundle.pem
+        outdir: demo-leader
+        target_group: demo_leader
+        target_certs_rel: components/demo_leader/leader/atr
+        owner_user: ""
+        component_key: demo_leader
+        compose_services: "demo_leader demo_leader_web"
+        kind: demo_leader
+      # monitor 不签发叶证，但 Redis TLS 客户端信任链来自 redis CA 侧写；
+      # 必须纳入 trust 刷新与重启闭包，否则 CA 轮换后 Redis 握手失败。
+      - profile: monitor-server
+        enabled: "{{ monitor_server_enabled | default(true) | bool }}"
+        trust_name: acps-root-ca.pem
+        outdir: monitor_server
+        target_group: monitor_server
+        target_certs_rel: certs/monitor_server
+        owner_user: acps
+        component_key: monitor_server
+        compose_services: monitor_server
+        kind: static
+
+- name: Select enabled trust consumers
+  ansible.builtin.set_fact:
+    _tb_enabled: "{{ _tb_all_meta | selectattr('enabled') | list }}"
+
+- name: 应用 optional profile filter
+  ansible.builtin.set_fact:
+    acps_trust_bundle_consumers: >-
+      {{
+        _tb_enabled
+        if (acps_trust_bundle_profiles | default([]) | length) == 0
+        else (_tb_enabled | selectattr('profile', 'in', acps_trust_bundle_profiles) | list)
+      }}
+
+- name: Init changed-profile accumulator
+  ansible.builtin.set_fact:
+    acps_trust_bundle_changed_profiles: []
+
+- name: 分发 trust file per consumer
+  ansible.builtin.include_tasks: refresh_trust_consumer.yml
+  loop: "{{ acps_trust_bundle_consumers }}"
+  loop_control:
+    loop_var: _tb_consumer
+    label: "{{ _tb_consumer.profile }}"
+
+- name: Meta for optional recreate (reuse renew_recreate.yml shape)
+  ansible.builtin.set_fact:
+    acps_cert_renew_meta_by_profile: "{{ dict(acps_trust_bundle_consumers | map(attribute='profile') | zip(acps_trust_bundle_consumers)) }}"
+
+- name: Show trust refresh distribute summary
+  ansible.builtin.debug:
+    msg:
+      ca_url: "{{ acps_trust_bundle_ca_url }}"
+      sha256: "{{ acps_trust_bundle_sha256 }}"
+      force: "{{ acps_force_trust_bundle_refresh | bool }}"
+      consumers: "{{ acps_trust_bundle_consumers | map(attribute='profile') | list }}"
+      changed_profiles: "{{ acps_trust_bundle_changed_profiles }}"

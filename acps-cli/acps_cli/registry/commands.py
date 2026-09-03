@@ -12,14 +12,16 @@ import click
 
 from acps_cli.shared.cli_logging import setup_cli_logging
 from acps_cli.shared.config import load_toml_config
+from acps_cli.shared.flexible_group import FlexibleGroup
 
-from .client import RegistryApiClient
+from .client import ENTITY_REGISTRATION_PAYLOAD_FIELDS, RegistryApiClient
 from .config import CliOverrides, Config, ConfigError
 from .exceptions import RegistryClientError
 from .output import print_result
 
 LOGGER = logging.getLogger(__name__)
 ACS_FILE_REQUIRED_MESSAGE = "ACS file is required"
+RELOGIN_RECOMMENDED_NOTICE = "密码已修改，建议重新登录"
 
 
 def _setup_logging(verbose: bool) -> None:
@@ -67,8 +69,7 @@ def _load_entity_payload_file(file_path: str | None) -> dict[str, Any] | None:
             raise click.ClickException(f"Invalid entity payload JSON file: {exc}") from exc
     if not isinstance(data, dict):
         raise click.ClickException("Entity payload JSON must be an object")
-    allowed_fields = {"endPoints", "entityUserId", "entityMeta"}
-    unknown_fields = sorted(set(data) - allowed_fields)
+    unknown_fields = sorted(set(data) - set(ENTITY_REGISTRATION_PAYLOAD_FIELDS))
     if unknown_fields:
         joined = ", ".join(unknown_fields)
         raise click.ClickException(f"Entity payload JSON contains unsupported fields: {joined}")
@@ -116,6 +117,32 @@ def _prompt_password_change() -> tuple[str, str]:
     if not current_password or not new_password:
         raise click.ClickException("Current password and new password are required")
     return current_password, new_password
+
+
+def _build_password_change_output(result: dict[str, Any]) -> dict[str, Any]:
+    output = dict(result)
+    output["notice"] = RELOGIN_RECOMMENDED_NOTICE
+    return output
+
+
+def _logout_with_local_cleanup(client: RegistryApiClient) -> dict[str, Any]:
+    try:
+        result = client.logout()
+    except RegistryClientError as exc:
+        try:
+            client.clear_token()
+        except OSError as clear_exc:
+            raise click.ClickException(f"{exc}; failed to clear local token: {clear_exc}") from clear_exc
+        raise click.ClickException(f"{exc}; local token cleared") from exc
+
+    try:
+        client.clear_token()
+    except OSError as exc:
+        raise click.ClickException(f"Server logout succeeded but failed to clear local token: {exc}") from exc
+
+    output = dict(result)
+    output["local_token_cleared"] = True
+    return output
 
 
 def _extract_acs_identity(acs: dict[str, Any]) -> tuple[str | None, str, str]:
@@ -194,7 +221,7 @@ def _sync_acs_payload_from_agent(acs_payload: dict[str, Any], agent: dict[str, A
     return updated_payload
 
 
-@click.group()
+@click.group(cls=FlexibleGroup)
 @click.option("--config", "config_path", default=None, help="Path to acps-cli.toml config file")
 @click.option("--server-url", default=None, help="Override registry server base URL")
 @click.option("--timeout", type=int, default=None, help="Override request timeout seconds")
@@ -286,6 +313,15 @@ def whoami(ctx: click.Context, as_json: bool) -> None:
     print_result(result, as_json=as_json)
 
 
+@main.command("logout")
+@click.option("--json", "as_json", is_flag=True, help="Output JSON")
+@click.pass_context
+def logout(ctx: click.Context, as_json: bool) -> None:
+    """注销当前登录用户，并清理本地 token。"""
+    client: RegistryApiClient = ctx.obj["client"]
+    print_result(_logout_with_local_cleanup(client), as_json=as_json)
+
+
 @main.command("change-password")
 @click.option("--json", "as_json", is_flag=True, help="Output JSON")
 @click.pass_context
@@ -297,7 +333,7 @@ def change_password(ctx: click.Context, as_json: bool) -> None:
         result = client.update_current_user_password(current_password, new_password)
     except RegistryClientError as exc:
         raise click.ClickException(str(exc)) from exc
-    print_result(result, as_json=as_json)
+    print_result(_build_password_change_output(result), as_json=as_json)
 
 
 @main.command("fetch-eab")
@@ -447,7 +483,7 @@ def submit_agent_for_approval(
 @click.option(
     "--payload-file",
     default=None,
-    help="Path to derived entity payload JSON file",
+    help="Optional UTF-8 JSON object. Allowed keys: endPoints, entityUserId, entityMeta, certificate",
 )
 @click.option(
     "--mtls-cert-file",

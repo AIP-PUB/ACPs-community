@@ -1,0 +1,41 @@
+---
+# 刷新一个 trust 消费方（静态 certs 目录或 demo ACS 树）。
+# 期望： _tb_consumer, acps_trust_bundle_local, acps_trust_bundle_sha256,
+# acps_force_trust_bundle_refresh, acps_trust_bundle_changed_profiles
+
+- name: Update control-node profile trust copy (static)
+  when: _tb_consumer.kind == 'static'
+  block:
+    - name: 确保 control profile outdir
+      ansible.builtin.file:
+        path: "{{ acps_control_root }}/work/certs/{{ _tb_consumer.outdir }}"
+        state: directory
+        mode: "0700"
+
+    - name: 检查 existing control trust file
+      ansible.builtin.stat:
+        path: "{{ acps_control_root }}/work/certs/{{ _tb_consumer.outdir }}/{{ _tb_consumer.trust_name }}"
+        checksum_algorithm: sha256
+      register: _tb_ctrl_stat
+
+    - name: 复制 trust to control profile outdir
+      when: (acps_force_trust_bundle_refresh | bool) or (not _tb_ctrl_stat.stat.exists) or ((_tb_ctrl_stat.stat.checksum | default('')) != acps_trust_bundle_sha256)
+      ansible.builtin.copy:
+        src: "{{ acps_trust_bundle_local }}"
+        dest: "{{ acps_control_root }}/work/certs/{{ _tb_consumer.outdir }}/{{ _tb_consumer.trust_name }}"
+        mode: "0644"
+
+- name: 分发 static trust to each target host
+  when: _tb_consumer.kind == 'static'
+  ansible.builtin.include_tasks: refresh_trust_static_host.yml
+  loop: "{{ groups[_tb_consumer.target_group] | default([]) }}"
+  loop_control:
+    loop_var: _tb_target_host
+
+- name: 分发 demo-partner trust-bundle.pem trees
+  when: _tb_consumer.kind == 'demo_partner'
+  ansible.builtin.include_tasks: refresh_trust_demo.yml
+
+- name: 分发 demo-leader trust-bundle.pem
+  when: _tb_consumer.kind == 'demo_leader'
+  ansible.builtin.include_tasks: refresh_trust_demo.yml

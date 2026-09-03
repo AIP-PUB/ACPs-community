@@ -1,0 +1,108 @@
+---
+# minio/tasks/main_host.yml — host 模式：官方静态二进制 vendor_bundle + systemd
+# （本设计 §5.5 / §8.2.1）。数据目录：{{ acps_data_root }}/minio
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: stage minio vendor_bundle
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: minio
+    acps_artifact_kind: vendor_bundle
+
+- name: 解析 minio 数据目录属主（host：acps 系统账号）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+  vars:
+    acps_cert_owner_user: ""
+
+- name: 规范化 minio 数据目录属主
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_data_dir.yml
+  vars:
+    acps_data_dir: "{{ acps_data_root }}/minio"
+
+- name: 准备 minio 配置目录
+  ansible.builtin.file:
+    path: "{{ acps_runtime_root }}/config/minio"
+    state: directory
+    mode: "0755"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 minio EnvironmentFile（host-mode systemd）
+  ansible.builtin.template:
+    src: env.host.j2
+    dest: "{{ acps_runtime_root }}/config/minio/.env"
+    mode: "0600"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+  no_log: true
+
+- name: 渲染 minio systemd 单元
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_systemd.yml
+  vars:
+    acps_compose_service_name: minio
+    acps_host_install_dest: "{{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/minio/.env"
+    acps_host_entrypoint: >-
+      {{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}/minio server
+      {{ acps_data_root }}/minio
+      --address :{{ minio_api_port }}
+      --console-address :{{ minio_console_port }}
+    acps_host_unit_description: "ACPS MinIO (host vendor_bundle)"
+
+- name: Rocky SELinux：minio 数据目录打标签
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: selinux_restore_path.yml
+  vars:
+    acps_selinux_path: "{{ acps_data_root }}/minio"
+
+- name: 开放 minio 广告端口（firewalld/ufw，幂等）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ minio_api_port }}"
+      - "{{ minio_console_port }}"
+
+- name: 部署 minio（systemd enable --now）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: minio
+    acps_component_key: minio
+    acps_compose_force_recreate: false
+
+- name: 等待 minio API 端口
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ minio_api_port }}"
+    timeout: 120
+
+- name: 健康检查：MinIO /minio/health/ready（本设计 §8.2.1）
+  ansible.builtin.command:
+    argv:
+      - curl
+      - -fsS
+      - --max-time
+      - "10"
+      - "http://127.0.0.1:{{ minio_api_port }}/minio/health/ready"
+  register: _minio_health
+  retries: 30
+  delay: 2
+  until: _minio_health.rc == 0
+  changed_when: false

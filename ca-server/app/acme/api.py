@@ -43,7 +43,10 @@ from .service import (
 
 router = APIRouter()
 
-SessionDep = Annotated[AsyncSession, Depends(get_async_session)]
+# scope="function"：在响应发出前结束依赖并 commit。
+# 默认 request scope 会在响应发送后才 commit；局域网客户端可能在
+# Replay-Nonce 已返回、nonce 行尚未可见时立刻 POST → BAD_NONCE。
+SessionDep = Annotated[AsyncSession, Depends(get_async_session, scope="function")]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
@@ -166,7 +169,7 @@ async def create_account(
                 error_msg="New account request must include jwk",
             )
 
-        jwk = protected["jwk"]
+        jwk = JWKService.project_public_jwk(protected["jwk"])
         key_id = JWKService.compute_jwk_thumbprint(jwk)
 
         # 检查是否是查询已存在账户

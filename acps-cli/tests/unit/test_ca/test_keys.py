@@ -7,21 +7,22 @@ import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from acps_cli.ca.keys import (
     generate_csr,
     generate_private_key,
     load_private_key,
+    private_key_type_name,
     save_private_key,
 )
 
 
 @pytest.mark.unit
 class TestGeneratePrivateKey:
-    def test_ec_key_default(self):
+    def test_ed25519_key_default(self):
         key = generate_private_key()
-        assert isinstance(key, ec.EllipticCurvePrivateKey)
-        assert key.curve.name == "secp256r1"
+        assert isinstance(key, Ed25519PrivateKey)
 
     def test_ec_key_explicit(self):
         key = generate_private_key("ec")
@@ -31,6 +32,10 @@ class TestGeneratePrivateKey:
         key = generate_private_key("rsa")
         assert isinstance(key, rsa.RSAPrivateKey)
         assert key.key_size == 2048
+
+    def test_ed25519_key_explicit(self):
+        key = generate_private_key("ed25519")
+        assert isinstance(key, Ed25519PrivateKey)
 
 
 @pytest.mark.unit
@@ -75,6 +80,21 @@ class TestSaveAndLoadPrivateKey:
         loaded = load_private_key(key_path)
         assert isinstance(loaded, rsa.RSAPrivateKey)
 
+    def test_roundtrip_ed25519_key(self, tmp_path):
+        key = generate_private_key("ed25519")
+        key_path = str(tmp_path / "ed25519.key")
+        save_private_key(key, key_path)
+        loaded = load_private_key(key_path)
+        assert isinstance(loaded, Ed25519PrivateKey)
+
+
+@pytest.mark.unit
+class TestPrivateKeyTypeName:
+    def test_detects_supported_key_types(self):
+        assert private_key_type_name(generate_private_key("ed25519")) == "ed25519"
+        assert private_key_type_name(generate_private_key("ec")) == "ec"
+        assert private_key_type_name(generate_private_key("rsa")) == "rsa"
+
 
 @pytest.mark.unit
 class TestGenerateCSR:
@@ -112,5 +132,11 @@ class TestGenerateCSR:
     def test_csr_with_rsa_key(self, tmp_path, sample_aic):
         key = generate_private_key("rsa")
         csr_path = str(tmp_path / "rsa.csr")
+        csr = generate_csr(key, sample_aic, csr_path)
+        assert csr.is_signature_valid
+
+    def test_csr_with_ed25519_key(self, tmp_path, sample_aic):
+        key = generate_private_key("ed25519")
+        csr_path = str(tmp_path / "ed25519.csr")
         csr = generate_csr(key, sample_aic, csr_path)
         assert csr.is_signature_valid

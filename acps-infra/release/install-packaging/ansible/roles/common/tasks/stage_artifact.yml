@@ -1,0 +1,98 @@
+---
+# stage_artifact.yml
+# 承载分派层（mode 无关中性入口）：按 acps_deploy_mode × acps_artifact_kind
+# include 对应实现文件。调用方须显式传入 acps_component_key + acps_artifact_kind
+# （合法 kind：app_release | os_package | vendor_bundle）。
+# image 侧统一落到平移后的 stage_artifact_image*.yml（内容 = 现 docker load，字节不变）；
+# host 侧落到 stage_artifact_host_*.yml（Step 8+ 实现前为友好失败 stub）。
+#
+# 可选：acps_skip_stage_artifact=true — 跳过制品落地（host 回滚：current 已切到
+# previous，禁止用当前包 manifest 覆盖 previous 树）。仍补齐经 current 的
+# runtime facts 供后续 render/deploy。
+
+- name: 要求 acps_artifact_kind 已定义
+  when: not (acps_skip_stage_artifact | default(false) | bool)
+  ansible.builtin.assert:
+    that:
+      - acps_artifact_kind is defined
+      - acps_artifact_kind in ['app_release', 'os_package', 'vendor_bundle']
+    fail_msg: >-
+      acps_artifact_kind must be one of app_release|os_package|vendor_bundle
+      (component={{ acps_component_key | default('?') }}, got
+      {{ acps_artifact_kind | default('undefined') }}). Each component role
+      calling stage_artifact.yml must pass acps_artifact_kind explicitly.
+
+- name: 跳过 stage_artifact（回滚等：保留已 cutover 的 previous 树）
+  when: acps_skip_stage_artifact | default(false) | bool
+  block:
+    - name: 宣告跳过制品落地
+      ansible.builtin.debug:
+        msg: >-
+          stage_artifact skipped (acps_skip_stage_artifact=true) for
+          {{ acps_component_key | default('?') }}; mode={{ acps_deploy_mode | default('?') }};
+          kind={{ acps_artifact_kind | default('?') }}.
+
+    # vendor_bundle：优先已绑定的 acps_vendor_unit_root；否则按本组件 vendor home
+    # 推导。禁止用跨组件残留的 acps_host_app_install_dest 覆盖 vendor_*（H4 S3 P1）。
+    - name: host 跳过 stage — 解析 vendor unit 根
+      when:
+        - (acps_deploy_mode | default('image')) == 'host'
+        - acps_component_key is defined
+        - (acps_component_key | string | length) > 0
+        - (acps_artifact_kind | default('')) == 'vendor_bundle'
+      ansible.builtin.set_fact:
+        _acps_skip_stage_unit_root: >-
+          {{
+            (acps_vendor_unit_root | string)
+            if ((acps_vendor_unit_root | default('') | string | length) > 0)
+            else (
+              (vendor_bundle_install_roots | default({})).get(
+                acps_component_key,
+                acps_runtime_root ~ '/' ~ acps_component_key
+              ) ~ '/current'
+            )
+          }}
+
+    # app_release（及其他）：仅当 acps_host_app_install_dest 属于本组件路径时复用；
+    # 否则按 runtime/{component}/current 推导，避免上一组件残留串扰。
+    - name: host 跳过 stage — 解析 app/unit 根
+      when:
+        - (acps_deploy_mode | default('image')) == 'host'
+        - acps_component_key is defined
+        - (acps_component_key | string | length) > 0
+        - (acps_artifact_kind | default('')) != 'vendor_bundle'
+      ansible.builtin.set_fact:
+        _acps_skip_stage_unit_root: >-
+          {{
+            (acps_host_app_install_dest | string)
+            if (
+              (acps_host_app_install_dest | default('') | string | length) > 0
+              and (
+                (acps_host_app_install_dest | string) == (acps_runtime_root ~ '/' ~ acps_component_key)
+                or (acps_host_app_install_dest | string) == (acps_runtime_root ~ '/' ~ acps_component_key ~ '/current')
+                or (acps_host_app_install_dest | string).startswith(acps_runtime_root ~ '/' ~ acps_component_key ~ '/')
+              )
+            )
+            else (acps_runtime_root ~ '/' ~ acps_component_key ~ '/current')
+          }}
+
+    - name: host 跳过 stage 时补齐经 current 的 runtime facts
+      when:
+        - (acps_deploy_mode | default('image')) == 'host'
+        - acps_component_key is defined
+        - (acps_component_key | string | length) > 0
+        - (_acps_skip_stage_unit_root | default('') | string | length) > 0
+      ansible.builtin.set_fact:
+        acps_host_app_install_dest: "{{ _acps_skip_stage_unit_root }}"
+        acps_app_install_venv: "{{ _acps_skip_stage_unit_root }}/venv"
+        acps_app_install_python: "{{ _acps_skip_stage_unit_root }}/venv/bin/python"
+        acps_vendor_unit_root: "{{ _acps_skip_stage_unit_root }}"
+        acps_vendor_install_dest: "{{ _acps_skip_stage_unit_root }}"
+        acps_vendor_stage_dest: "{{ _acps_skip_stage_unit_root }}"
+        acps_host_app_install_changed: false
+        acps_host_vendor_install_changed: false
+        acps_host_layout: "{{ acps_host_layout | default('releases') }}"
+
+- name: 按 mode × kind 分派 stage_artifact 实现
+  when: not (acps_skip_stage_artifact | default(false) | bool)
+  ansible.builtin.include_tasks: "stage_artifact_{{ acps_deploy_mode }}_{{ acps_artifact_kind }}.yml"

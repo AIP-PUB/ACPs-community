@@ -1,0 +1,75 @@
+---
+# firewall_open_ports.yml — 幂等放行端口（firewalld / ufw，本设计 §6.4(4)）。
+# 仅在防火墙服务实际 active 时才操作；未启用防火墙的主机视为端口已可达。
+#
+# 期望：acps_open_ports（端口号列表，int 或 str）；
+# 可选：acps_open_ports_proto（默认 tcp）。
+
+- name: 要求 acps_open_ports 已定义且非空
+  ansible.builtin.assert:
+    that:
+      - acps_open_ports is defined
+      - acps_open_ports | length > 0
+    fail_msg: "firewall_open_ports.yml requires a non-empty acps_open_ports list"
+
+# --- Rocky / RHEL：firewalld ---
+
+- name: RedHat -- 探测 firewalld 是否 active
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.command:
+    argv: [systemctl, is-active, firewalld]
+  register: _acps_firewalld_active
+  changed_when: false
+  failed_when: false
+
+- name: RedHat -- firewalld active 时幂等放行端口
+  when:
+    - ansible_os_family == 'RedHat'
+    - (_acps_firewalld_active.stdout | default('') | trim) == 'active'
+  become: true
+  block:
+    - name: 检查各端口当前放行状态
+      ansible.builtin.command:
+        argv: [firewall-cmd, --query-port, "{{ item }}/{{ acps_open_ports_proto | default('tcp') }}"]
+      loop: "{{ acps_open_ports }}"
+      register: _acps_fw_query
+      changed_when: false
+      failed_when: false
+
+    - name: 放行尚未开放的端口（--permanent）
+      ansible.builtin.command:
+        argv: [firewall-cmd, --permanent, --add-port, "{{ item.item }}/{{ acps_open_ports_proto | default('tcp') }}"]
+      loop: "{{ _acps_fw_query.results }}"
+      loop_control:
+        label: "{{ item.item }}/{{ acps_open_ports_proto | default('tcp') }}"
+      when: item.rc != 0
+      register: _acps_fw_add
+
+    - name: reload firewalld 使新端口立即生效
+      when: _acps_fw_add.changed | default(false)
+      ansible.builtin.command:
+        argv: [firewall-cmd, --reload]
+
+# --- Ubuntu：ufw ---
+
+- name: Debian -- 探测 ufw 状态
+  when: ansible_os_family == 'Debian'
+  ansible.builtin.command:
+    argv: [ufw, status]
+  register: _acps_ufw_status
+  changed_when: false
+  failed_when: false
+
+- name: Debian -- ufw active 时幂等放行端口
+  when:
+    - ansible_os_family == 'Debian'
+    - (_acps_ufw_status.rc | default(1)) == 0
+    - "'Status: active' in (_acps_ufw_status.stdout | default(''))"
+  become: true
+  ansible.builtin.command:
+    argv: [ufw, allow, "{{ item }}/{{ acps_open_ports_proto | default('tcp') }}"]
+  loop: "{{ acps_open_ports }}"
+  loop_control:
+    label: "{{ item }}/{{ acps_open_ports_proto | default('tcp') }}"
+  register: _acps_ufw_allow
+  changed_when: "'Skipping adding existing rule' not in (_acps_ufw_allow.stdout | default(''))"

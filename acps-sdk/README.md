@@ -37,8 +37,18 @@ source .venv/bin/activate
 # Windows PowerShell:
 # .\.venv\Scripts\Activate.ps1
 
-# 安装SDK项目的依赖
+# 安装 SDK 运行依赖与开发依赖（含测试）
 uv sync
+```
+
+`uv sync` 会同步 `[dependency-groups].dev`（pytest、OIDC 测试所需的 PyJWT 等）。若只安装运行时依赖，可使用 `uv sync --no-dev`；若目标应用需要 OIDC 能力，再额外执行 `uv sync --extra oidc`（或 `uv add 'acps-sdk[oidc]'`）。
+
+运行测试：
+
+```bash
+uv run pytest
+# 或
+uv run pytest tests/
 ```
 
 ### 1.2. 构建和发布

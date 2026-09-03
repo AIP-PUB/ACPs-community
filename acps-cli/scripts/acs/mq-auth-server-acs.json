@@ -1,11 +1,11 @@
 {
   "aic": "",
   "active": true,
-  "protocolVersion": "02.01",
+  "protocolVersion": "02.02",
   "lastModifiedTime": "2026-04-15T07:32:00+08:00",
   "name": "ACPs MQ Auth Service",
   "description": "ACPs RabbitMQ HTTP Auth Backend 与群组 ACL 管理服务。",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "webAppUrl": "",
   "provider": {
     "organization": "ACPs工作组",

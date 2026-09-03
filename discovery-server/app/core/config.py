@@ -117,6 +117,7 @@ def _flatten_toml_settings(config: dict[str, Any]) -> dict[str, Any]:
     discovery_llm_config = llm_config.get("discovery", {})
     polling_config = config.get("polling", {})
     forwarder_config = config.get("forwarder", {})
+    alive_sync_config = config.get("alive_sync", {})
 
     flattened = {
         "APP_NAME": app_config.get("name"),
@@ -162,6 +163,17 @@ def _flatten_toml_settings(config: dict[str, Any]) -> dict[str, Any]:
         "FORWARDER_HEALTH_CHECK_INTERVAL": forwarder_config.get("health_check_interval"),
         "FORWARDER_REQUEST_RETRIES": forwarder_config.get("request_retries"),
         "FORWARDER_FALLBACK_TO_LOCAL": forwarder_config.get("fallback_to_local"),
+        "ALIVE_SYNC_ENABLED": alive_sync_config.get("enabled"),
+        "ALIVE_SYNC_AUTO_START": alive_sync_config.get("auto_start"),
+        "ALIVE_SYNC_PROVIDER_BASE_URL": alive_sync_config.get("provider_base_url"),
+        "ALIVE_SYNC_HTTP_TIMEOUT": alive_sync_config.get("http_timeout"),
+        "ALIVE_SYNC_KAFKA_BOOTSTRAP_SERVERS": alive_sync_config.get("kafka_bootstrap_servers"),
+        "ALIVE_SYNC_KAFKA_GROUP_ID": alive_sync_config.get("kafka_group_id"),
+        "ALIVE_SYNC_KAFKA_TOPIC": alive_sync_config.get("kafka_topic"),
+        "ALIVE_SYNC_BOOTSTRAP_LOOKBACK_SECONDS": alive_sync_config.get("bootstrap_lookback_seconds"),
+        "ALIVE_SYNC_BOOTSTRAP_MAX_LOOKBACK_SECONDS": alive_sync_config.get("bootstrap_max_lookback_seconds"),
+        "ALIVE_SYNC_RESYNC_BACKOFF_SECONDS": alive_sync_config.get("resync_backoff_seconds"),
+        "ALIVE_SYNC_RETRY_INTERVAL_SECONDS": alive_sync_config.get("retry_interval_seconds"),
     }
 
     return {key: value for key, value in flattened.items() if value is not None}
@@ -221,7 +233,7 @@ class Settings(BaseSettings):
 
     # Basic app settings
     APP_NAME: str = Field(default="Agent Discovery Server")
-    APP_VERSION: str = Field(default="2.1.0")
+    APP_VERSION: str = Field(default="2.2.0")
     APP_DESC: str = Field(default="Agent 发现 API")
     APP_LOG_LEVEL: str = Field(default="info")
     LOG_FORMAT: str = Field(default="")
@@ -244,8 +256,9 @@ class Settings(BaseSettings):
     DATABASE_POOL_RECYCLE: int = Field(default=1800)
     DATABASE_POOL_PRE_PING: bool = Field(default=True)
 
-    # 运行模式：gpu / cpu
-    DISCOVERY_MODE: str = Field(default="gpu")
+    # 运行模式：cpu / gpu；默认 cpu（外部 Embedding/LLM API），避免 base 环境在缺少
+    # GPU 本地模型依赖（gpu extra 未安装）时被隐式导向 GPU 模式。
+    DISCOVERY_MODE: str = Field(default="cpu")
 
     # Discovery LLM 配置（与 CPU 版本保持一致）
     DISCOVERY_LLM_API_KEY: str = Field(default="")
@@ -259,6 +272,7 @@ class Settings(BaseSettings):
     EMBEDDING_BASE_URL: str = Field(default="")
     EMBEDDING_MODEL_NAME: str = Field(default="")
     EMBEDDING_DIM: int = Field(default=1024)
+    EMBEDDING_TIMEOUT: float = Field(default=180.0)
     BGE_BATCH_SIZE: int = 64
     BGE_MAX_WAIT_TIME: float = 0.01
     # Reranker 配置
@@ -277,7 +291,7 @@ class Settings(BaseSettings):
     def normalize_discovery_mode(cls, value: Any) -> Any:
         if isinstance(value, str):
             normalized = value.strip().lower()
-            return normalized or "gpu"
+            return normalized or "cpu"
         return value
 
     @property
@@ -312,6 +326,41 @@ class Settings(BaseSettings):
     FORWARDER_REQUEST_RETRIES: int = Field(default=0)
     FORWARDER_FALLBACK_TO_LOCAL: bool = Field(default=True)
 
+    # AMP Heartbeat alive sync（Consumer）
+    ALIVE_SYNC_ENABLED: bool = Field(default=False)
+    ALIVE_SYNC_AUTO_START: bool = Field(default=True)
+    ALIVE_SYNC_PROVIDER_BASE_URL: str = Field(
+        default="",
+        description="monitor-server 基址，含 /sync/* 路径，如 http://localhost:9009/acps-amp-v1/heartbeat",
+    )
+    ALIVE_SYNC_PROVIDER_BEARER_TOKEN: str = Field(
+        default="",
+        description="Monitor /sync/* 服务间 Bearer（与 HEARTBEAT_SYNC_INTERNAL_TOKEN 对齐；OIDC on 必填）",
+    )
+    ALIVE_SYNC_HTTP_TIMEOUT: float = Field(default=30.0)
+    ALIVE_SYNC_KAFKA_BOOTSTRAP_SERVERS: str = Field(default="")
+    ALIVE_SYNC_KAFKA_GROUP_ID: str = Field(default="discovery-server.alive-sync.v1")
+    ALIVE_SYNC_KAFKA_TOPIC: str = Field(
+        default="",
+        description="留空则用 /sync/info 返回的 kafkaTopic",
+    )
+    ALIVE_SYNC_BOOTSTRAP_LOOKBACK_SECONDS: int = Field(
+        default=300,
+        description="§7.5 第 8 条回看裕量（秒），默认 5 分钟",
+    )
+    ALIVE_SYNC_BOOTSTRAP_MAX_LOOKBACK_SECONDS: int = Field(
+        default=86400,
+        description="免误报倍增上限（秒），达顶退 earliest",
+    )
+    ALIVE_SYNC_RESYNC_BACKOFF_SECONDS: int = Field(
+        default=10,
+        description="缺口/降级后重 snapshot 退避间隔（秒）",
+    )
+    ALIVE_SYNC_RETRY_INTERVAL_SECONDS: int = Field(
+        default=30,
+        description="503 降级（snapshot/delta unhealthy）轮询重试间隔（秒）",
+    )
+
     def model_post_init(self, __context: Any) -> None:
         """补充运行环境相关校验。"""
 
@@ -328,6 +377,9 @@ class Settings(BaseSettings):
 
         if self.FORWARDER_SERVER_URL.strip():
             discovery_urls["forwarder.server_url"] = self.FORWARDER_SERVER_URL
+
+        if self.ALIVE_SYNC_PROVIDER_BASE_URL.strip():
+            discovery_urls["alive_sync.provider_base_url"] = self.ALIVE_SYNC_PROVIDER_BASE_URL
 
         for setting_name, url in discovery_urls.items():
             if url.strip():

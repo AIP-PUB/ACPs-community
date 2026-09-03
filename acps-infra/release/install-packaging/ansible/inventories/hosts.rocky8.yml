@@ -1,0 +1,65 @@
+# inventories/hosts.rocky8.yml
+# 单机 host 模式示例：Rocky Linux 8 / RHEL 8 系列业务节点。
+# 全部组件落在 rhel8.acps.local；控制节点为本机 Ansible 控制机。
+# 准备 inventories/secrets.yml。SSH 用户与本机无密登录账号对齐。
+
+all:
+  vars:
+    acps_deploy_mode: host
+    ansible_user: huxiaofeng
+    # ansible-core ≥2.16 要求托管节点 Python ≥3.8；Rocky 8 默认 /usr/bin/python3 常为 3.6。
+    ansible_python_interpreter: /usr/bin/python3.8
+    # 多拓扑并行时必须独立控制面路径（勿与其它解包目录 / 其它 OS 拓扑共用）：
+    acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control-host-rhel8"
+    # become 由 playbook / role 任务显式开启；勿在 inventory 全局设 ansible_become，
+    # 否则会污染控制节点 delegate_to: localhost（macOS 无密 sudo 常失败）。
+  children:
+    postgresql:
+      hosts:
+        rhel8.acps.local:
+          ansible_host: rhel8.acps.local
+    redis:
+      hosts:
+        rhel8.acps.local:
+    rabbitmq:
+      hosts:
+        rhel8.acps.local:
+    keycloak:
+      hosts:
+        rhel8.acps.local:
+    redpanda:
+      hosts:
+        rhel8.acps.local:
+    victoria_metrics:
+      hosts:
+        rhel8.acps.local:
+    clickhouse:
+      hosts:
+        rhel8.acps.local:
+    minio:
+      hosts:
+        rhel8.acps.local:
+    opensearch:
+      hosts:
+        rhel8.acps.local:
+    registry_server:
+      hosts:
+        rhel8.acps.local:
+    ca_server:
+      hosts:
+        rhel8.acps.local:
+    discovery_server:
+      hosts:
+        rhel8.acps.local:
+    mq_auth_server:
+      hosts:
+        rhel8.acps.local:
+    monitor_server:
+      hosts:
+        rhel8.acps.local:
+    demo_partner:
+      hosts:
+        rhel8.acps.local:
+    demo_leader:
+      hosts:
+        rhel8.acps.local:

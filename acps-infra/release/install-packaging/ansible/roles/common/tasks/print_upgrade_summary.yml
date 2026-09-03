@@ -1,0 +1,57 @@
+---
+# print_upgrade_summary.yml — BP12：打印 committed vs requested
+# 可选：_upgrade_summary_failed_at（失败组件 key）
+
+- name: 读取 upgrade 摘要文件
+  ansible.builtin.slurp:
+    src: "{{ acps_control_root }}/work/.upgrade-run-summary.json"
+  register: _up_print_slurp
+  failed_when: false
+  delegate_to: localhost
+  become: false
+
+- name: 解析 / 合成 upgrade 摘要
+  ansible.builtin.set_fact:
+    _up_print_doc: >-
+      {{
+        (
+          (_up_print_slurp.content | b64decode | from_json)
+          if (_up_print_slurp.content is defined)
+          else {
+            'requested': hostvars['localhost']['_acps_upgrade_components'] | default([]),
+            'committed': [],
+            'failed_at': none,
+            'status': 'unknown'
+          }
+        )
+        | combine(
+            ({'failed_at': _upgrade_summary_failed_at, 'status': 'failed'}
+             if (_upgrade_summary_failed_at | default('') | length) > 0
+             else {'status': 'ok'}),
+            recursive=True
+          )
+      }}
+
+- name: 写回最终摘要（含 status）
+  when: _up_print_slurp.content is defined
+  ansible.builtin.copy:
+    dest: "{{ acps_control_root }}/work/.upgrade-run-summary.json"
+    mode: "0644"
+    content: "{{ _up_print_doc | to_nice_json }}\n"
+  delegate_to: localhost
+  become: false
+
+- name: 摘要 — upgrade committed vs requested（§9.5.8 / BP12）
+  ansible.builtin.debug:
+    msg: >-
+      upgrade summary: status={{ _up_print_doc.status }}
+      requested={{ _up_print_doc.requested | default([]) | join(',') }}
+      committed={{ _up_print_doc.committed | default([]) | join(',') }}
+      pending={{
+        (_up_print_doc.requested | default([]))
+        | difference(_up_print_doc.committed | default([]))
+        | join(',')
+      }}
+      failed_at={{ _up_print_doc.failed_at | default('null') }}
+      （禁止自动回滚已成功项；场景保留靠人工 rollback CSV；
+      成功后勿用 site.yml 盖回 — 升版用 upgrade / 回滚用 rollback；BP16）

@@ -1,0 +1,91 @@
+---
+# 证书材料变更后的依赖闭包重启。
+#
+# 所有 ACPs TLS 消费方均无热重载；仅重启「被分发 profile 自身」不够：
+#   redis 叶证/CA  → mq-auth（Redis TLS）+ monitor（Redis TLS）+ amp_forwarder（demo 机）
+#   rabbitmq 叶证  → demo-partner / demo-leader（AMQPS）
+#   mq-auth 叶证   → rabbitmq（auth_http 客户端 TLS）
+#
+# broker role 真 restart 后亦须调用同一闭包（common/reload_tls_dependents.yml）。
+# 期望：_profile、_cert_materials_changed（bool）
+# image/host 均走 renew_recreate_host.yml（服务未安装则跳过；适配单机/多机）。
+# 注意：不可使用 meta:end_host（本 role 跑在 localhost 控制面 play）。
+
+- name: 材料变更时解析并重启依赖闭包
+  when: _cert_materials_changed | default(false) | bool
+  block:
+    - name: 解析 profile → 依赖重启条目
+      ansible.builtin.set_fact:
+        _cert_dependent_reloads: >-
+          {{
+            {
+              'redis': [
+                {
+                  'profile': 'mq-auth-server',
+                  'target_group': 'mq_auth_server',
+                  'compose_services': 'mq_auth_server',
+                  'enabled': (mq_auth_server_enabled | default(true) | bool),
+                },
+                {
+                  'profile': 'monitor-server',
+                  'target_group': 'monitor_server',
+                  'compose_services': 'monitor_server',
+                  'enabled': (monitor_server_enabled | default(true) | bool),
+                },
+                {
+                  'profile': 'amp-forwarder',
+                  'target_group': 'demo_partner',
+                  'compose_services': 'amp_forwarder',
+                  'enabled': (
+                    (demo_partner_enabled | default(true) | bool)
+                    and (amp_forwarder_enabled | default(true) | bool)
+                  ),
+                },
+                {
+                  'profile': 'amp-forwarder',
+                  'target_group': 'demo_leader',
+                  'compose_services': 'amp_forwarder',
+                  'enabled': (
+                    (demo_leader_enabled | default(true) | bool)
+                    and (amp_forwarder_enabled | default(true) | bool)
+                  ),
+                },
+              ],
+              'rabbitmq': [
+                {
+                  'profile': 'demo-partner',
+                  'target_group': 'demo_partner',
+                  'compose_services': 'demo_partner',
+                  'enabled': (demo_partner_enabled | default(true) | bool),
+                },
+                {
+                  'profile': 'demo-leader',
+                  'target_group': 'demo_leader',
+                  'compose_services': 'demo_leader demo_leader_web',
+                  'enabled': (demo_leader_enabled | default(true) | bool),
+                },
+              ],
+              'mq-auth-server': [
+                {
+                  'profile': 'rabbitmq',
+                  'target_group': 'rabbitmq',
+                  'compose_services': 'rabbitmq',
+                  'enabled': (rabbitmq_enabled | default(true) | bool),
+                },
+              ],
+            }[_profile] | default([])
+          }}
+
+    - name: 过滤已启用的依赖
+      ansible.builtin.set_fact:
+        _cert_dependent_active: "{{ _cert_dependent_reloads | selectattr('enabled') | list }}"
+
+    - name: 逐依赖 profile 重启其全部目标主机
+      when: (_cert_dependent_active | length) > 0
+      ansible.builtin.include_role:
+        name: cert_provision
+        tasks_from: reload_dependent_one.yml
+      loop: "{{ _cert_dependent_active }}"
+      loop_control:
+        loop_var: _dep
+        label: "{{ _dep.profile }}"

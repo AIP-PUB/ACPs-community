@@ -1,0 +1,18 @@
+---
+# 重启单个依赖 profile 在其 target_group 全部主机上的服务。
+# 期望：_dep = {profile, target_group, compose_services, enabled}
+# 注意：不可使用 meta:end_host（控制面 localhost play）。
+
+- name: 在依赖目标主机上 recreate/restart
+  when: (groups[_dep.target_group] | default([]) | length) > 0
+  ansible.builtin.include_role:
+    name: cert_provision
+    tasks_from: renew_recreate_host.yml
+  loop: "{{ groups[_dep.target_group] | default([]) }}"
+  loop_control:
+    loop_var: _renew_target_host
+    label: "{{ _dep.profile }}@{{ _renew_target_host }}"
+  vars:
+    _rr:
+      profile: "{{ _dep.profile }}"
+      compose_services: "{{ _dep.compose_services }}"

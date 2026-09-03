@@ -2,9 +2,11 @@
 
 覆盖范围：
   - login（管理员登录）
+  - logout（管理员退出）
   - list（待审核 Agent 列表）
   - approve（审核通过）
   - reject（审核驳回）
+  - reset-password（管理员重置其它用户密码）
 """
 
 from __future__ import annotations
@@ -23,6 +25,24 @@ pytestmark = pytest.mark.integration
 
 
 # ─── 辅助工具：用正式 CLI 注册并提交一个 Agent ────────────────────────────────
+
+
+def _login_user(runner: CliRunner, reg_conf: Path, username: str, password: str) -> None:
+    """使用普通用户身份登录。"""
+    result = runner.invoke(
+        main,
+        [
+            "--config",
+            str(reg_conf),
+            "auth",
+            "login",
+            "--username",
+            username,
+            "--password",
+            password,
+        ],
+    )
+    assert result.exit_code == 0, f"user login 失败，输出: {result.output}"
 
 
 def _register_and_submit_agent(
@@ -56,7 +76,7 @@ def _register_and_submit_agent(
         "aic": "",
         "active": False,
         "lastModifiedTime": now,
-        "protocolVersion": "02.01",
+        "protocolVersion": "02.02",
         "name": name,
         "version": "1.0.0",
         "description": "管理员集成测试用 Agent",
@@ -236,6 +256,37 @@ class TestRegAdminCliLogin:
 
         assert result.exit_code != 0
 
+    def test_admin_logout_clears_local_token_and_invalidates_server_session(
+        self,
+        work_dir: Path,
+        logged_in_admin: tuple[Path, str, str],
+        admin_token_file: Path,
+    ) -> None:
+        """admin logout 后本地 token 应删除，恢复旧 token 也不能再通过 whoami。"""
+        admin_conf, _, _ = logged_in_admin
+        runner = CliRunner()
+
+        assert admin_token_file.exists(), f"管理员 token 文件未生成：{admin_token_file}"
+        saved_token = json.loads(admin_token_file.read_text(encoding="utf-8"))
+
+        result = runner.invoke(
+            main,
+            ["--config", str(admin_conf), "admin", "auth", "logout", "--json"],
+        )
+
+        assert result.exit_code == 0, f"admin logout 失败，输出: {result.output}"
+        data = json.loads(result.output)
+        assert data["success"] is True
+        assert data["message"] == "Successfully logged out"
+        assert data["local_token_cleared"] is True
+        assert not admin_token_file.exists(), "admin logout 后本地 token 文件仍存在"
+
+        admin_token_file.parent.mkdir(parents=True, exist_ok=True)
+        admin_token_file.write_text(json.dumps(saved_token, ensure_ascii=True, indent=2), encoding="utf-8")
+
+        whoami_result = runner.invoke(main, ["--config", str(admin_conf), "admin", "auth", "whoami", "--json"])
+        assert whoami_result.exit_code != 0, "恢复旧管理员 token 后 whoami 不应继续成功"
+
 
 class TestRegAdminCliList:
     """admin registry review list 命令集成测试。"""
@@ -381,3 +432,85 @@ class TestRegAdminCliReject:
         data = json.loads(result.output)
         assert data["message"] == "Rejected"
         assert str(data.get("approval_status", "")).upper() == "REJECTED"
+
+
+class TestRegAdminCliUserResetPassword:
+    """admin registry user reset-password 命令集成测试。"""
+
+    def test_reset_password_replaces_target_user_login_password(
+        self,
+        work_dir: Path,
+        admin_conf: Path,
+        logged_in_admin: tuple[Path, str, str],
+        user_credentials: tuple[str, str],
+        token_file: Path,
+    ) -> None:
+        """管理员重置指定用户密码后，旧会话与旧密码都应失效，新密码应生效。"""
+        del logged_in_admin
+        username, old_password = user_credentials
+        new_password = "AdminReset@Test67890"
+        runner = CliRunner()
+
+        _login_user(runner, admin_conf, username, old_password)
+        assert token_file.exists(), f"目标用户 token 文件未生成：{token_file}"
+
+        whoami_result = runner.invoke(main, ["--config", str(admin_conf), "auth", "whoami", "--json"])
+        assert whoami_result.exit_code == 0, f"获取目标用户信息失败，输出: {whoami_result.output}"
+        user_id = json.loads(whoami_result.output)["id"]
+
+        reset_result = runner.invoke(
+            main,
+            [
+                "--config",
+                str(admin_conf),
+                "admin",
+                "registry",
+                "user",
+                "reset-password",
+                "--user-id",
+                user_id,
+                "--json",
+            ],
+            input=f"{new_password}\n{new_password}\n",
+        )
+
+        assert reset_result.exit_code == 0, f"reset-password 失败，输出: {reset_result.output}"
+        data = json.loads(reset_result.output[reset_result.output.find("{") :])
+        assert data["message"] == "Password reset successfully"
+        assert data["user_id"] == user_id
+
+        revoked_session_result = runner.invoke(main, ["--config", str(admin_conf), "auth", "whoami", "--json"])
+        assert revoked_session_result.exit_code != 0, "管理员重置后目标用户旧会话不应继续有效"
+
+        old_login_result = runner.invoke(
+            main,
+            [
+                "--config",
+                str(admin_conf),
+                "auth",
+                "login",
+                "--username",
+                username,
+                "--password",
+                old_password,
+            ],
+        )
+        assert old_login_result.exit_code != 0, "管理员重置后旧密码不应还能登录"
+
+        new_login_result = runner.invoke(
+            main,
+            [
+                "--config",
+                str(admin_conf),
+                "auth",
+                "login",
+                "--username",
+                username,
+                "--password",
+                new_password,
+                "--json",
+            ],
+        )
+        assert new_login_result.exit_code == 0, f"新密码登录失败，输出: {new_login_result.output}"
+        new_login_data = json.loads(new_login_result.output)
+        assert new_login_data["username"] == username

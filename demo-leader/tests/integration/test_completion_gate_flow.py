@@ -11,7 +11,7 @@ Leader Agent Platform - 集成测试：CompletionGate 完整流程
 7. LLM-6: Aggregator 结果整合
 8. 返回最终用户结果
 
-需要先在 demo-partner 仓库中启动 Partner 服务：just app bootstrap && just app start
+需要先在 demo-partner 仓库中启动 Partner 服务：just dev bootstrap && just dev start
 本测试使用真实大模型 API 调用。
 """
 
@@ -315,7 +315,7 @@ class TestCompletionGateFlow:
     """
     CompletionGate 完整流程测试
 
-    需要运行 Partner 服务：cd ../demo-partner && just app bootstrap && just app start
+    需要运行 Partner 服务：cd ../demo-partner && just dev bootstrap && just dev start
 
     如果 Partner 服务未启动，测试会立即失败并提示启动命令。
     """

@@ -151,8 +151,8 @@ class InputRouter:
                 prompts = self._scenario_loader.load_scenario_prompts(scenario_id)
                 llm4_config = prompts.get("llm_4_input_router", {})
                 return llm4_config.get("llm_profile", "llm.default")
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Failed to load scenario input-router profile; using default: %s", exc)
         return "llm.default"
 
     def _build_field_mapping(

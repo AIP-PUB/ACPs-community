@@ -33,7 +33,7 @@ cd demo-leader
 just test bootstrap
 
 # 另起终端，先启动 demo-partner
-cd ../demo-partner && just app bootstrap && just app start
+cd ../demo-partner && just dev start
 
 # 运行集成测试（默认 2 worker 文件级并发）
 just test integration
@@ -80,20 +80,19 @@ cd demo-leader
 # 准备本地测试环境
 just test bootstrap
 
-# 另起终端启动 demo-partner
-cd ../demo-partner && just app bootstrap && just app start
-
-# 再另起终端启动 demo-leader
-cd ../demo-leader && just app start
-
 # 运行 E2E 测试（默认串行执行）
 just test e2e
+
+# 运行 Keycloak OIDC 黑盒联调
+just test e2e -- tests/e2e/test_oidc_keycloak_flow.py
 
 # 串行运行（禁用并行，用于调试）
 just test e2e -- -n 0 -v
 ```
 
 > **默认串行**：E2E 测试默认保持串行执行。真实环境基准中，默认并发会引入 `test_edge_cases.py::TestErrorHandling::test_empty_query` 读超时回归，因此这里只保留显式 opt-in 并发：需要实验时可手动传入 `-n 2 --dist=loadfile`，需要完全禁用 xdist 时可继续传入 `-n 0`。
+>
+> `tests/e2e/conftest.py` 会受管启动临时运行时，因此 **不需要** 额外手工启动应用进程。常规 E2E 会拉起临时 `demo-leader` HTTPS 实例与 `demo-partner` runtime；若只选择 OIDC 文件，`just test e2e -- tests/e2e/test_oidc_keycloak_flow.py` 会走轻量 `leader` runtime，并自动拉起 dev-infra 的 `Keycloak`。
 
 **测试分组：**
 
@@ -101,6 +100,7 @@ just test e2e -- -n 0 -v
 | -------------------- | ---------------------------------------------- |
 | test_api_contract.py | API 契约测试（请求/响应格式验证）              |
 | test_edge_cases.py   | 边界情况测试（会话管理、错误处理、幂等性）     |
+| test_oidc_keycloak_flow.py | Keycloak OIDC 黑盒联调（issuer / 角色 / session ownership） |
 | test_user_journey.py | **用户旅程测试**（同一 session 12 轮完整交互） |
 
 **重点：用户旅程测试 (`test_user_journey.py`)**
@@ -129,7 +129,8 @@ just test e2e -- -n 0 -v
 | -------- | ----------------------- | ---------------------- | -------------- |
 | 单元测试 | `just test unit`        | 串行                   | 无             |
 | 集成测试 | `just test integration` | `-n 2 --dist=loadfile` | LLM + Partner  |
-| E2E 测试 | `just test e2e`         | 串行                   | Leader+Partner |
+| E2E 测试 | `just test e2e`         | 串行                   | 临时 Leader + 临时 Partner + RabbitMQ |
+| OIDC 黑盒 | `just test e2e -- tests/e2e/test_oidc_keycloak_flow.py` | 串行 | 临时 Leader + Keycloak（submit 相关断言仍需可用 LLM） |
 
 > **说明**：当前默认执行模式由仓库根目录的 `Justfile` 控制，而不是各测试目录下独立的 `pytest.ini`。`unit` / `api` / `e2e` 默认串行，`integration` 默认使用 `-n 2 --dist=loadfile`。
 
@@ -146,7 +147,8 @@ uv run pytest tests/ -v --cov=leader/assistant --cov-report=term-missing -n 0
 ## 注意事项
 
 1. 集成测试需要有效的 LLM 配置（`config.toml`）
-2. 集成测试和 E2E 测试需要先启动兄弟项目 `demo-partner`：`cd ../demo-partner && just app bootstrap && just app start`
-3. E2E 测试需要先启动当前项目：`just app start`
-4. 测试运行时间较长时，可使用 `-x` 参数在首次失败时停止
-5. 使用 `--tb=short` 简化错误输出
+2. 集成测试仍依赖可用的 Partner/LLM 环境；常规 E2E 由测试夹具受管启动临时 `demo-leader` 与 `demo-partner` runtime
+3. `just test e2e -- tests/e2e/test_oidc_keycloak_flow.py` 使用轻量 `leader` runtime，并自动执行 `just infra up keycloak && just infra wait keycloak`
+4. OIDC 黑盒中的 submit / session 权限断言依赖真实 LLM；若 LLM 不可用，用例会按设计跳过
+5. 测试运行时间较长时，可使用 `-x` 参数在首次失败时停止
+6. 使用 `--tb=short` 简化错误输出

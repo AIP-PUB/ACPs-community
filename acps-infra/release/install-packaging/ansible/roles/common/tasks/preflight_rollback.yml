@@ -1,0 +1,134 @@
+---
+# preflight_rollback.yml — preflight_rollback（image-mode）
+#
+# 期望 extra-var acps_rollback_components（CSV 字符串或列表）。必需。
+# 设置控制器 fact _acps_rollback_components（规范 key）。
+# 可选 acps_rollback_to：须匹配保留 previous 的版本 id（或 image_tag）。
+#
+# 各主机 previous/镜像可用性在 rollback_one_component.yml 校验
+# （失败即停，保留现场）。证书不在默认回滚集合中。
+
+- name: 要求 acps_rollback_components (explicit for safety)
+  ansible.builtin.assert:
+    that:
+      - acps_rollback_components is defined
+      - (acps_rollback_components | string | length) > 0
+        or (acps_rollback_components is sequence and (acps_rollback_components | length) > 0)
+    fail_msg: >-
+      acps_rollback_components is required (comma-separated or list), e.g.
+      -e acps_rollback_components=registry_server
+      or -e '{"acps_rollback_components":["registry_server","ca_server"]}'
+
+- name: 规范化 requested rollback keys
+  ansible.builtin.set_fact:
+    _acps_rollback_raw: >-
+      {{
+        acps_rollback_components
+        if (acps_rollback_components is sequence and acps_rollback_components is not string)
+        else ((acps_rollback_components | string).split(','))
+      }}
+
+- name: Canonicalize rollback keys (discovery alias)
+  ansible.builtin.set_fact:
+    _acps_rollback_components: >-
+      {{
+        _acps_rollback_raw
+        | map('trim')
+        | reject('equalto', '')
+        | map(
+            'regex_replace',
+            '^discovery_server$',
+            'discovery_server_' ~ (discovery_server_variant | default('cpu'))
+          )
+        | list
+        | unique
+      }}
+
+- name: 缺失时失败： rollback list empty after normalize
+  ansible.builtin.assert:
+    that:
+      - (_acps_rollback_components | length) > 0
+    fail_msg: "acps_rollback_components normalized to empty list"
+
+- name: Known rollbackable component keys (C order catalog)
+  ansible.builtin.set_fact:
+    _acps_rollback_known: >-
+      {{
+        [
+          'postgresql',
+          'keycloak',
+          'registry_server',
+          'ca_server',
+          'acps_cli',
+          'discovery_server_cpu',
+          'discovery_server_gpu',
+          'redis',
+          'rabbitmq',
+          'mq_auth_server',
+          'redpanda',
+          'victoria_metrics',
+          'clickhouse',
+          'minio',
+          'opensearch',
+          'monitor_server',
+          'demo_partner',
+          'demo_leader',
+          'amp_forwarder',
+        ]
+      }}
+
+- name: Reject unknown rollback keys
+  ansible.builtin.assert:
+    that:
+      - item in _acps_rollback_known
+    fail_msg: >-
+      Unknown rollback component {{ item }}. Known: {{ _acps_rollback_known | join(', ') }}
+  loop: "{{ _acps_rollback_components }}"
+
+- name: Map key → enabled flag
+  ansible.builtin.set_fact:
+    _acps_rollback_enabled_map: >-
+      {{
+        {
+          'postgresql': postgresql_enabled | bool,
+          'keycloak': keycloak_enabled | bool,
+          'registry_server': registry_server_enabled | bool,
+          'ca_server': ca_server_enabled | bool,
+          'acps_cli': true,
+          'discovery_server_cpu': discovery_server_enabled | bool,
+          'discovery_server_gpu': discovery_server_enabled | bool,
+          'redis': redis_enabled | bool,
+          'rabbitmq': rabbitmq_enabled | bool,
+          'mq_auth_server': mq_auth_server_enabled | bool,
+          'redpanda': monitor_server_enabled | bool,
+          'victoria_metrics': monitor_server_enabled | bool,
+          'clickhouse': monitor_server_enabled | bool,
+          'minio': monitor_server_enabled | bool,
+          'opensearch': monitor_server_enabled | bool,
+          'monitor_server': monitor_server_enabled | bool,
+          'demo_partner': demo_partner_enabled | bool,
+          'demo_leader': demo_leader_enabled | bool,
+          'amp_forwarder': (
+            (amp_forwarder_enabled | default(true) | bool)
+            and (
+              (demo_partner_enabled | default(false) | bool)
+              or (demo_leader_enabled | default(false) | bool)
+            )
+          ),
+        }
+      }}
+
+- name: Reject disabled components in rollback list
+  ansible.builtin.assert:
+    that:
+      - _acps_rollback_enabled_map[item] | bool
+    fail_msg: "Cannot rollback {{ item }}: component disabled in inventory/group_vars"
+  loop: "{{ _acps_rollback_components }}"
+
+- name: Show rollback selection
+  ansible.builtin.debug:
+    msg: >-
+      rollback components={{ _acps_rollback_components | join(',') }};
+      rollback_to={{ acps_rollback_to | default('(previous)', true) }};
+      skip_smoke={{ acps_rollback_skip_smoke | default(false) | bool }};
+      certs=not-in-default-rollback-set; db-migrate-downgrade=not-supported

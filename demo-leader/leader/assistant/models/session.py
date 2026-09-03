@@ -264,7 +264,29 @@ class Session(BaseModel):
     user_id: str | None = Field(
         default=None,
         alias="userId",
-        description="可选用户标识",
+        description="真人 principal_id（OIDC 模式）或兼容保留的用户标识",
+    )
+    principal_issuer: str | None = Field(
+        default=None,
+        alias="principalIssuer",
+        description="OIDC issuer（仅内部使用）",
+    )
+    principal_subject: str | None = Field(
+        default=None,
+        alias="principalSubject",
+        description="OIDC subject（仅内部排障使用）",
+        exclude=True,
+        repr=False,
+    )
+    principal_username: str | None = Field(
+        default=None,
+        alias="principalUsername",
+        description="OIDC 用户名（仅内部使用）",
+    )
+    principal_email: str | None = Field(
+        default=None,
+        alias="principalEmail",
+        description="OIDC 邮箱（仅内部使用）",
     )
     created_at: IsoDateTimeString = Field(
         ...,

@@ -1,0 +1,280 @@
+---
+# stage_artifact_host_app_release.yml
+# host 模式 app_release 制品落地（本设计 §5.1/§5.2 / 实施计划 Step 8）：
+#   release-manifest.toml [apps.<component>] 解析 → 分发归档 → install_app_release.yml
+#   （解包 + venv + 离线 pip，保留 app/ 运行期资源）→ 归档所在目录以外，另建
+#   config/certs 软链，指向本组件在 {{ acps_runtime_root }}/{config,certs}/<component>/
+#   下的共享目录（与 image 模式 bind-mount 源同一份，避免配置分叉）。
+#
+# 期望（调用方 vars）：
+#   acps_component_key       （必填）release-manifest [apps.*] key，如 registry_server /
+#                             discovery_server_cpu
+#   acps_host_app_pip_packages
+#                             （必填）list，落地 wheelhouse 离线安装的包说明符，如
+#                             ["registry-server"] / ["discovery-server[gpu]"]
+#   acps_host_app_console_script
+#                             （可选）venv/bin/ 下需存在的入口脚本名（如
+#                             mq-auth-server 的控制台脚本 mq-auth-server）
+#   acps_host_release_dest   （可选）升级时显式版本目录
+#                             {{ acps_runtime_root }}/{component}/releases/<ver>；
+#                             未设时：若已有 current→releases/ 则经 current 写入，
+#                             否则仍为扁平 {{ acps_runtime_root }}/{component}（首装兼容）
+#
+# 幂等策略（不以「venv 目录存在」代替「已装正确版本」）：
+# - 按 release-manifest 解析出的归档文件名写入落地根目录下的 marker 文件；
+# - marker 缺失、内容不一致、venv 解释器缺失、或 acps_force_app_reinstall=true 时
+#   才重新分发 + install_app_release；否则跳过（保留幂等 + 加速重跑）。
+#
+# 可选：acps_skip_stage_artifact=true — 由 stage_artifact.yml 拦截；本文件再防御性
+# 拒绝执行，避免回滚路径误覆盖 previous releases 树。
+
+- name: 拒绝在 skip 标志下执行 host app_release stage（防御）
+  when: acps_skip_stage_artifact | default(false) | bool
+  ansible.builtin.fail:
+    msg: >-
+      stage_artifact_host_app_release.yml refused: acps_skip_stage_artifact=true
+      (component={{ acps_component_key | default('?') }}). stage_artifact.yml should
+      have short-circuited; refuse to unpack into current/previous tree.
+
+- name: 要求 acps_component_key 已定义（app_release）
+  ansible.builtin.assert:
+    that:
+      - acps_component_key is defined
+      - (acps_component_key | string | length) > 0
+    fail_msg: "stage_artifact_host_app_release.yml requires acps_component_key"
+
+- name: 要求 acps_host_app_pip_packages 已定义
+  ansible.builtin.assert:
+    that:
+      - acps_host_app_pip_packages is defined
+      - (acps_host_app_pip_packages | length) > 0
+    fail_msg: >-
+      stage_artifact_host_app_release.yml requires acps_host_app_pip_packages
+      (component={{ acps_component_key }}) — the pip install spec(s) for the
+      wheel(s) to install offline from the app-release wheelhouse.
+
+- name: 从 release-manifest.toml 解析 app-release 制品
+  ansible.builtin.command:
+    argv:
+      - "{{ acps_tools_python | default('python3') }}"
+      - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+      - "--manifest"
+      - "{{ acps_manifest_path }}"
+      - "--table"
+      - "apps"
+      - "--component"
+      - "{{ acps_component_key }}"
+  register: _app_manifest_lookup
+  changed_when: false
+  delegate_to: localhost
+  become: false
+  vars:
+    # 单纯 become:false 在 host inventory 设 ansible_become=true 时不生效
+    # （连接变量优先级高于 play/task 关键字，Ansible 已知 trip-hazard）；
+    # 必须在 task vars 层再覆盖同名变量才能真正压制 become。
+    ansible_become: false
+
+- name: 记录 app-release manifest facts
+  ansible.builtin.set_fact:
+    # 持久化为 host fact：include_role vars 不会保留到后续
+    # render_host_systemd / deploy_host_service / commit_state。
+    acps_component_key: "{{ acps_component_key }}"
+    acps_app_meta: "{{ _app_manifest_lookup.stdout | from_json }}"
+    # commit_state.yml 的 artifact_id 默认取 acps_image_meta.file；host app_release
+    # 复用同一 fact 名，避免另外改 commit_state.yml。
+    acps_image_meta: "{{ _app_manifest_lookup.stdout | from_json | combine({'file': (_app_manifest_lookup.stdout | from_json).app_release}) }}"
+
+- name: 探测组件 current symlink（决定首装扁平 vs 经 current）
+  ansible.builtin.stat:
+    path: "{{ acps_runtime_root }}/{{ acps_component_key }}/current"
+  register: _acps_host_current_stat
+
+- name: 设置落地路径 facts
+  ansible.builtin.set_fact:
+    _acps_host_component_root: "{{ acps_runtime_root }}/{{ acps_component_key }}"
+    _acps_host_current_is_link: >-
+      {{
+        (_acps_host_current_stat.stat.exists | default(false) | bool)
+        and (_acps_host_current_stat.stat.islnk | default(false) | bool)
+      }}
+    _acps_host_app_dest: >-
+      {{
+        (acps_host_release_dest | string)
+        if ((acps_host_release_dest | default('') | string | length) > 0)
+        else (
+          (acps_runtime_root ~ '/' ~ acps_component_key ~ '/current')
+          if (
+            (_acps_host_current_stat.stat.exists | default(false) | bool)
+            and (_acps_host_current_stat.stat.islnk | default(false) | bool)
+          )
+          else (acps_runtime_root ~ '/' ~ acps_component_key)
+        )
+      }}
+    _acps_host_app_archive_control: "{{ acps_artifacts_apps | default(acps_release_root ~ '/artifacts/apps') }}/{{ acps_app_meta.app_release }}"
+    _acps_host_app_staging_dir: "{{ acps_runtime_root }}/staging/apps"
+    _acps_host_app_config_dir: "{{ acps_runtime_root }}/config/{{ acps_component_key }}"
+    _acps_host_app_certs_dir: "{{ acps_runtime_root }}/certs/{{ acps_component_key }}"
+
+- name: 设置 marker/venv 路径 facts
+  ansible.builtin.set_fact:
+    _acps_host_app_marker: "{{ _acps_host_app_dest }}/.installed_app_release"
+    _acps_host_app_staged_archive: "{{ _acps_host_app_staging_dir }}/{{ acps_app_meta.app_release }}"
+
+- name: 检查控制节点归档
+  ansible.builtin.stat:
+    path: "{{ _acps_host_app_archive_control }}"
+  register: _host_app_archive_stat
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_become: false # 同上：压制 host inventory ansible_become=true 的连接变量优先级
+
+- name: 要求控制节点归档存在
+  ansible.builtin.assert:
+    that:
+      - _host_app_archive_stat.stat.exists
+      - _host_app_archive_stat.stat.size | int > 0
+    fail_msg: >-
+      Control-node app-release archive missing/empty: {{ _acps_host_app_archive_control }}.
+      release-manifest.toml [apps.{{ acps_component_key }}] 声明了 app_release=
+      {{ acps_app_meta.app_release }}，但 {{ acps_artifacts_apps | default(acps_release_root ~ '/artifacts/apps') }} 下未找到该文件
+      （build-install-package.sh --mode host 的产物应已放在此处）。
+
+- name: 读取目标已安装的归档 marker（可能不存在）
+  ansible.builtin.slurp:
+    src: "{{ _acps_host_app_marker }}"
+  register: _host_app_marker_slurp
+  failed_when: false
+  changed_when: false
+
+- name: 检查目标 venv 解释器是否已就位
+  ansible.builtin.stat:
+    path: "{{ _acps_host_app_dest }}/venv/bin/python"
+  register: _host_app_venv_stat
+
+- name: 判定是否需要（重）安装 app-release
+  ansible.builtin.set_fact:
+    _acps_host_app_need_install: >-
+      {{
+        (acps_force_app_reinstall | default(false) | bool)
+        or (not _host_app_venv_stat.stat.exists)
+        or ((_host_app_marker_slurp.content | default('') | length) == 0)
+        or ((_host_app_marker_slurp.content | b64decode | trim) != (acps_app_meta.app_release | string))
+      }}
+
+- name: （重）安装 app-release（解包 → 规范化 → venv → 离线 pip）
+  when: _acps_host_app_need_install | bool
+  block:
+    - name: 确保 config/certs 共享目录存在（供本组件 systemd WorkingDirectory 软链）
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ _acps_host_app_config_dir }}"
+        - "{{ _acps_host_app_certs_dir }}"
+
+    - name: 确保远程 app-release staging 目录
+      ansible.builtin.file:
+        path: "{{ _acps_host_app_staging_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: 向目标主机分发 app-release 归档
+      ansible.builtin.copy:
+        src: "{{ _acps_host_app_archive_control }}"
+        dest: "{{ _acps_host_app_staged_archive }}"
+        mode: "0644"
+
+    - name: 落地 app-release（复用通用实现；保留 app/ 运行期资源）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: install_app_release.yml
+      vars:
+        acps_app_install_dest: "{{ _acps_host_app_dest }}"
+        acps_app_release_archive: "{{ _acps_host_app_staged_archive }}"
+        acps_app_pip_packages: "{{ acps_host_app_pip_packages }}"
+        acps_app_console_script: "{{ acps_host_app_console_script | default('') }}"
+        acps_app_keep_app_assets: true
+        # bootstrap_runtime.py 仅 control acps-cli 需要；业务 app-release 无此脚本。
+        acps_app_verify_bootstrap_runtime: false
+
+    - name: 移除已装归档所在的暂存文件（成功后清理，对齐 image 分支）
+      ansible.builtin.file:
+        path: "{{ _acps_host_app_staged_archive }}"
+        state: absent
+
+    - name: 用共享 config 目录替换落地根目录下的 config（软链，单一配置来源）
+      ansible.builtin.file:
+        path: "{{ _acps_host_app_dest }}/config"
+        state: absent
+
+    - name: 用共享 certs 目录替换落地根目录下的 certs（软链，单一证书来源）
+      ansible.builtin.file:
+        path: "{{ _acps_host_app_dest }}/certs"
+        state: absent
+
+    - name: 软链 config -> {{ _acps_host_app_config_dir }}
+      ansible.builtin.file:
+        src: "{{ _acps_host_app_config_dir }}"
+        dest: "{{ _acps_host_app_dest }}/config"
+        state: link
+        force: true
+
+    - name: 软链 certs -> {{ _acps_host_app_certs_dir }}
+      ansible.builtin.file:
+        src: "{{ _acps_host_app_certs_dir }}"
+        dest: "{{ _acps_host_app_dest }}/certs"
+        state: link
+        force: true
+
+    - name: 写入已安装归档 marker
+      ansible.builtin.copy:
+        content: "{{ acps_app_meta.app_release }}\n"
+        dest: "{{ _acps_host_app_marker }}"
+        mode: "0644"
+
+    - name: 记录 app-release 已重装（供 deploy_host_service 判定是否需重启）
+      ansible.builtin.set_fact:
+        acps_host_app_install_changed: true
+
+- name: 解析 unit/runtime 指向（经 current，禁止长期写死 releases/<ver>）
+  ansible.builtin.set_fact:
+    _acps_host_unit_root: >-
+      {{
+        (_acps_host_component_root ~ '/current')
+        if (
+          (_acps_host_current_is_link | bool)
+          or (acps_host_unit_via_current | default(false) | bool)
+        )
+        else _acps_host_app_dest
+      }}
+
+- name: 记录落地路径 facts（跳过重装时也需要，供 render_host_systemd / db_migrate_host 使用）
+  ansible.builtin.set_fact:
+    # stage 实际写入目录（可能是 releases/<ver>）
+    acps_host_app_stage_dest: "{{ _acps_host_app_dest }}"
+    # systemd WorkingDirectory / PATH 经 current（若已迁入版本布局）
+    acps_host_app_install_dest: "{{ _acps_host_unit_root }}"
+    acps_app_install_venv: "{{ _acps_host_unit_root }}/venv"
+    acps_app_install_python: "{{ _acps_host_unit_root }}/venv/bin/python"
+    acps_host_layout: >-
+      {{
+        'releases'
+        if (
+          (_acps_host_current_is_link | bool)
+          or (acps_host_unit_via_current | default(false) | bool)
+          or ((acps_host_release_dest | default('') | string | length) > 0)
+        )
+        else 'flat'
+      }}
+    acps_host_release_path: >-
+      {{
+        (acps_host_release_dest | default(_acps_host_app_dest, true) | string)
+        if (
+          (_acps_host_current_is_link | bool)
+          or (acps_host_unit_via_current | default(false) | bool)
+          or ((acps_host_release_dest | default('') | string | length) > 0)
+        )
+        else ''
+      }}

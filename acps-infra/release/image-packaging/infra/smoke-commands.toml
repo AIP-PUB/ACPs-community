@@ -1,0 +1,20 @@
+# 基础设施镜像 smoke 命令表。
+#
+# 按 infra id 索引，值是在目标镜像内以 `sh -c "<command>"` 执行的最小验证命令
+# （ 步骤 5：version 命令 / 配置校验 / 内置 health command / 专用脚本）。
+# 基础设施镜像不执行 Python `pip check`/`import`（那是应用镜像专属 smoke）。
+#
+# 命令应尽量做到：不需要联网、不需要真正拉起长期服务进程、返回码非 0 即视为失败。
+
+[commands]
+redis = "redis-server --version"
+postgres-pgvector = "postgres --version && test -f /usr/lib/postgresql/17/lib/vector.so"
+rabbitmq = "grep -q rabbitmq_auth_backend_http /etc/rabbitmq/enabled_plugins"
+gateway-nginx = "nginx -v && test -f /etc/nginx/templates/default.conf.template"
+keycloak = "test -f /opt/keycloak/data/import/acps-registry.json && test -f /opt/keycloak/data/import/acps-leader.json && test -f /opt/keycloak/data/import/acps-monitor.json"
+redpanda = "rpk version"
+victoria-metrics = "/victoria-metrics-prod --version"
+clickhouse = "clickhouse-server --version"
+minio = "minio --version"
+opensearch = "/usr/share/opensearch/bin/opensearch --version"
+fluent-bit = "/fluent-bit/bin/fluent-bit --version"

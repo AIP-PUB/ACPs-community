@@ -1,0 +1,205 @@
+---
+- name: monitor 禁用时结束
+  when: not (monitor_server_enabled | bool)
+  ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 monitor-server（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: stage monitor 镜像
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: monitor_server
+        acps_artifact_kind: app_release
+
+    - name: 派生主机
+      ansible.builtin.set_fact:
+        _pg_host: "{{ hostvars | acps_group_addr(groups, 'postgresql') }}"
+        _redis_host: "{{ hostvars | acps_group_addr(groups, 'redis') }}"
+        _ca_host: "{{ hostvars | acps_group_addr(groups, 'ca_server') }}"
+        _keycloak_host: "{{ hostvars | acps_group_addr(groups, 'keycloak') }}"
+        _clickhouse_host: "{{ hostvars | acps_group_addr(groups, 'clickhouse') }}"
+        _opensearch_host: "{{ hostvars | acps_group_addr(groups, 'opensearch') }}"
+        _victoria_metrics_host: "{{ hostvars | acps_group_addr(groups, 'victoria_metrics') }}"
+        _minio_host: "{{ hostvars | acps_group_addr(groups, 'minio') }}"
+        _redpanda_host: "{{ hostvars | acps_group_addr(groups, 'redpanda') }}"
+
+    - name: 要求共享 heartbeat sync 内部 token
+      ansible.builtin.assert:
+        that:
+          - (monitor_heartbeat_sync_internal_token | default('') | length) >= 16
+          - monitor_heartbeat_sync_internal_token is not match('(?i)^change_me')
+        fail_msg: >-
+          monitor_heartbeat_sync_internal_token missing or placeholder in secrets.yml.
+          Required for Discovery alive-sync bootstrap of Monitor /sync/* (shared Bearer;
+          Keycloak OIDC H D2 path). Injected as HEARTBEAT_SYNC_INTERNAL_TOKEN.
+
+    - name: 准备目录
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ acps_runtime_root }}/config/monitor_server"
+        - "{{ acps_runtime_root }}/certs/monitor_server"
+
+    - name: 检查 monitor 主机上错误的 Redis CA bind 路径
+      ansible.builtin.stat:
+        path: "{{ acps_runtime_root }}/certs/redis/acps-root-ca.pem"
+      register: _mon_bad_ca
+
+    - name: 若 Docker 创建了目录则移除错误的 Redis CA 路径
+      ansible.builtin.file:
+        path: "{{ acps_runtime_root }}/certs/redis/acps-root-ca.pem"
+        state: absent
+      when: _mon_bad_ca.stat.exists | default(false) and _mon_bad_ca.stat.isdir | default(false)
+
+    - name: 检查控制节点 Redis CA（来自 T2 cert_provision）
+      ansible.builtin.stat:
+        path: "{{ acps_control_root }}/work/certs/redis/acps-root-ca.pem"
+      delegate_to: localhost
+      become: false
+      register: _mon_redis_ca_ctrl
+
+    - name: 要求 monitor TLS 客户端的 Redis CA
+      ansible.builtin.assert:
+        that:
+          - _mon_redis_ca_ctrl.stat.exists
+          - _mon_redis_ca_ctrl.stat.isreg
+        fail_msg: >-
+          Missing {{ acps_control_root }}/work/certs/redis/acps-root-ca.pem —
+          Phase 8a (redis certs) must run before monitor.
+
+    - name: 将 Redis CA 安装到 monitor 主机
+      ansible.builtin.copy:
+        src: "{{ acps_control_root }}/work/certs/redis/acps-root-ca.pem"
+        dest: "{{ acps_runtime_root }}/certs/monitor_server/acps-root-ca.pem"
+        mode: "0644"
+      register: _mon_redis_ca_copy
+
+    - name: 同步配置（排除 production.toml — 由下方 j2 渲染）
+      ansible.builtin.copy:
+        src: "{{ acps_release_root }}/templates/config/monitor_server/{{ item }}"
+        dest: "{{ acps_runtime_root }}/config/monitor_server/{{ item }}"
+        mode: "0644"
+      loop:
+        - default.toml
+        - development.toml
+        - testing.toml
+      register: _mon_config_copy
+
+    - name: 缺失时创建 audit_keys.json 占位
+      ansible.builtin.copy:
+        dest: "{{ acps_runtime_root }}/config/monitor_server/audit_keys.json"
+        mode: "0644"
+        content: |
+          {"keys": []}
+        force: false
+
+    - name: 渲染 env
+      ansible.builtin.template:
+        src: env.j2
+        dest: "{{ acps_runtime_root }}/config/monitor_server/.env"
+        mode: "0600"
+      register: _mon_env_render
+
+    - name: 为 local auth 渲染 production 覆盖
+      ansible.builtin.template:
+        src: production.toml.j2
+        dest: "{{ acps_runtime_root }}/config/monitor_server/production.toml"
+        mode: "0644"
+      register: _mon_toml_render
+
+    - name: 渲染 compose
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/monitor_server.yml"
+        mode: "0644"
+      register: _mon_compose_render
+
+    - name: 计算 monitor Redis CA digest（无侧车=首装补起）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: tls_material_digest.yml
+      vars:
+        acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/monitor_server"
+        acps_tls_digest_files:
+          - acps-root-ca.pem
+        acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/monitor-redis-ca.sha256"
+        acps_tls_digest_persist: false
+
+    - name: 解析本轮上游 broker bounce
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: resolve_tls_upstream_bounce.yml
+
+    - name: 判定 monitor 是否应 force recreate
+      ansible.builtin.set_fact:
+        _mon_force_recreate: >-
+          {{
+            (_mon_redis_ca_copy is changed)
+            or (_mon_config_copy is changed)
+            or (_mon_env_render is changed)
+            or (_mon_toml_render is changed)
+            or (_mon_compose_render is changed)
+            or (_tls_material_digest_changed | default(true) | bool)
+            or (_acps_redis_bounced_this_run | default(false) | bool)
+            or (acps_force_monitor_restart | default(false) | bool)
+          }}
+
+    - name: Alembic 迁移 monitor (best-effort)
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: db_migrate.yml
+      vars:
+        acps_compose_service_name: monitor_server
+      ignore_errors: true
+
+    - name: 确保 audit_records 月分区（覆盖当月+前瞻；防 AuditWriter 无分区丢数）
+      ansible.builtin.include_tasks: ensure_audit_partitions.yml
+
+    - name: 部署 monitor
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: monitor_server
+        acps_compose_force_recreate: "{{ _mon_force_recreate | bool }}"
+
+    - name: 持久化 monitor Redis CA digest
+      when: _mon_force_recreate | bool
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: tls_material_digest.yml
+      vars:
+        acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/monitor_server"
+        acps_tls_digest_files:
+          - acps-root-ca.pem
+        acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/monitor-redis-ca.sha256"
+        acps_tls_digest_persist: true
+
+    - name: 开放 monitor 广告端口（firewalld/ufw；与 host 同构）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: open_advertise_ports.yml
+      vars:
+        acps_open_ports:
+          - "{{ monitor_server_port }}"
+
+    - name: Health 9009
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: health_http.yml
+      vars:
+        acps_health_url: "http://127.0.0.1:{{ monitor_server_port }}/health"
+
+- name: host 分支：app_release venv/systemd + heartbeat/metrics Writers（Step 13）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml

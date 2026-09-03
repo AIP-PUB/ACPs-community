@@ -1,0 +1,6 @@
+---
+# deploy_compose_service.yml
+# 向后兼容别名：新代码应调用中性入口 deploy_service.yml。
+# 内容已平移到 deploy_image_service.yml（字节不变）。
+- name: 包含 deploy_image_service.yml（向后兼容别名）
+  ansible.builtin.include_tasks: deploy_image_service.yml

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+export ANSIBLE_CONFIG="${ROOT}/ansible/ansible.cfg"
+INV="${1:-${ROOT}/ansible/inventories/hosts.yml}"
+SECRETS="${2:-${ROOT}/ansible/inventories/secrets.yml}"
+shift $(( $# >= 1 ? 1 : 0 )) || true
+shift $(( $# >= 1 ? 1 : 0 )) || true
+exec ansible-playbook -i "${INV}" "${ROOT}/ansible/playbooks/site.yml" -e @"${SECRETS}" "$@"

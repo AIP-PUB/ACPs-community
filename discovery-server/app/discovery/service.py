@@ -212,7 +212,7 @@ def _resolve_runtime(runtime: ServiceRuntime | None = None) -> ServiceRuntime:
 
 
 def _current_mode(runtime: ServiceRuntime | None = None) -> str:
-    return (_resolve_runtime(runtime).settings.DISCOVERY_MODE or "gpu").strip().lower()
+    return (_resolve_runtime(runtime).settings.DISCOVERY_MODE or "cpu").strip().lower()
 
 
 def _extract_score_from_memo(memo: str) -> float | None:
@@ -269,6 +269,7 @@ def _build_response(
         duration_ms=int(duration_ms),
     )
     result = DiscoveryResult(acs_map=acs_map, agents=groups, routes=[route])
+    result._alive_enrichable = True  # 标记为本地产出（§8.1），供 attach_alive_status 注入 aliveMap
     return DiscoveryResponse.success(result=result)
 
 

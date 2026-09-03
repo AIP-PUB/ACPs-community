@@ -1,0 +1,16 @@
+---
+# Rocky/RHEL — PGDG-EL{major} 仓库 + postgresql<ver>-server + pgvector_<ver>；
+# RPM 包不自动建簇，须显式 initdb（本设计 §6.4(2)）。
+# EL major 由 preflight 写入的 acps_el_major（= ansible_distribution_major_version）决定；
+# major=9 时 URL 与历史硬编码 EL-9 字节等价。
+postgresql_os_pgdg_repo_rpm: >-
+  https://download.postgresql.org/pub/repos/yum/reporpms/EL-{{ acps_el_major | default(ansible_distribution_major_version) }}-{{ 'aarch64' if ansible_architecture in ['aarch64', 'arm64'] else 'x86_64' }}/pgdg-redhat-repo-latest.noarch.rpm
+postgresql_os_packages:
+  - "postgresql{{ postgresql_os_major_version }}-server"
+  - "postgresql{{ postgresql_os_major_version }}-contrib"
+  - "pgvector_{{ postgresql_os_major_version }}"
+postgresql_os_service_name: "postgresql-{{ postgresql_os_major_version }}"
+postgresql_os_bin_dir: "/usr/pgsql-{{ postgresql_os_major_version }}/bin"
+postgresql_os_data_dir: "/var/lib/pgsql/{{ postgresql_os_major_version }}/data"
+postgresql_os_config_dir: "{{ postgresql_os_data_dir }}"
+postgresql_os_requires_initdb: true

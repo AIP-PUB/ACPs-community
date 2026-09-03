@@ -1,0 +1,70 @@
+[app]
+name = "Agent Discovery Server"
+version = "2.2.0"
+description = "基于自然语言请求提供 Agent 发现的 API 服务"
+
+[server]
+host = "0.0.0.0"
+port = 9005
+reload = false
+uvicorn_log_level = "info"
+root_path = ""
+
+[logging]
+level = "INFO"
+format = "json"
+
+[database]
+output_sql = false
+pool_size = 10
+max_overflow = 20
+pool_timeout = 30.0
+pool_recycle = 1800
+pool_pre_ping = true
+
+[discovery]
+mode = "gpu"
+
+[embedding]
+dimension = 1024
+batch_size = 64
+max_wait_time = 0.01
+
+[embedding.cpu]
+model_name = "text-embedding-3-small"
+base_url = ""
+
+[embedding.gpu]
+model_path = ""
+devices = "cuda:0"
+reranker_url = ""
+
+[llm.discovery]
+model_name = "qwen-plus"
+base_url = ""
+
+[prompt]
+planner_file_path = "scripts/prompts/planner_prompt.txt"
+cluster_file_path = "scripts/prompts/cluster_prompt.txt"
+
+[dsp]
+base_url = "http://localhost:9001/acps-dsp-v2"
+changes_pull_interval = 600
+snapshot_chunk_size = 10000
+changes_chunk_size = 1000
+semantic_index_concurrency = 4
+
+[dsp.webhook]
+receive_url = ""
+
+[polling]
+server_url = ""
+interval = 300
+
+[forwarder]
+server_url = ""
+server_timeout = 30.0
+server_enabled = false
+health_check_interval = 600
+request_retries = 0
+fallback_to_local = true

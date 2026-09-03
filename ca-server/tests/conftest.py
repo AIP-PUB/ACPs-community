@@ -47,7 +47,7 @@ os.environ["APP_ENV"] = "testing"
 os.environ["REGISTRY_SERVER_MOCK"] = "true"
 _set_env_default_if_blank(os.environ, "REGISTRY_SERVER_INTERNAL_API_TOKEN", "local-registry-server-internal-api-token")
 _set_env_default_if_blank(os.environ, "CA_SERVER_INTERNAL_API_TOKEN", "test-ca-internal-token")
-_set_env_default_if_blank(os.environ, "CA_SERVER_ADMIN_API_TOKEN", "test-ca-admin-token")
+_set_env_default_if_blank(os.environ, "CA_SERVER_ADMIN_API_TOKEN", "local-ca-admin-token")
 
 TEST_DATABASE_NAME = "agent_ca_test"
 DEFAULT_TEST_DATABASE_URL = "postgresql://ca:ca@localhost:5432/agent_ca_test"

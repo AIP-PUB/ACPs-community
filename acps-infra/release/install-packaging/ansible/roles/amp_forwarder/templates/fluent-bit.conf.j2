@@ -1,0 +1,189 @@
+# AMP Forwarder (install-layer): demo Leader/Partner amp_*.jsonl → Redpanda amp.* topics.
+# Log root: {{ _amp_fw_log_base | default('/logs') }} (image bind-mount / host {{ acps_log_root }}).
+# State DB: {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}.
+# Brokers from inventory advertise (B-style); no developer-machine absolute paths.
+
+[SERVICE]
+    Flush           1
+    Log_Level       info
+    Parsers_File    {{ _amp_fw_parsers_file | default('/fluent-bit/etc/parsers.conf') }}
+
+{% if _amp_fw_has_leader | bool %}
+# ── demo-leader (fixed filenames) ────────────────────────────────────────────
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_leader/amp_audit.jsonl
+    Tag              amp.audit
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/leader-audit.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_leader/amp_access.jsonl
+    Tag              amp.access
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/leader-access.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_leader/amp_message.jsonl
+    Tag              amp.message
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/leader-message.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_leader/amp_metrics.jsonl
+    Tag              amp.metrics
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/leader-metrics.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_leader/amp_heartbeat.jsonl
+    Tag              amp.heartbeat
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/leader-hb.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_leader/amp_system.jsonl
+    Tag              amp.system
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/leader-system.db
+{% endif %}
+
+{% if _amp_fw_has_partner | bool %}
+# ── demo-partner (per-agent globs) ───────────────────────────────────────────
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_partner/amp_audit_*.jsonl
+    Tag              amp.audit
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/partner-audit.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_partner/amp_access_*.jsonl
+    Tag              amp.access
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/partner-access.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_partner/amp_message_*.jsonl
+    Tag              amp.message
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/partner-message.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_partner/amp_metrics_*.jsonl
+    Tag              amp.metrics
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/partner-metrics.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_partner/amp_heartbeat_*.jsonl
+    Tag              amp.heartbeat
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/partner-hb.db
+
+[INPUT]
+    Name             tail
+    Path             {{ _amp_fw_log_base | default('/logs') }}/demo_partner/amp_system_*.jsonl
+    Tag              amp.system
+    Parser           amp_audit_json
+    Refresh_Interval 2
+    Read_From_Head   False
+    DB               {{ _amp_fw_state_dir | default('/var/lib/fluent-bit') }}/partner-system.db
+{% endif %}
+
+# ── Kafka outputs (Workers 1: required on macOS Fluent Bit v5; fine on Linux) ─
+# Brokers: {{ _amp_fw_brokers }}
+# timestamp_key _fb_ts on audit only — Monitor AuditWriter strips @/_fb* metadata.
+# Non-audit topics expect pre-created LogAppendTime topics; auto-create off.
+
+[OUTPUT]
+    Name                              kafka
+    Match                             amp.audit
+    Brokers                           {{ _amp_fw_brokers }}
+    Topics                            amp.audit
+    Workers                           1
+    timestamp_key                     _fb_ts
+    rdkafka.log.connection.close      false
+    rdkafka.request.required.acks     1
+    rdkafka.allow.auto.create.topics  true
+
+[OUTPUT]
+    Name                              kafka
+    Match                             amp.access
+    Brokers                           {{ _amp_fw_brokers }}
+    Topics                            amp.access
+    Workers                           1
+    rdkafka.log.connection.close      false
+    rdkafka.request.required.acks     1
+    rdkafka.allow.auto.create.topics  false
+
+[OUTPUT]
+    Name                              kafka
+    Match                             amp.message
+    Brokers                           {{ _amp_fw_brokers }}
+    Topics                            amp.message
+    Workers                           1
+    rdkafka.log.connection.close      false
+    rdkafka.request.required.acks     1
+    rdkafka.allow.auto.create.topics  false
+
+[OUTPUT]
+    Name                              kafka
+    Match                             amp.metrics
+    Brokers                           {{ _amp_fw_brokers }}
+    Topics                            amp.metrics
+    Workers                           1
+    rdkafka.log.connection.close      false
+    rdkafka.request.required.acks     1
+    rdkafka.allow.auto.create.topics  false
+
+[OUTPUT]
+    Name                              kafka
+    Match                             amp.heartbeat
+    Brokers                           {{ _amp_fw_brokers }}
+    Topics                            amp.heartbeat
+    Workers                           1
+    rdkafka.log.connection.close      false
+    rdkafka.request.required.acks     1
+    rdkafka.allow.auto.create.topics  false
+
+[OUTPUT]
+    Name                              kafka
+    Match                             amp.system
+    Brokers                           {{ _amp_fw_brokers }}
+    Topics                            amp.system
+    Workers                           1
+    rdkafka.log.connection.close      false
+    rdkafka.request.required.acks     1
+    rdkafka.allow.auto.create.topics  false

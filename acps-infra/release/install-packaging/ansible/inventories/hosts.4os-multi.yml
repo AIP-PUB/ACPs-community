@@ -1,0 +1,64 @@
+# inventories/hosts.4os-multi.yml
+# 四 OS 混部 host 模式示例（每组件组正好 1 台）：
+#   rhel8.acps.local    Rocky 8  — postgresql redis rabbitmq keycloak
+#   ubuntu20.acps.local Ubuntu 20 — registry ca discovery mq_auth
+#   rhel9.acps.local    Rocky 9  — demo_partner demo_leader（amp_forwarder 随 demo）
+#   ubuntu22.acps.local Ubuntu 22 — redpanda victoria_metrics clickhouse minio opensearch monitor
+# 准备 inventories/secrets.yml；每台 host_vars 须设 acps_advertise_host（禁止 127.0.0.1）。
+# rhel8 的 python3.8 只写在 host_vars，勿放入 all.vars。
+
+all:
+  vars:
+    acps_deploy_mode: host
+    ansible_user: huxiaofeng
+    acps_control_root: "{{ lookup('env', 'HOME') }}/.local/share/acps/control-host-4os-multi"
+    # become 由 playbook / role 任务显式开启；勿在 inventory 全局设 ansible_become。
+  children:
+    postgresql:
+      hosts:
+        rhel8.acps.local:
+    redis:
+      hosts:
+        rhel8.acps.local:
+    rabbitmq:
+      hosts:
+        rhel8.acps.local:
+    keycloak:
+      hosts:
+        rhel8.acps.local:
+    registry_server:
+      hosts:
+        ubuntu20.acps.local:
+    ca_server:
+      hosts:
+        ubuntu20.acps.local:
+    discovery_server:
+      hosts:
+        ubuntu20.acps.local:
+    mq_auth_server:
+      hosts:
+        ubuntu20.acps.local:
+    demo_partner:
+      hosts:
+        rhel9.acps.local:
+    demo_leader:
+      hosts:
+        rhel9.acps.local:
+    redpanda:
+      hosts:
+        ubuntu22.acps.local:
+    victoria_metrics:
+      hosts:
+        ubuntu22.acps.local:
+    clickhouse:
+      hosts:
+        ubuntu22.acps.local:
+    minio:
+      hosts:
+        ubuntu22.acps.local:
+    opensearch:
+      hosts:
+        ubuntu22.acps.local:
+    monitor_server:
+      hosts:
+        ubuntu22.acps.local:

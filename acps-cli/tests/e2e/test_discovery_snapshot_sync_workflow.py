@@ -28,6 +28,7 @@ user_main = cli_main
 _WORKSPACE_ROOT = Path(__file__).resolve().parents[3]
 _BEIJING_TIMEZONE = timezone(timedelta(hours=8))
 _REGISTRY_ADMIN_TOKEN_FILE_NAME = "registry-admin.json"
+_TOKEN_DIR_NAME = ".acps-cli"
 
 
 @dataclass(frozen=True)
@@ -148,7 +149,7 @@ def _login_admin(
     )
     assert result.exit_code == 0, f"admin login 失败: {result.output}"
 
-    token_file = admin_conf.parent / ".registry-client" / _REGISTRY_ADMIN_TOKEN_FILE_NAME
+    token_file = admin_conf.parent / _TOKEN_DIR_NAME / "tokens" / _REGISTRY_ADMIN_TOKEN_FILE_NAME
     token_file.parent.mkdir(parents=True, exist_ok=True)
     token_file.write_text(
         json.dumps(

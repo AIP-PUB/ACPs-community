@@ -1,0 +1,32 @@
+---
+# host_artifact_kind_map.yml — host 升级/回滚共用制品 kind 映射（消双份 P3）
+#
+# 出参 fact：_acps_host_artifact_kind_map
+# 消费方：upgrade_one_component_host.yml / rollback_one_component_host.yml
+
+- name: 解析 host 制品 kind 映射表（upgrade/rollback 共用）
+  ansible.builtin.set_fact:
+    _acps_host_artifact_kind_map: >-
+      {{
+        {
+          'postgresql': 'os_package',
+          'redis': 'os_package',
+          'rabbitmq': 'os_package',
+          'keycloak': 'vendor_bundle',
+          'redpanda': 'vendor_bundle',
+          'victoria_metrics': 'vendor_bundle',
+          'clickhouse': 'vendor_bundle',
+          'minio': 'vendor_bundle',
+          'opensearch': 'vendor_bundle',
+          'amp_forwarder': 'vendor_bundle',
+          'registry_server': 'app_release',
+          'ca_server': 'app_release',
+          'acps_cli': 'control_cli',
+          'discovery_server_cpu': 'app_release',
+          'discovery_server_gpu': 'app_release',
+          'mq_auth_server': 'app_release',
+          'monitor_server': 'app_release',
+          'demo_partner': 'app_release',
+          'demo_leader': 'app_release',
+        }
+      }}

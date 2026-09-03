@@ -1,0 +1,203 @@
+---
+# redis/tasks/main_host.yml — host 模式：OS 包 Redis(≥7) + TLS-only 落地
+# （本设计 §5.5 / §6.4；Redis-Native-Deployment.md 为配置合同参考）。
+# 证书复用 cert_provision 已落盘的 {{ acps_runtime_root }}/certs/redis/
+# {redis-server.pem,redis-server.key,acps-root-ca.pem}（Step 3 已交付属主
+# 规范化；本 role 只需确保 redis 系统账号已存在，属主才能正确解析——由
+# os_package_install.yml 的包安装步骤创建）。
+
+- name: 加载 OS 系族默认
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
+- name: 确保运行时目录（{{ acps_runtime_root }}/certs 等；image 专属子任务在其内部自跳过）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: 安装 Redis OS 包（ensure_repos + install_packages，≥7；幂等）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: redis
+    acps_artifact_kind: os_package
+
+- name: 校验已安装 redis-server 版本
+  ansible.builtin.command:
+    argv: ["redis-server", "--version"]
+  register: _redis_version_check
+  changed_when: false
+
+- name: 解析 Redis 版本号
+  ansible.builtin.set_fact:
+    _redis_installed_version: >-
+      {{ (_redis_version_check.stdout | regex_search('v=([0-9]+\.[0-9]+\.[0-9]+)', '\1'))[0] }}
+
+- name: 断言 Redis 版本 ≥ 7.0（monitor-server 依赖 Redis Functions，硬性）
+  ansible.builtin.assert:
+    that:
+      - _redis_installed_version is version('7.0', '>=')
+    fail_msg: >-
+      Installed redis-server {{ _redis_installed_version }} < 7.0 on
+      {{ inventory_hostname }}. monitor-server 依赖 Redis Functions（Redis 7+，
+      本设计 §5.5/§6.4）。Ubuntu 须走 redis.io 官方源（发行版仓库为 6.x）；
+      请检查 roles/redis/tasks/os_package_install.yml 的仓库配置。
+
+- name: 确保 certs 目录存在（供 cert_provision 分发）
+  ansible.builtin.file:
+    path: "{{ acps_runtime_root }}/certs/redis"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: 解析 cert owner（host：redis 系统账号，本设计 §4.4/§6.3）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+  vars:
+    acps_cert_owner_user: redis
+
+- name: 规范化 redis certs 属主（host：只用 chown，禁止 docker）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_certs.yml
+  vars:
+    acps_certs_dir: "{{ acps_runtime_root }}/certs/redis"
+
+- name: SELinux（Rocky）—— 放行自定义 certs 路径给 redis_t 读取
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: selinux_restore_path.yml
+  vars:
+    acps_selinux_path: "{{ acps_runtime_root }}/certs/redis"
+    acps_selinux_type: cert_t
+
+- name: 检查证书是否就位（先证后启，本设计 C/E §5.3）
+  ansible.builtin.stat:
+    path: "{{ acps_runtime_root }}/certs/redis/{{ item }}"
+  loop:
+    - redis-server.pem
+    - redis-server.key
+    - acps-root-ca.pem
+  register: _redis_cert_files
+
+- name: 断言证书材料齐全后再启动
+  ansible.builtin.assert:
+    that: "_redis_cert_files.results | selectattr('stat.exists', 'equalto', false) | list | length == 0"
+    fail_msg: >-
+      Redis TLS 证书未就位于 {{ acps_runtime_root }}/certs/redis/
+      （需 redis-server.pem/.key + acps-root-ca.pem）。请确认 site.yml
+      phase_8a（cert_provision profile=redis）已在本 role 之前执行。
+
+- name: 确保 Redis data 目录属主（发行版默认路径，SELinux 已随包正确打标）
+  ansible.builtin.file:
+    path: "{{ redis_os_data_dir }}"
+    state: directory
+    owner: "{{ redis_os_run_user }}"
+    group: "{{ redis_os_run_user }}"
+    mode: "0750"
+  become: true
+
+- name: 渲染 host 模式 redis.conf（与 image/host 合同对齐）
+  ansible.builtin.template:
+    src: redis.conf.host.j2
+    dest: "{{ redis_os_config_path }}"
+    owner: "{{ redis_os_run_user }}"
+    group: "{{ redis_os_run_user }}"
+    mode: "0640"
+  become: true
+  register: _redis_conf_render
+
+- name: 开放 redis 广告端口（firewalld/ufw，幂等）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ redis_port }}"
+
+- name: 计算 redis TLS 材料 digest（相对侧车）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/redis"
+    acps_tls_digest_files:
+      - redis-server.pem
+      - redis-server.key
+      - acps-root-ca.pem
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/redis-tls-material.sha256"
+    acps_tls_digest_persist: false
+
+- name: 判定 redis 是否应 restart
+  ansible.builtin.set_fact:
+    _redis_should_restart: >-
+      {{
+        (_redis_conf_render is changed)
+        or (_tls_material_digest_changed | default(true) | bool)
+        or (acps_force_redis_restart | default(false) | bool)
+      }}
+
+- name: enable + 条件重启 redis（conf/证书 digest/force；加载 TLS PEMs）
+  ansible.builtin.systemd:
+    name: "{{ redis_os_service_name }}"
+    enabled: true
+    state: "{{ 'restarted' if (_redis_should_restart | bool) else 'started' }}"
+    daemon_reload: true
+  become: true
+  register: _redis_systemd
+
+- name: 标记本轮 redis 已真重启（供下游依赖 role 跟随）
+  when: _redis_should_restart | bool
+  ansible.builtin.set_fact:
+    acps_tls_upstream_bounced_redis: true
+
+- name: 持久化 redis TLS digest（本轮已按需重启后）
+  when: _redis_should_restart | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: tls_material_digest.yml
+  vars:
+    acps_tls_digest_dir: "{{ acps_runtime_root }}/certs/redis"
+    acps_tls_digest_files:
+      - redis-server.pem
+      - redis-server.key
+      - acps-root-ca.pem
+    acps_tls_digest_sidecar: "{{ acps_runtime_root }}/state/redis-tls-material.sha256"
+    acps_tls_digest_persist: true
+
+- name: redis 真重启后触发依赖闭包（mq-auth/monitor/amp_forwarder）
+  when: _redis_should_restart | bool
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: reload_tls_dependents.yml
+  vars:
+    acps_tls_upstream: redis
+
+- name: 等待 redis TLS 端口
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ redis_port }}"
+    timeout: 60
+
+- name: 健康检查：redis-cli TLS PING
+  ansible.builtin.command:
+    argv:
+      - redis-cli
+      - --tls
+      - --cacert
+      - "{{ acps_runtime_root }}/certs/redis/acps-root-ca.pem"
+      - -a
+      - "{{ redis_password }}"
+      - --no-auth-warning
+      - PING
+  register: _redis_ping
+  changed_when: false
+  no_log: true
+
+- name: 断言 redis PING 成功
+  ansible.builtin.assert:
+    that:
+      - "'PONG' in _redis_ping.stdout"
+    fail_msg: "redis-cli TLS PING did not return PONG on {{ inventory_hostname }}"

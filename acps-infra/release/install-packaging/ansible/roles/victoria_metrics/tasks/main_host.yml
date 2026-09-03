@@ -1,0 +1,107 @@
+---
+# victoria_metrics/tasks/main_host.yml — host 模式：官方静态二进制 vendor_bundle + systemd
+# （本设计 §5.5 / §8.2.1）。数据目录：{{ acps_data_root }}/victoria_metrics
+
+- name: 确保运行时目录
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: ensure_runtime_dirs.yml
+
+- name: stage victoria_metrics vendor_bundle
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: stage_artifact.yml
+  vars:
+    acps_component_key: victoria_metrics
+    acps_artifact_kind: vendor_bundle
+
+- name: 解析 victoria_metrics 数据目录属主（host：acps 系统账号）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: resolve_cert_owner.yml
+  vars:
+    acps_cert_owner_user: ""
+
+- name: 规范化 victoria_metrics 数据目录属主
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: normalize_data_dir.yml
+  vars:
+    acps_data_dir: "{{ acps_data_root }}/victoria_metrics"
+
+- name: 准备 victoria_metrics 配置目录
+  ansible.builtin.file:
+    path: "{{ acps_runtime_root }}/config/victoria_metrics"
+    state: directory
+    mode: "0755"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 victoria_metrics EnvironmentFile（占位，供 systemd 契约）
+  ansible.builtin.copy:
+    content: |
+      # victoria_metrics host mode — flags via ExecStart; file kept for systemd contract.
+    dest: "{{ acps_runtime_root }}/config/victoria_metrics/.env"
+    mode: "0600"
+    owner: "{{ acps_systemd_user }}"
+    group: "{{ acps_systemd_group }}"
+
+- name: 渲染 victoria_metrics systemd 单元
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: render_host_systemd.yml
+  vars:
+    acps_compose_service_name: victoria_metrics
+    acps_host_install_dest: "{{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}"
+    acps_host_env_file: "{{ acps_runtime_root }}/config/victoria_metrics/.env"
+    acps_host_entrypoint: >-
+      {{ acps_vendor_unit_root | default(acps_vendor_install_dest) }}/victoria-metrics-prod
+      -storageDataPath={{ acps_data_root }}/victoria_metrics
+      -httpListenAddr=:{{ victoria_metrics_port }}
+    acps_host_unit_description: "ACPS VictoriaMetrics (host vendor_bundle)"
+
+- name: Rocky SELinux：victoria_metrics 数据目录打标签
+  when: ansible_os_family == 'RedHat'
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: selinux_restore_path.yml
+  vars:
+    acps_selinux_path: "{{ acps_data_root }}/victoria_metrics"
+
+- name: 开放 victoria_metrics 广告端口（firewalld/ufw，幂等）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: open_advertise_ports.yml
+  vars:
+    acps_open_ports:
+      - "{{ victoria_metrics_port }}"
+
+- name: 部署 victoria_metrics（systemd enable --now）
+  ansible.builtin.include_role:
+    name: common
+    tasks_from: deploy_service.yml
+  vars:
+    acps_compose_service_name: victoria_metrics
+    acps_component_key: victoria_metrics
+    acps_compose_force_recreate: false
+
+- name: 等待 victoria_metrics HTTP 端口
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ victoria_metrics_port }}"
+    timeout: 120
+
+- name: 健康检查：VictoriaMetrics /health（本设计 §8.2.1）
+  # 不用 ansible.builtin.uri：部分控制节点/解释器组合对 http://127.0.0.1 误走 TLS（ASN1）。
+  ansible.builtin.command:
+    argv:
+      - curl
+      - -fsS
+      - --max-time
+      - "10"
+      - "http://127.0.0.1:{{ victoria_metrics_port }}/health"
+  register: _vm_health
+  retries: 30
+  delay: 2
+  until: _vm_health.rc == 0
+  changed_when: false

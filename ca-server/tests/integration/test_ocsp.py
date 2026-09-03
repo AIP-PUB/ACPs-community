@@ -32,6 +32,7 @@ from app.common import (
     RevocationReason,
     beijing_now,
 )
+from app.common.ocsp_service import build_ocsp_responder_certificate
 from app.core.db_session import engine
 
 pytestmark = pytest.mark.ocsp
@@ -45,6 +46,7 @@ class OCSPCryptoSetup:
     issuer_name_hash: str
     hash_algorithm: str
     ca_cert: x509.Certificate
+    responder_cert: x509.Certificate
     responder_name: str
     responder_key_hash_hex: str
     responder_key_hash_bytes: bytes
@@ -65,17 +67,58 @@ async def ocsp_service(async_db_session):
     return OCSPService(async_db_session)
 
 
+def _build_test_ca(common_name: str) -> tuple[rsa.RSAPrivateKey, x509.Certificate]:
+    ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    ca_subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, common_name)])
+    now_utc = datetime.datetime.now(datetime.UTC)
+    ca_cert = (
+        x509.CertificateBuilder()
+        .subject_name(ca_subject)
+        .issuer_name(ca_subject)
+        .public_key(ca_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now_utc - datetime.timedelta(days=1))
+        .not_valid_after(now_utc + datetime.timedelta(days=365))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+        .sign(private_key=ca_key, algorithm=hashes.SHA256())
+    )
+    return ca_key, ca_cert
+
+
+def _build_ocsp_responder(
+    *,
+    name: str,
+    ca_cert: x509.Certificate,
+    ca_key: rsa.RSAPrivateKey,
+    endpoint: str = "http://ocsp.test",
+) -> tuple[OCSPResponder, rsa.RSAPrivateKey, x509.Certificate]:
+    responder_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    responder_cert = build_ocsp_responder_certificate(responder_key.public_key(), ca_cert, ca_key)
+    responder = OCSPResponder(
+        name=name,
+        certificate_pem=responder_cert.public_bytes(serialization.Encoding.PEM).decode(),
+        private_key_pem=responder_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        ).decode(),
+        certificate_serial=format(responder_cert.serial_number, "x"),
+        endpoints={"primary": endpoint},
+        supported_extensions=["nonce"],
+        is_active=True,
+    )
+    return responder, responder_key, responder_cert
+
+
 @pytest.fixture
 def ocsp_responder(db_session):
     """创建OCSP响应器"""
-    responder = OCSPResponder(
+    ca_key, ca_cert = _build_test_ca("Test CA")
+    responder, _, _ = _build_ocsp_responder(
         name="Test OCSP Responder",
-        certificate_pem="-----BEGIN CERTIFICATE-----\nOCSP_RESPONDER_CERT\n-----END CERTIFICATE-----",
-        private_key_pem="-----BEGIN PRIVATE KEY-----\nOCSP_RESPONDER_KEY\n-----END PRIVATE KEY-----",
-        certificate_serial="ABCD1234",
-        endpoints={"primary": "http://ocsp.example.com"},
-        supported_extensions=["nonce"],
-        is_active=True,
+        ca_cert=ca_cert,
+        ca_key=ca_key,
+        endpoint="http://ocsp.example.com",
     )
     db_session.add(responder)
     db_session.commit()
@@ -149,20 +192,9 @@ def expired_certificate(db_session):
 def ocsp_crypto_setup(db_session):
     """生成可用于端到端验证的 OCSP 请求和响应环境"""
 
-    ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    ca_subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Test CA")])
+    ca_key, ca_cert = _build_test_ca("Test CA")
+    ca_subject = ca_cert.subject
     now_utc = datetime.datetime.now(datetime.UTC)
-    ca_cert = (
-        x509.CertificateBuilder()
-        .subject_name(ca_subject)
-        .issuer_name(ca_subject)
-        .public_key(ca_key.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(now_utc - datetime.timedelta(days=1))
-        .not_valid_after(now_utc + datetime.timedelta(days=365))
-        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
-        .sign(private_key=ca_key, algorithm=hashes.SHA256())
-    )
 
     leaf_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     leaf_subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Leaf Cert")])
@@ -196,18 +228,10 @@ def ocsp_crypto_setup(db_session):
     db_session.add(certificate)
 
     responder_name = "Crypto Test Responder"
-    responder = OCSPResponder(
+    responder, responder_key, responder_cert = _build_ocsp_responder(
         name=responder_name,
-        certificate_pem=ca_cert.public_bytes(serialization.Encoding.PEM).decode(),
-        private_key_pem=ca_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption(),
-        ).decode(),
-        certificate_serial=format(ca_cert.serial_number, "x"),
-        is_active=True,
-        endpoints={"primary": "http://ocsp.test"},
-        supported_extensions=["nonce"],
+        ca_cert=ca_cert,
+        ca_key=ca_key,
     )
     db_session.add(responder)
     db_session.commit()
@@ -232,9 +256,9 @@ def ocsp_crypto_setup(db_session):
             revocation_time=None,
             revocation_reason=None,
         )
-        .responder_id(x509.ocsp.OCSPResponderEncoding.HASH, ca_cert)
-        .certificates([ca_cert])
-        .sign(private_key=ca_key, algorithm=hashes.SHA256())
+        .responder_id(x509.ocsp.OCSPResponderEncoding.HASH, responder_cert)
+        .certificates([responder_cert])
+        .sign(private_key=responder_key, algorithm=hashes.SHA256())
         .responder_key_hash
     )
     assert responder_key_hash_bytes is not None
@@ -246,6 +270,7 @@ def ocsp_crypto_setup(db_session):
         issuer_name_hash=ocsp_request.issuer_name_hash.hex(),
         hash_algorithm=ocsp_request.hash_algorithm.name,
         ca_cert=ca_cert,
+        responder_cert=responder_cert,
         responder_name=responder_name,
         responder_key_hash_hex=responder_key_hash_bytes.hex(),
         responder_key_hash_bytes=responder_key_hash_bytes,
@@ -280,20 +305,9 @@ def ocsp_crypto_setup(db_session):
 def ocsp_sha256_crypto_setup(db_session):
     """生成使用 SHA-256 CertID 的 OCSP 请求和响应环境。"""
 
-    ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    ca_subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "SHA256 Test CA")])
+    ca_key, ca_cert = _build_test_ca("SHA256 Test CA")
+    ca_subject = ca_cert.subject
     now_utc = datetime.datetime.now(datetime.UTC)
-    ca_cert = (
-        x509.CertificateBuilder()
-        .subject_name(ca_subject)
-        .issuer_name(ca_subject)
-        .public_key(ca_key.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(now_utc - datetime.timedelta(days=1))
-        .not_valid_after(now_utc + datetime.timedelta(days=365))
-        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
-        .sign(private_key=ca_key, algorithm=hashes.SHA256())
-    )
 
     leaf_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     leaf_subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "SHA256 Leaf Cert")])
@@ -327,18 +341,10 @@ def ocsp_sha256_crypto_setup(db_session):
     db_session.add(certificate)
 
     responder_name = "SHA256 Crypto Test Responder"
-    responder = OCSPResponder(
+    responder, responder_key, responder_cert = _build_ocsp_responder(
         name=responder_name,
-        certificate_pem=ca_cert.public_bytes(serialization.Encoding.PEM).decode(),
-        private_key_pem=ca_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption(),
-        ).decode(),
-        certificate_serial=format(ca_cert.serial_number, "x"),
-        is_active=True,
-        endpoints={"primary": "http://ocsp.test"},
-        supported_extensions=["nonce"],
+        ca_cert=ca_cert,
+        ca_key=ca_key,
     )
     db_session.add(responder)
     db_session.commit()
@@ -362,9 +368,9 @@ def ocsp_sha256_crypto_setup(db_session):
             revocation_time=None,
             revocation_reason=None,
         )
-        .responder_id(x509.ocsp.OCSPResponderEncoding.HASH, ca_cert)
-        .certificates([ca_cert])
-        .sign(private_key=ca_key, algorithm=hashes.SHA256())
+        .responder_id(x509.ocsp.OCSPResponderEncoding.HASH, responder_cert)
+        .certificates([responder_cert])
+        .sign(private_key=responder_key, algorithm=hashes.SHA256())
         .responder_key_hash
     )
     assert responder_key_hash_bytes is not None
@@ -376,6 +382,7 @@ def ocsp_sha256_crypto_setup(db_session):
         issuer_name_hash=ocsp_request.issuer_name_hash.hex(),
         hash_algorithm=ocsp_request.hash_algorithm.name,
         ca_cert=ca_cert,
+        responder_cert=responder_cert,
         responder_name=responder_name,
         responder_key_hash_hex=responder_key_hash_bytes.hex(),
         responder_key_hash_bytes=responder_key_hash_bytes,
@@ -410,20 +417,9 @@ def ocsp_sha256_crypto_setup(db_session):
 def ocsp_expired_crypto_setup(db_session):
     """生成已过期证书的 OCSP 请求和响应环境"""
 
-    ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    ca_subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Test CA")])
+    ca_key, ca_cert = _build_test_ca("Test CA")
+    ca_subject = ca_cert.subject
     now_utc = datetime.datetime.now(datetime.UTC)
-    ca_cert = (
-        x509.CertificateBuilder()
-        .subject_name(ca_subject)
-        .issuer_name(ca_subject)
-        .public_key(ca_key.public_key())
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(now_utc - datetime.timedelta(days=365))
-        .not_valid_after(now_utc + datetime.timedelta(days=365))
-        .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
-        .sign(private_key=ca_key, algorithm=hashes.SHA256())
-    )
 
     leaf_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     leaf_subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Expired Leaf Cert")])
@@ -457,18 +453,10 @@ def ocsp_expired_crypto_setup(db_session):
     db_session.add(certificate)
 
     responder_name = "Expired Crypto Test Responder"
-    responder = OCSPResponder(
+    responder, responder_key, responder_cert = _build_ocsp_responder(
         name=responder_name,
-        certificate_pem=ca_cert.public_bytes(serialization.Encoding.PEM).decode(),
-        private_key_pem=ca_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption(),
-        ).decode(),
-        certificate_serial=format(ca_cert.serial_number, "x"),
-        is_active=True,
-        endpoints={"primary": "http://ocsp.test"},
-        supported_extensions=["nonce"],
+        ca_cert=ca_cert,
+        ca_key=ca_key,
     )
     db_session.add(responder)
     db_session.commit()
@@ -492,9 +480,9 @@ def ocsp_expired_crypto_setup(db_session):
             revocation_time=None,
             revocation_reason=None,
         )
-        .responder_id(x509.ocsp.OCSPResponderEncoding.HASH, ca_cert)
-        .certificates([ca_cert])
-        .sign(private_key=ca_key, algorithm=hashes.SHA256())
+        .responder_id(x509.ocsp.OCSPResponderEncoding.HASH, responder_cert)
+        .certificates([responder_cert])
+        .sign(private_key=responder_key, algorithm=hashes.SHA256())
         .responder_key_hash
     )
     assert responder_key_hash_bytes is not None
@@ -506,6 +494,7 @@ def ocsp_expired_crypto_setup(db_session):
         issuer_name_hash=ocsp_request.issuer_name_hash.hex(),
         hash_algorithm=ocsp_request.hash_algorithm.name,
         ca_cert=ca_cert,
+        responder_cert=responder_cert,
         responder_name=responder_name,
         responder_key_hash_hex=responder_key_hash_bytes.hex(),
         responder_key_hash_bytes=responder_key_hash_bytes,
@@ -689,15 +678,18 @@ class TestOCSPResponderAPI:
         assert data["responder"]["name"] == ocsp_responder.name
         assert "key_hash" in data["responder"]
 
-    def test_get_responder_info_no_responder(self, client: TestClient, db_session) -> None:
-        """测试没有响应器时的情况"""
+    def test_get_responder_info_bootstraps_default_responder(self, client: TestClient, db_session) -> None:
+        """测试没有响应器时会自动 bootstrap 默认 responder。"""
         # 删除所有响应器
         for responder in db_session.exec(select(OCSPResponder)).all():
             db_session.delete(responder)
         db_session.commit()
 
         response = client.get("/acps-atr-v2/ocsp/responder/info")
-        assert response.status_code == 404
+        assert response.status_code == 200
+        data = response.json()
+        assert data["responder"]["name"] == "Agent CA OCSP Responder"
+        assert "key_hash" in data["responder"]
 
 
 class TestOCSPStatsAPI:
@@ -791,7 +783,7 @@ class TestOCSPService:
         assert ocsp_response.certificate_status == x509.ocsp.OCSPCertStatus.GOOD
         assert ocsp_response.responder_key_hash == ocsp_crypto_setup.responder_key_hash_bytes
         assert ocsp_response.certificates
-        assert ocsp_response.certificates[0].subject == ocsp_crypto_setup.ca_cert.subject
+        assert ocsp_response.certificates[0].subject == ocsp_crypto_setup.responder_cert.subject
 
         stored_response_result = await ocsp_service.session.execute(
             select(OCSPResponse)

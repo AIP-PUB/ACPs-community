@@ -1,0 +1,298 @@
+---
+# T4 push 后对 demo ACS 树做属主规范化。
+# 与 demo_partner / demo_leader 安装路径规范化一致（解析属主 → chown ACS tree；
+# private keys 0600; trust-bundle/acs.json readable).
+# 由 localhost 上的 cert_provision play 运行；目标侧工作全部委托。
+# 期望： cert_provision_profile in {demo-partner, demo-leader}
+#
+# 委托任务须在 vars 内重新推导目标主机（对齐 demo_t4.yml）：
+# localhost set_fact（如 _dn_target）在委托主机变量作用域中不可见。
+# 同时显式覆盖 ansible_connection，避免继承控制面 play 的 connection: local。
+#
+# 属主规范化按 acps_deploy_mode 分派（本设计 §4.4 / §6.3）：
+# image → 从镜像解析 uid:gid（resolve_image_uid.py + docker run chown 回退，
+#         逻辑与承载分派引入前字节级一致）。
+# host  → 只用 acps_systemd_user（getent 本地账号）+ chown；禁止
+#         resolve_image_uid.py、禁止 docker（任何形式）。
+
+- name: Map demo normalize metadata
+  ansible.builtin.set_fact:
+    _dn_component_key: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+    _dn_target_group: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+    _dn_acs_rel: >-
+      {{
+        'components/demo_partner/partners/online'
+        if cert_provision_profile == 'demo-partner'
+        else 'components/demo_leader/leader'
+      }}
+
+- name: 解析 first demo target host
+  ansible.builtin.set_fact:
+    _dn_target: "{{ groups[_dn_target_group] | first }}"
+    _dn_runtime_root: "{{ hostvars[groups[_dn_target_group] | first].acps_runtime_root | default(acps_runtime_root) }}"
+    _dn_python: "{{ hostvars[groups[_dn_target_group] | first].ansible_python_interpreter | default('/usr/bin/python3') }}"
+
+# ---------------------------------------------------------------------------
+# 属主解析 — image 分支：从镜像 USER 解析 uid:gid（不回归）
+# ---------------------------------------------------------------------------
+- name: image 分支：属主解析（镜像 uid:gid）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 解析 demo image mapping (control)
+      ansible.builtin.command:
+        argv:
+          - "{{ acps_tools_python | default('python3') }}"
+          - "{{ acps_release_root }}/scripts/manifest_lookup.py"
+          - "--manifest"
+          - "{{ acps_manifest_path }}"
+          - "--component"
+          - "{{ _dn_component_key }}"
+      register: _dn_manifest
+      changed_when: false
+      delegate_to: localhost
+      become: false
+
+    - name: 设置 demo image facts
+      ansible.builtin.set_fact:
+        _dn_image_tag: "{{ (_dn_manifest.stdout | from_json).tag }}"
+
+    - name: 检查 demo image on target
+      ansible.builtin.command:
+        argv: [docker, image, inspect, "{{ _dn_image_tag }}"]
+      register: _dn_img
+      changed_when: false
+      failed_when: false
+      vars:
+        _dn_tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+        _dn_target: "{{ groups[_dn_tg] | first }}"
+        ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+      delegate_to: "{{ _dn_target }}"
+      become: false
+
+    - name: 加载 demo image on target if missing (for chown helper)
+      when: _dn_img.rc != 0
+      block:
+        - name: 设置 demo image archive paths
+          ansible.builtin.set_fact:
+            _dn_archive_control: "{{ acps_artifacts_images }}/{{ (_dn_manifest.stdout | from_json).file }}"
+            _dn_archive_remote: "{{ _dn_runtime_root }}/staging/images/{{ (_dn_manifest.stdout | from_json).file }}"
+            _dn_staging_dir: "{{ _dn_runtime_root }}/staging/images"
+
+        - name: 确保 image staging on target
+          ansible.builtin.file:
+            path: "{{ _dn_staging_dir }}"
+            state: directory
+            mode: "0755"
+          vars:
+            _dn_tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+            _dn_target: "{{ groups[_dn_tg] | first }}"
+            ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+          delegate_to: "{{ _dn_target }}"
+          become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"
+
+        - name: 复制 demo archive to target
+          ansible.builtin.copy:
+            src: "{{ _dn_archive_control }}"
+            dest: "{{ _dn_archive_remote }}"
+            mode: "0644"
+          vars:
+            _dn_tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+            _dn_target: "{{ groups[_dn_tg] | first }}"
+            ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+          delegate_to: "{{ _dn_target }}"
+          become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"
+
+        - name: docker load demo image on target
+          ansible.builtin.command:
+            argv: [docker, load, -i, "{{ _dn_archive_remote }}"]
+          vars:
+            _dn_tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+            _dn_target: "{{ groups[_dn_tg] | first }}"
+            ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+          delegate_to: "{{ _dn_target }}"
+          become: false
+
+        - name: Cleanup staged demo archive
+          ansible.builtin.file:
+            path: "{{ _dn_archive_remote }}"
+            state: absent
+          vars:
+            _dn_tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+            _dn_target: "{{ groups[_dn_tg] | first }}"
+            ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+          delegate_to: "{{ _dn_target }}"
+          become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"
+
+    # 镜像已在本地时上面的 block 会跳过；清掉 runtime 后 staging 仍须存在（G9）。
+    - name: 确保 demo staging 根目录（无条件；供 resolve_image_uid 落地）
+      ansible.builtin.file:
+        path: "{{ _dn_runtime_root }}/staging"
+        state: directory
+        mode: "0755"
+      vars:
+        _dn_tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+        _dn_target: "{{ groups[_dn_tg] | first }}"
+        ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+      delegate_to: "{{ _dn_target }}"
+      become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"
+
+    - name: stage resolve_image_uid.py on demo target
+      ansible.builtin.copy:
+        src: "{{ acps_release_root }}/scripts/resolve_image_uid.py"
+        dest: "{{ _dn_runtime_root }}/staging/resolve_image_uid.py"
+        mode: "0755"
+      vars:
+        _dn_tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+        _dn_target: "{{ groups[_dn_tg] | first }}"
+        ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+      delegate_to: "{{ _dn_target }}"
+      become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"
+
+    - name: 解析 demo image uid/gid on target
+      ansible.builtin.command:
+        argv:
+          - "{{ _dn_python }}"
+          - "{{ _dn_runtime_root }}/staging/resolve_image_uid.py"
+          - "--image"
+          - "{{ _dn_image_tag }}"
+          - "--user"
+          - ""
+      register: _dn_uid
+      changed_when: false
+      vars:
+        _dn_tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+        _dn_target: "{{ groups[_dn_tg] | first }}"
+        ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+      delegate_to: "{{ _dn_target }}"
+      become: false
+
+    - name: 设置 demo owner facts (image)
+      ansible.builtin.set_fact:
+        _dn_owner_uid: "{{ (_dn_uid.stdout | from_json).uid }}"
+        _dn_owner_gid: "{{ (_dn_uid.stdout | from_json).gid }}"
+
+# ---------------------------------------------------------------------------
+# 属主解析 — host 分支：只用 acps_systemd_user（本地账号）
+# 禁止 resolve_image_uid.py、禁止 docker（本设计 §4.4 / §6.3）
+# ---------------------------------------------------------------------------
+- name: host 分支：属主解析（本地系统账号 acps_systemd_user）
+  when: acps_deploy_mode == 'host'
+  block:
+    - name: getent 查询 acps_systemd_user on demo target（本地账号，非镜像 USER）
+      ansible.builtin.getent:
+        database: passwd
+        key: "{{ acps_systemd_user }}"
+        fail_key: false
+      register: _dn_owner_getent
+      vars:
+        _dn_tg: "{{ 'demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader' }}"
+        _dn_target: "{{ groups[_dn_tg] | first }}"
+        ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+      delegate_to: "{{ _dn_target }}"
+      become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"
+
+    - name: 断言 acps_systemd_user 已存在于 demo target
+      ansible.builtin.assert:
+        that:
+          - (_dn_owner_getent.ansible_facts.getent_passwd[acps_systemd_user] | default(None)) is not none
+        fail_msg: >-
+          host cert owner user '{{ acps_systemd_user }}' 在 demo target
+          {{ groups['demo_partner' if cert_provision_profile == 'demo-partner' else 'demo_leader'] | first }}
+          不存在（getent passwd 未命中）。host 模式属主须来自
+          目标机本地系统账号，须由对应安装步骤先创建；禁止回退
+          resolve_image_uid.py / docker run chown（本设计 §4.4 / §6.3）。
+
+    - name: 设置 demo owner facts (host，数字 uid/gid 取自目标机账号)
+      ansible.builtin.set_fact:
+        _dn_owner_uid: "{{ _dn_owner_getent.ansible_facts.getent_passwd[acps_systemd_user][1] }}"
+        _dn_owner_gid: "{{ _dn_owner_getent.ansible_facts.getent_passwd[acps_systemd_user][2] }}"
+
+- name: image 分支：规范化 demo-partner ACS ownership on target
+  when:
+    - acps_deploy_mode == 'image'
+    - cert_provision_profile == 'demo-partner'
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ _dn_runtime_root }}/{{ _dn_acs_rel }}"
+    UID_GID="{{ _dn_owner_uid }}:{{ _dn_owner_gid }}"
+    if ! chown -R "$UID_GID" "$ROOT" 2>/dev/null; then
+      # B6 / §9.5.3：对齐 leaf distribute_normalize — docker chown 须 --user 0:0
+      docker run --rm --user 0:0 --entrypoint chown -v "$ROOT:/work:z" "{{ _dn_image_tag }}" \
+        -R "$UID_GID" /work
+    fi
+    find "$ROOT" -type f \( -name '*.key' -o -name '*.pem' \) -exec chmod 600 {} \;
+    find "$ROOT" -type f -name 'acs.json' -exec chmod 644 {} \;
+    find "$ROOT" -type f -name 'trust-bundle.pem' -exec chmod 644 {} \;
+  args:
+    executable: /bin/bash
+  vars:
+    _dn_tg: demo_partner
+    _dn_target: "{{ groups[_dn_tg] | first }}"
+    ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+  delegate_to: "{{ _dn_target }}"
+  become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"
+
+- name: image 分支：规范化 demo-leader ACS ownership on target
+  when:
+    - acps_deploy_mode == 'image'
+    - cert_provision_profile == 'demo-leader'
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ _dn_runtime_root }}/{{ _dn_acs_rel }}"
+    UID_GID="{{ _dn_owner_uid }}:{{ _dn_owner_gid }}"
+    if ! chown -R "$UID_GID" "$ROOT" 2>/dev/null; then
+      # B6 / §9.5.3：对齐 leaf distribute_normalize — docker chown 须 --user 0:0
+      docker run --rm --user 0:0 --entrypoint chown -v "$ROOT:/work:z" "{{ _dn_image_tag }}" \
+        -R "$UID_GID" /work
+    fi
+    find "$ROOT/atr" -type f \( -name '*.key' -o -name '*.pem' \) -exec chmod 600 {} \;
+    find "$ROOT/atr" -type f -name 'trust-bundle.pem' -exec chmod 644 {} \;
+  args:
+    executable: /bin/bash
+  vars:
+    _dn_tg: demo_leader
+    _dn_target: "{{ groups[_dn_tg] | first }}"
+    ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+  delegate_to: "{{ _dn_target }}"
+  become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"
+
+- name: host 分支：规范化 demo-partner ACS ownership on target（禁止 docker 回退）
+  when:
+    - acps_deploy_mode == 'host'
+    - cert_provision_profile == 'demo-partner'
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ _dn_runtime_root }}/{{ _dn_acs_rel }}"
+    UID_GID="{{ _dn_owner_uid }}:{{ _dn_owner_gid }}"
+    chown -R "$UID_GID" "$ROOT"
+    find "$ROOT" -type f \( -name '*.key' -o -name '*.pem' \) -exec chmod 600 {} \;
+    find "$ROOT" -type f -name 'acs.json' -exec chmod 644 {} \;
+    find "$ROOT" -type f -name 'trust-bundle.pem' -exec chmod 644 {} \;
+  args:
+    executable: /bin/bash
+  vars:
+    _dn_tg: demo_partner
+    _dn_target: "{{ groups[_dn_tg] | first }}"
+    ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+  delegate_to: "{{ _dn_target }}"
+  become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"
+
+- name: host 分支：规范化 demo-leader ACS ownership on target（禁止 docker 回退）
+  when:
+    - acps_deploy_mode == 'host'
+    - cert_provision_profile == 'demo-leader'
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ROOT="{{ _dn_runtime_root }}/{{ _dn_acs_rel }}"
+    UID_GID="{{ _dn_owner_uid }}:{{ _dn_owner_gid }}"
+    chown -R "$UID_GID" "$ROOT"
+    find "$ROOT/atr" -type f \( -name '*.key' -o -name '*.pem' \) -exec chmod 600 {} \;
+    find "$ROOT/atr" -type f -name 'trust-bundle.pem' -exec chmod 644 {} \;
+  args:
+    executable: /bin/bash
+  vars:
+    _dn_tg: demo_leader
+    _dn_target: "{{ groups[_dn_tg] | first }}"
+    ansible_connection: "{{ hostvars[_dn_target].ansible_connection | default('ssh') }}"
+  delegate_to: "{{ _dn_target }}"
+  become: "{{ (hostvars[_dn_target].ansible_become | default(true)) | bool }}"

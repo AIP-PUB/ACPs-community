@@ -1,0 +1,15 @@
+services:
+  opensearch:
+    image: {{ acps_effective_image_tag }}
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: {{ opensearch_initial_admin_password }}
+    ports:
+      - "{{ opensearch_http_port }}:9200"
+    volumes:
+      - {{ acps_data_root }}/opensearch:/usr/share/opensearch/data:z
+    restart: unless-stopped
+    networks:
+      - {{ acps_docker_network }}

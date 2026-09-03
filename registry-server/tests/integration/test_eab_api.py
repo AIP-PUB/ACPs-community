@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.agent.model import ApprovalStatus
 from app.core.config import settings
 from app.eab.model import EabCredential
-from app.utils.aic import generate_aic
+from tests.support.aic import generate_aic
 from tests.support.constants import DEFAULT_LOGIN_VALUE
 from tests.support.database import create_agent_with_change_log, create_user
 from tests.support.http import response_json_string_map

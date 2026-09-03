@@ -10,6 +10,7 @@ Leader Agent Platform - E2E Tests: API Contract Tests
 注意：这些测试需要后端服务运行在 localhost:9011
 """
 
+import os
 import uuid
 from typing import Any
 
@@ -22,6 +23,7 @@ import pytest
 
 BASE_URL = "https://localhost:9011"
 API_PREFIX = "/api/v1"
+E2E_REQUEST_TIMEOUT = float(os.getenv("LEADER_E2E_REQUEST_TIMEOUT", "120"))
 
 
 # =============================================================================
@@ -72,7 +74,7 @@ class TestSubmitEndpoint:
             "error": {...} | null
         }
         """
-        with httpx.Client(timeout=30.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             payload = make_submit_request(query="你好")
             response = client.post(api_url("/submit"), json=payload)
 
@@ -101,7 +103,7 @@ class TestSubmitEndpoint:
         - acceptedAt: 受理时间
         - externalStatus: 对外状态
         """
-        with httpx.Client(timeout=30.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             payload = make_submit_request(query="北京有哪些好吃的？")
             response = client.post(api_url("/submit"), json=payload)
 
@@ -166,7 +168,7 @@ class TestResultEndpoint:
         }
         """
         # 先创建一个 session
-        with httpx.Client(timeout=30.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             submit_payload = make_submit_request(query="测试查询")
             submit_response = client.post(api_url("/submit"), json=submit_payload)
 
@@ -201,7 +203,7 @@ class TestResultEndpoint:
         - baseScenario
         - userResult
         """
-        with httpx.Client(timeout=30.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             # 先创建 session
             submit_payload = make_submit_request(query="推荐北京的餐厅")
             submit_response = client.post(api_url("/submit"), json=submit_payload)
@@ -266,7 +268,7 @@ class TestSubmitResultFlow:
         2. GET /result/{session_id} 获取结果
         3. result 应该包含有效的 LeaderResult
         """
-        with httpx.Client(timeout=60.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             print("\n" + "=" * 60)
             print("Step 1: Submit query")
             print("=" * 60)
@@ -348,7 +350,7 @@ class TestErrorResponses:
 
     def test_result_not_found_returns_error(self):
         """验证查询不存在的 session 返回正确的错误格式"""
-        with httpx.Client(timeout=10.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             fake_session_id = f"nonexistent_{uuid.uuid4().hex[:8]}"
             response = client.get(api_url(f"/result/{fake_session_id}"))
 
@@ -371,7 +373,7 @@ class TestErrorResponses:
 
     def test_submit_invalid_request(self):
         """验证无效请求返回正确的错误格式"""
-        with httpx.Client(timeout=10.0) as client:
+        with httpx.Client(timeout=E2E_REQUEST_TIMEOUT) as client:
             # 缺少必需字段
             invalid_payload = {"query": "test"}  # 缺少 mode 和 clientRequestId
 

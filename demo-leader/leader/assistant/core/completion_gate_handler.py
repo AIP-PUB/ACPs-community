@@ -445,8 +445,8 @@ async def handle_awaiting_completion_with_loop(
 
             # === 进度更新：完成度评估决策结果 ===
             if on_progress:
-                complete_count = sum(1 for d in gate_result.decisions if d.action == "complete")
-                continue_count = sum(1 for d in gate_result.decisions if d.action == "continue")
+                complete_count = sum(1 for d in gate_result.decisions if d.next_action == "complete")
+                continue_count = sum(1 for d in gate_result.decisions if d.next_action == "continue")
                 on_progress(f"评估完成: {complete_count} 个已完成, {continue_count} 个继续执行")
 
             # 应用决策

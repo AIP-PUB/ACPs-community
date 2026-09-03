@@ -113,7 +113,8 @@ def probe_user(
     """向 Auth API 发送 /auth/user 请求，查看授权决策。"""
     cfg = _get_mq_config(ctx)
     client = _get_probe_client(cfg, cert_file, key_file)
-    status, body = client.post_form("/auth/user", {"username": username, "password": ""})
+    form_data = {"username": username, "password": ""}  # nosec B105 - empty password is part of the probe request shape
+    status, body = client.post_form("/auth/user", form_data)
     _parse_auth_response(status, body, output_json, {"username": username})
 
 

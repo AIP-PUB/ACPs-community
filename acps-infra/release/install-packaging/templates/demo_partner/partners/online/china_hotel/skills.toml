@@ -1,0 +1,56 @@
+["china_hotel.hotel-recommendation"]
+name = "酒店推荐服务"
+required_slots = ["city", "dates_or_nights", "people"]
+optional_slots = [
+    "budget",
+    "preferences",
+    "activity_areas",
+    "transport",
+    "membership",
+]
+
+# 字段名中文映射
+[slot_labels]
+city = "目的地城市"
+dates_or_nights = "入住日期或天数"
+people = "入住人数"
+budget = "预算"
+preferences = "偏好"
+activity_areas = "活动区域"
+transport = "交通方式"
+membership = "会员信息"
+hotel_candidates = "候选酒店"
+platforms = "预订平台"
+
+["china_hotel.reservation-assistance"]
+name = "预订协助服务"
+# required_slots_anyof is a list of lists. In TOML: [[...], [...]]
+required_slots_anyof = [
+    [
+        "city",
+        "dates_or_nights",
+        "people",
+    ],
+    [
+        "hotel_candidates",
+        "dates_or_nights",
+        "people",
+    ],
+]
+optional_slots = ["platforms", "membership", "invoice", "cancel_policy"]
+
+["china_hotel.accommodation-optimization"]
+name = "住宿优化建议"
+required_slots = ["city", "dates_or_nights", "activity_areas"]
+optional_slots = ["budget", "transport", "preferences"]
+
+["china_hotel.price-comparison"]
+name = "价格比较服务"
+required_slots = ["hotel_candidates", "dates_or_nights", "city"]
+optional_slots = [
+    "budget",
+    "room_meal",
+    "cancel_policy",
+    "membership",
+    "platforms",
+]

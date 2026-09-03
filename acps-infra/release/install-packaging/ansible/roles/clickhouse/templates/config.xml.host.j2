@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!-- ClickHouse host-mode config (本设计 §8.2.1 / Step 15) -->
+<clickhouse>
+    <logger>
+        <level>information</level>
+        <console>true</console>
+    </logger>
+
+    <http_port>{{ clickhouse_http_port }}</http_port>
+    <tcp_port>{{ clickhouse_native_port | default(9000) }}</tcp_port>
+    <listen_host>0.0.0.0</listen_host>
+
+    <path>{{ acps_data_root }}/clickhouse/</path>
+    <tmp_path>{{ acps_data_root }}/clickhouse/tmp/</tmp_path>
+    <user_files_path>{{ acps_data_root }}/clickhouse/user_files/</user_files_path>
+    <format_schema_path>{{ acps_data_root }}/clickhouse/format_schemas/</format_schema_path>
+
+    <max_server_memory_usage>{{ clickhouse_max_server_memory_bytes | default(2147483648) }}</max_server_memory_usage>
+
+    <users_config>{{ acps_runtime_root }}/config/clickhouse/users.xml</users_config>
+    <mark_cache_size>{{ clickhouse_mark_cache_size | default(5368709120) }}</mark_cache_size>
+</clickhouse>

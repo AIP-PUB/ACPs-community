@@ -1,0 +1,69 @@
+---
+- name: AMP 与 monitor 均禁用时结束（S12 里程碑可仅开 AMP）
+  when: not ((amp_host_milestone | default(false) | bool) or (monitor_server_enabled | bool))
+  ansible.builtin.meta: end_host
+
+- name: image 分支：Compose 承载 Redpanda（本设计 §4.2；逻辑不变）
+  when: acps_deploy_mode == 'image'
+  block:
+    - name: 确保运行时目录
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: ensure_runtime_dirs.yml
+
+    - name: stage redpanda 镜像
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: stage_artifact.yml
+      vars:
+        acps_component_key: redpanda
+        acps_artifact_kind: vendor_bundle
+
+    - name: 解析 redpanda 镜像用户以设置数据目录所有权
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: resolve_cert_owner.yml
+      vars:
+        acps_cert_owner_user: redpanda
+
+    - name: 规范化 redpanda 数据目录所有权
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: normalize_data_dir.yml
+      vars:
+        acps_data_dir: "{{ acps_data_root }}/redpanda"
+
+    - name: 渲染 compose
+      ansible.builtin.template:
+        src: compose.yml.j2
+        dest: "{{ acps_compose_services_dir }}/redpanda.yml"
+        mode: "0644"
+
+    - name: 部署 redpanda
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: deploy_service.yml
+      vars:
+        acps_compose_service_name: redpanda
+        acps_compose_force_recreate: false
+
+    - name: 等待端口
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: "{{ redpanda_kafka_port }}"
+        timeout: 120
+
+    - name: 确保 AMP Kafka topics
+      ansible.builtin.include_tasks: ensure_amp_topics.yml
+
+    - name: 开放 redpanda 广告端口（firewalld/ufw；与 host 同构）
+      ansible.builtin.include_role:
+        name: common
+        tasks_from: open_advertise_ports.yml
+      vars:
+        acps_open_ports:
+          - "{{ redpanda_kafka_port }}"
+
+- name: host 分支：官方 tarball vendor_bundle + rpk tune + systemd（本设计 §5.5 / §8.2.1）
+  when: acps_deploy_mode == 'host'
+  ansible.builtin.include_tasks: main_host.yml
