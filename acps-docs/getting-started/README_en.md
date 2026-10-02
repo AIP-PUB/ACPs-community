@@ -77,13 +77,13 @@ ansible-playbook -i inventories/hosts.yml playbooks/site.yml -e @inventories/sec
 ansible-playbook -i inventories/hosts.yml playbooks/business.yml -e @inventories/secrets.yml   # after running both demos
 ```
 
-See [Assemble Installation Package](../tutorials/install-package-build.md) and [Ansible Deployment Tutorial for step-by-step instructions](../tutorials/install-package-ansible-deploy.md).
-To reinstall the same batch of machines "from scratch", see [Cleanup Tutorial](../tutorials/install-package-clean-slate.md).
-For certificate renewal / trust / upgrade / rollback after installation, see [Daily Operations Tutorial](../tutorials/install-package-day2-ops.md).
+See [Assemble Installation Package](../tutorials/install-package-build.md) and [Ansible Deployment Tutorial for step-by-step instructions](../tutorials/install-package-ansible-deploy.md).  
+To reinstall the same batch of machines "from scratch", see [Cleanup Tutorial](../tutorials/install-package-clean-slate.md).  
+For certificate renewal / trust / upgrade / rollback after installation, see [Daily Operations Tutorial](../tutorials/install-package-day2-ops.md).  
 
 ## 4. Where to Continue with Agent Development
-Once the environment is ready, if your goal is to develop Leader / Partner Agents, continue reading [AIP Development Tutorial](../tutorials/agent-development.md).
-If you also want the Agent's runtime status to be visible to Monitor / Discovery, read [AMP Observability Tutorial](../tutorials/amp-agent-observability.md) as well.
+Once the environment is ready, if your goal is to develop Leader / Partner Agents, continue reading [AIP Development Tutorial](../tutorials/agent-development.md).  
+If you also want the Agent's runtime status to be visible to Monitor / Discovery, read [AMP Observability Tutorial](../tutorials/amp-agent-observability.md) as well.   
 
 The tutorials only cover code and protocol understanding and do not repeat development environment setup, packaging, or deployment steps. For environment, testing, and deployment issues, refer back to the documents above.
 
