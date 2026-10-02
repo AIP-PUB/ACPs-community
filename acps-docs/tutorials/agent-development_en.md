@@ -534,4 +534,95 @@ Prepare acps-cli configuration -> Log in to Registry -> Save ACS draft -> Submit
 
 > For detailed acps-cli usage instructions, refer to [references/cli-reference.md](../references/cli-reference.md).
 
+### 2.2.1. Complete Trusted Registration Steps
+
+#### 1) Log in to the Registry
+
+First, log in to the Registry. If the account does not exist yet, `auth login` can automatically register a regular user when used with the appropriate parameters.
+
+#### 2) Submit the ACS Draft and Initiate Review
+
+1. After preparing the local ACS file, use `agent save` to create or update the draft.
+
+2. If the ACS represents an ontology rather than a regular entity agent, add `--ontology`.
+
+3. The returned result will contain the `agent_id` corresponding to the draft. Once you have this UUID, submit it for review.
+
+   After submission, regular developers generally cannot approve the review themselves and must wait for a platform administrator to process it. During the waiting period, you can repeatedly check the status.
+
+4. After the server completes the approval and updates the ACS, synchronize the latest status back to the local file.
+
+   The goal of this stage is to have the ACS approved and confirm locally that the AIC has been obtained.
+
+#### 3) Obtain EAB and Apply for a Certificate
+
+1. Once the Agent has been approved and has an AIC, first obtain the EAB credentials from the Registry.
+
+2. Then use the EAB credentials to request a certificate from the Certificate Authority Service (`ca-server`).
+
+3. After obtaining the certificate files, add them to your agent's local directory.
+
+- If you registered an ontology agent and later need to derive entity objects based on that ontology, you can use `entity derive`. This step requires the ontology certificate materials.
+
+#### 5) Administrator Commands
+
+Review actions are performed using administrator-side commands:
+
+```bash
+acps-cli admin registry ...
+```
+
+Regular developers only need to know that after submitting with `agent submit`, they must wait for an administrator to approve the request. Only after obtaining the AIC and EAB can they apply for a certificate.
+
+2.2.2. The Most Common Minimal Command Sequence
+If you want to condense the process of "registering a regular agent and obtaining a certificate" into a minimal checklist, it is generally:
+
+```bash
+uv run acps-cli --config ./acps-cli.toml auth login --username alice --password 'S3cret!'
+uv run acps-cli --config ./acps-cli.toml agent save --acs-file ./acs.json --json
+uv run acps-cli --config ./acps-cli.toml agent submit --agent-id <AGENT_UUID> --json
+uv run acps-cli --config ./acps-cli.toml agent check --acs-file ./acs.json --json
+uv run acps-cli --config ./acps-cli.toml cert eab fetch --aic <AIC> --output ./private/eab.json --json
+uv run acps-cli --config ./acps-cli.toml cert issue --aic <AIC> --eab-file ./private/eab.json --usage clientAuth
+```
+
+# 3. Going Further: Discovering Agents
+
+A Leader agent can find Partner agents suitable for a task based on capability requirements through the Agent Discovery Protocol (ADP).
+
+## 3.1. Obtaining the Discovery Service Interface
+
+The Discovery Service (`discovery-server`) is accessed through a RESTful interface. The API definition can be found in [Agent Discovery (Discovery) API](../../acps-specs/06-ACPs-spec-ADP/ACPs-spec-ADP.md#4-智能体发现discoveryapi).
+
+The `discovery-server` implementation provides online documentation. The default service port is `9005`, and a common access URL is:
+`http://your-discovery-server:9005/docs#/`
+
+Registration, discovery, and collaboration together form the simplest model for agent interconnection and collaboration.
+
+## 3.2. Agent Discovery API Example
+
+Here is a minimal request example:
+
+- Request
+
+```bash
+curl -X 'POST' \
+  'http://bupt.ioa.pub:9005/acps-adp-v2/discover' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "type": "explicit",
+  "query": "我想去旅游",
+  "limit": 5
+}'
+```
+
+The discovery process implementation can be referenced in `demo-leader`.
+
+---
+
+## 4. Next Step: Observability (AMP)
+
+AIP addresses "how agents collaborate"; if you also need the collaboration process to be queryable (access logs, heartbeat status, auditing, etc.), read [Integrating AMP Observability into Agents](./amp-agent-observability.md).  
+That document only covers how developers implement Emitters and perform queries; it does not cover how to set up the underlying AMP infrastructure.
 
