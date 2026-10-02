@@ -16,7 +16,7 @@ See [`acps-infra/README.md`](../../acps-infra/README.md) for an overview of the 
 | **Manual Deployment (Basic Process)** | Those who want to understand exactly what deployment does, or whose target environment cannot use Docker / whose operating system is not in the support matrix | [Manual Deployment from Application Thin Package](../tutorials/manual-deploy-from-app-thin-package.md) |
 | **Installation Package Ansible Deployment** | Builders / deployers of image-mode or host-mode environments | [Assemble Installation Package](../tutorials/install-package-build.md), [Ansible Deployment](../tutorials/install-package-ansible-deploy.md), [Three-Node Deployment](../tutorials/install-package-ansible-deploy-3nodes.md) |
 | **Pre-acceptance / Pre-reinstallation Cleanup** | When the same batch of machines needs to be reinstalled from scratch (data will be destroyed) | [Cleanup Tutorial](../tutorials/install-package-clean-slate.md) |
-| **Post-installation Day-to-Day Operations** | Already-installed environments: renewal / trust / upgrade / rollback | [Day-2 Operations](../tutorials/install-package-day2-ops.md) |
+| **Post-installation Day-to-Day Operations** | Already-installed environments: renewal / trust / upgrade / rollback | [Daily Operations](../tutorials/install-package-day2-ops.md) |
 
 **What deployment needs to do** (the same process applies to both manual and automated deployment): install dependencies → deploy configuration → migrate the database → issue certificates → start processes in order → perform health checks. See [Manual Deployment](../tutorials/manual-deploy-from-app-thin-package.md) for step-by-step commands.
 
