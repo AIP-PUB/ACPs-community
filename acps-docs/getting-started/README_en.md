@@ -61,7 +61,7 @@ just test e2e
 just qa
 ```
 
-The details of these commands vary slightly across projects, but the overall model is consistent: `infra -> prep -> dev -> test -> qa`. See [Development and Testing Overview for a complete explanation]((../development/development-testing-overview.md)).
+The details of these commands vary slightly across projects, but the overall model is consistent: `infra -> prep -> dev -> test -> qa`. See [Development and Testing Overview for a complete explanation](../development/development-testing-overview.md).
 
 ## 3. Deploy Using the Installation Package
 The product deployment path is to assemble the installation package and then run Ansible on the control node:
