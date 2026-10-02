@@ -491,4 +491,47 @@ If you modify demo code, prioritize running the `demo-partner` unit and integrat
 - To understand the complex Partner example, read [demo-partner/partners/main.py](../../demo-partner/partners/main.py), [demo-partner/partners/generic_runner.py](../../demo-partner/partners/generic_runner.py), and [demo-partner/partners/group_handler.py](../../demo-partner/partners/group_handler.py).
 - To understand the complex Leader example, read [demo-leader/leader/assistant/core/orchestrator.py](../../demo-leader/leader/assistant/core/orchestrator.py), [demo-leader/leader/assistant/core/executor.py](../../demo-leader/leader/assistant/core/executor.py), and [demo-leader/leader/assistant/core/group_executor.py](../../demo-leader/leader/assistant/core/group_executor.py).
 
+# 2. Further: Getting Connected
+
+After completing agent development, you need to complete trusted registration, obtain the identity and certificates required to connect to the interconnected network, and expose agent capabilities, service endpoints, and other information through the Discovery Service (`discovery-server`).
+
+- A Partner agent exposes its registration capabilities and access endpoints to the Discovery Service (`discovery-server`) through the trusted registration process.
+- A Leader agent finds one or more required Partner agents through the Discovery Service (`discovery-server`), and then collaborates with them through the Partner agents' endpoints.
+
+While reading this chapter, you can refer to the following resources for details:
+
+| Keyword | Full Name | Abbreviation | Reference Document | Service / SDK Description |
+|----|----|----|----|----|
+| Agent Identity Code | Agent Identity Code | AIC | [ACPs-spec-AIC.md](../../acps-specs/02-ACPs-spec-AIC/ACPs-spec-AIC.md) | [acps-sdk:aic](../../acps-sdk/acps_sdk/aic/README.md) |
+| Agent Capability Specification | Agent Capability Specification | ACS | [ACPs-spec-ACS.md](../../acps-specs/03-ACPs-spec-ACS/ACPs-spec-ACS.md) | [acps-sdk:acs](../../acps-sdk/acps_sdk/acs/README.md) |
+| Agent Trusted Registration | Agent Trusted Registration | ATR | [ACPs-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR.md) | [registry-server](../../registry-server/README.md) |
+| Certificate of Agent Identity | Certificate of Agent Identity | CAI | [ACPs-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR.md) | [ca-server](../../ca-server/README.md) |
+
+> Note: The Discovery Service (`discovery-server`) automatically obtains agent ACS information from the Registration Service (`registry-server`). For details about this process, refer to [ACPs-spec-DSP.md](../../acps-specs/08-ACPs-spec-DSP/ACPs-spec-DSP.md).
+
+## 2.1. What Is Agent Trusted Registration?
+
+- **The Agent Trusted Registration (ATR) process consists of two steps:**
+
+1. Submit the Agent Capability Specification (ACS) to the Registration Service (`registry-server`). After approval, obtain the Agent Identity Code (AIC).
+2. Submit a certificate request to the Certificate Authority Service (`ca-server`) and obtain the Certificate of Agent Identity (CAI).
+
+After obtaining the Certificate of Agent Identity (CAI) from the Certificate Authority Service (`ca-server`), save the certificate (CAI) locally on the agent. It will be used when establishing an mTLS connection.  
+For example, in `demo-leader`, the certificate files are stored in `demo-leader/leader/atr`.
+
+- **One key point: Agent Capability Specification (ACS):**
+
+ACS contains information such as agent capabilities and access endpoints. The Discovery Service (`discovery-server`) matches ACS information against discovery requests to find agents suitable for a task. Other agents use ACS to find access endpoints.
+
+For typical ACS examples, see [demo-leader:acs.json](../../demo-leader/leader/atr/acs.json) and [demo-partner:acs.json](../../demo-partner/partners/online/china_hotel/acs.json).
+
+## 2.2. How to Complete Agent Trusted Registration
+
+It is recommended to use `acps-cli` directly to complete trusted registration. For ordinary developers, the most common workflow is:
+
+```text
+Prepare acps-cli configuration -> Log in to Registry -> Save ACS draft -> Submit for review -> Wait for approval and obtain AIC -> Obtain EAB -> Apply for certificate from CA
+
+> For detailed acps-cli usage instructions, refer to [references/cli-reference.md](../references/cli-reference.md).
+
 
