@@ -345,4 +345,150 @@ run：
 python leader.py
 ```
 
+This is the responsibility of the minimal Leader: create tasks, observe their status, provide additional input when necessary, confirm outputs, or handle failures. A real Leader can build on this foundation by adding multi-Partner selection, concurrent execution, Discovery queries, result aggregation, frontend APIs, persistence, and secure communication.
+
+## 1.5. What You Should Decide Yourself When Developing Independently
+
+Do not start by copying the planner, prompts, and LLM pipeline from the demo into your own agent. When developing independently, first answer the following questions:
+
+| Question | Description |
+| --- | --- |
+| What is the Partner's capability boundary? | When a task falls outside its capabilities, it should return `rejected` rather than remain in `working` for an extended period. |
+| Does task state need to be persisted? | The example can use in-memory storage, while production services typically require a database or reliable persistent storage. |
+| When should `awaiting-input` occur? | The Leader can provide additional input when information is insufficient, permissions are missing, or parameters are incomplete. |
+| How should the output of `awaiting-completion` be represented? | Use `TextDataItem` for text, `FileDataItem` for files, and `StructuredDataItem` for structured results. |
+| Are modifications allowed after `complete`? | Usually not; once a task enters a terminal state, it should remain idempotent. |
+| Is mTLS required? | A minimal local example can start with HTTP, while deployment environments can later integrate certificates and HTTPS. |
+| Is Group mode required? | For a single Partner or simple multi-Partner orchestration, start with Direct RPC; introduce RabbitMQ when shared group context is required. |
+
+The general development path can be understood as:
+
+```text
+Minimal Direct RPC -> Multi-command state machine -> Persistent task table -> mTLS -> Multi-Partner orchestration -> Discovery / Group / UI
+```
+
+1.6. What demo-leader / demo-partner Are Suitable for
+`demo-leader` and `demo-partner` are not minimal AIP frameworks. They are complex examples in ACPs designed for demonstrations and end-to-end validation. Their characteristics include:
+
+- They rely on LLMs for intent recognition, planning, analysis, completion gating, and result aggregation.
+
+- They rely on comprehensive system capabilities such as configurable scenarios, prompts, ACS, mTLS, RabbitMQ, and Discovery.
+
+- They cover both Direct RPC and Group modes.
+
+- They are suitable for demonstrating multi-Agent collaboration rather than serving as a mandatory base class for every agent project.
+
+If your agent is rule-based, tool-based, retrieval-based, or implements a deterministic workflow, you should generally start with the minimal Leader / Partner structure described in this document and introduce SDK capabilities as needed, rather than copying a large amount of LLM orchestration code from the demo.
+
+1.6.1. Reference demo-partner
+When you need to implement "multiple configurable Partner Agents", you can refer to demo-partner:
+
+```text
+demo-partner/partners/
+  main.py
+  generic_runner.py
+  group_handler.py
+  online/
+    <agent_name>/
+      acs.json
+      config.toml
+      prompts.toml
+      skills.toml
+```
+
+Points worth referencing:
+
+- `partners/main.py`: How to scan multiple Agent directories and start each Agent on an independent port.
+- `partners/generic_runner.py`: How to organize the `start` / `get` / `continue` / `complete` / `cancel` handler functions.
+- `partners/group_handler.py`: How to have a Partner join a Group and broadcast task status back to MQ.
+- `partners/online/*/acs.json`: How to describe Agent capabilities and endpoints.
+- `partners/online/*/config.toml`: How to configure runtime parameters such as ports, mTLS, LLM profiles, and RabbitMQ.
+
+However, if your Partner does not require an LLM, does not need multiple online Agents, and does not use the prompt / skill structure from the travel demo, you should not copy the full complexity of `generic_runner.py`.
+
+### 1.6.2. Reference `demo-leader`
+
+When you need to implement an "LLM-driven multi-Partner orchestration Leader", you can refer to `demo-leader`:
+
+```text
+demo-leader/leader/
+  main.py
+  assistant/
+    api/routes.py
+    core/orchestrator.py
+    core/planner.py
+    core/executor.py
+    core/group_manager.py
+    core/group_executor.py
+    core/completion_gate.py
+    core/aggregator.py
+    services/discovery_client.py
+```
+
+Points worth referencing:
+
+- `leader/main.py`: How to initialize core components within the FastAPI lifespan.
+- `assistant/api/routes.py`: How to route user requests into the Leader orchestrator.
+- `core/orchestrator.py`: How to connect the session, intent recognition, planning, execution, follow-up questions, completion confirmation, and aggregation stages.
+- `core/executor.py`: How to use `AipRpcClient` to concurrently dispatch `start` commands and then poll Partner statuses.
+- `core/completion_gate.py`: How to handle `awaiting-completion` and decide whether to call `complete` or `continue`.
+- `core/group_manager.py` / `core/group_executor.py`: How to organize Group mode.
+- `services/discovery_client.py`: How to query Partner ACS information from Discovery.
+
+If your Leader only needs to call one or a few fixed Partners, you can directly extend the minimal Leader example in this document; there is no need to introduce the full LLM layering from `demo-leader`.
+
+## 1.7. When to Introduce Group Mode
+
+Group mode is suitable for scenarios such as:
+
+- Multiple Partners need to see the same task context.
+- Messages between Partners need to be broadcast to the group or sent to specific members.
+- The Leader does not want to perform only a set of independent one-to-one RPC calls, but instead wants to maintain a collaborative session.
+
+Group mode still uses `TaskCommand` and `TaskResult`, but messages are transmitted through RabbitMQ group sessions. During development, pay particular attention to the following:
+
+- `groupId` must be propagated throughout the same group of tasks.
+- `mentions` is used to indicate whether a message is intended for all members or specific members.
+- After joining a group, the Partner needs to broadcast task status changes back to the group.
+- The Leader is responsible for the group lifecycle and should release the group when the task ends or the session expires.
+
+Relevant entry points:
+
+- SDK Leader：`acps_sdk.aip.aip_group_leader`
+- SDK Partner：`acps_sdk.aip.aip_group_partner`
+- demo Leader：`demo-leader/leader/assistant/core/group_manager.py`、`demo-leader/leader/assistant/core/group_executor.py`
+- demo Partner：`demo-partner/partners/group_handler.py`
+
+# 1.8. How to Validate During Development
+
+This document does not repeat the environment setup process, but after completing code changes, you should at least run tests according to the scope of the changes:
+
+```bash
+just test bootstrap
+just test unit
+just test integration
+just test e2e
+just qa
+```
+
+For an independent project, testing should focus on:
+
+- Acceptance, rejection, and missing-parameter input waiting for `start`.
+- Idempotent reads for `get`.
+- `continue` should only take effect when the task is in `awaiting-input` or `awaiting-completion`.
+- `complete` should only take effect when the task is in `awaiting-completion`.
+- Tasks in terminal states should not be accidentally modified.
+- The structure of `products` and `status.dataItems` should comply with the AIP model.
+
+If you modify demo code, prioritize running the `demo-partner` unit and integration tests for the Partner state machine; for Leader orchestration, planning, completion gates, or aggregation logic, prioritize the `demo-leader` unit, API, integration, and e2e tests. For real cross-service integration testing and CLI-level end-to-end validation, refer back to the testing-layer description in [Development and Testing Overview](../development/development-testing-overview.md).
+
+## 1.9. What to Read Next
+
+- For detailed AIP SDK references, read [tutorials/aip-sdk-tutorial.md](./aip-sdk-tutorial.md).
+- To understand AIP data objects, read [acps-sdk/acps_sdk/aip/aip_base_model.py](../../acps-sdk/acps_sdk/aip/aip_base_model.py).
+- To understand minimal Partner RPC bindings, read [acps-sdk/acps_sdk/aip/aip_rpc_server.py](../../acps-sdk/acps_sdk/aip/aip_rpc_server.py).
+- To understand minimal Leader RPC calls, read [acps-sdk/acps_sdk/aip/aip_rpc_client.py](../../acps-sdk/acps_sdk/aip/aip_rpc_client.py).
+- To understand the complex Partner example, read [demo-partner/partners/main.py](../../demo-partner/partners/main.py), [demo-partner/partners/generic_runner.py](../../demo-partner/partners/generic_runner.py), and [demo-partner/partners/group_handler.py](../../demo-partner/partners/group_handler.py).
+- To understand the complex Leader example, read [demo-leader/leader/assistant/core/orchestrator.py](../../demo-leader/leader/assistant/core/orchestrator.py), [demo-leader/leader/assistant/core/executor.py](../../demo-leader/leader/assistant/core/executor.py), and [demo-leader/leader/assistant/core/group_executor.py](../../demo-leader/leader/assistant/core/group_executor.py).
+
 
