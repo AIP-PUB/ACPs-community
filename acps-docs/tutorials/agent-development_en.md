@@ -1,10 +1,12 @@
 [Home](../README.md)
 
+**[English](agent-development_en.md) | [中文](agent-development.md)**
+
 # ACPs Agent Quick Development Guide
 
 This document is intended for developers who want to develop Leader / Partner agents based on ACPs. It only covers the AIP interaction model and code structure, and does not repeat the content on setting up the development environment, packaging, or deployment.
 
-For environment preparation, please see [Quick Start](../getting-started/README.md) and [Development and Testing Overview](../development/development-testing-overview.md).
+For environment preparation, please see [Quick Start](../getting-started/README.md) and [Development and Testing Overview](../development/development-testing-overview_en.md).
 
 ## Table of Contents
 
@@ -18,7 +20,7 @@ For environment preparation, please see [Quick Start](../getting-started/README.
 
 AIP is Agent Interaction Protocol, used to describe how agents dispatch tasks, return status, exchange content, and complete collaboration.  
 
-> For the complete definition of the AIP protocol, please see [ACPs AIP Protocol Specification](../../acps-specs/07-ACPs-spec-AIP/ACPs-spec-AIP.md)。
+> For the complete definition of the AIP protocol, please see [ACPs AIP Protocol Specification](../../acps-specs/07-ACPs-spec-AIP/ACPs-spec-AIP_en.md).
 
 The focus of this chapter is independent development: first use `acps-sdk` to write a minimal Partner and a minimal Leader, and understand the AIP task state machine;  
 then use `demo-partner` / `demo-leader` as references for more complex examples.  
@@ -178,15 +180,15 @@ async def on_start(command: TaskCommand, task: TaskResult | None) -> TaskResult:
         task = TaskManager.create_task(
             command,
             initial_state=TaskState.AwaitingInput,
-            data_items=[TextDataItem(text="请提供要处理的文本。")],
+            data_items=[TextDataItem(text="Please provide the text to be processed.")],
         )
         return _with_sender(task)
 
-    if "天气" in user_input:
+    if "weather" in user_input:
         task = TaskManager.create_task(
             command,
             initial_state=TaskState.Rejected,
-            data_items=[TextDataItem(text="这个示例 Partner 不提供天气查询能力。")],
+            data_items=[TextDataItem(text="This example Partner does not offer weather lookup.")],
         )
         return _with_sender(task)
 
@@ -200,7 +202,7 @@ async def on_start(command: TaskCommand, task: TaskResult | None) -> TaskResult:
             Product(
                 id=f"product-{task.taskId}",
                 name="echo",
-                dataItems=[TextDataItem(text=f"Partner 已处理：{user_input}")],
+                dataItems=[TextDataItem(text=f"Partner processed: {user_input}")],
             )
         ],
     )
@@ -220,7 +222,7 @@ async def on_continue(command: TaskCommand, task: TaskResult) -> TaskResult:
             Product(
                 id=f"product-{task.taskId}",
                 name="echo",
-                dataItems=[TextDataItem(text=f"Partner 收到补充信息：{user_input}")],
+                dataItems=[TextDataItem(text=f"Partner received additional input: {user_input}")],
             )
         ],
     )
@@ -299,7 +301,7 @@ async def main() -> None:
         task = await client.start_task(
             session_id=session_id,
             task_id=task_id,
-            user_input="请处理这段文本",
+            user_input="Please process this text",
         )
         print(f"start -> {task.status.state}")
 
@@ -309,17 +311,17 @@ async def main() -> None:
             print(f"get -> {task.status.state}")
 
         if task.status.state == TaskState.AwaitingInput:
-            print("Partner 需要补充信息：")
+            print("The Partner needs more information:")
             _print_data_items(task.status.dataItems)
             task = await client.continue_task(
                 task_id=task_id,
                 session_id=session_id,
-                user_input="这是 Leader 补充的信息",
+                user_input="This is the information supplied by the Leader",
             )
             print(f"continue -> {task.status.state}")
 
         if task.status.state == TaskState.AwaitingCompletion:
-            print("Partner 产出物：")
+            print("Partner products:")
             _print_products(task)
             task = await client.complete_task(
                 task_id=task_id,
@@ -328,7 +330,7 @@ async def main() -> None:
             print(f"complete -> {task.status.state}")
 
         if task.status.state in (TaskState.Failed, TaskState.Rejected, TaskState.Canceled):
-            print("任务未完成：")
+            print("The task was not completed:")
             _print_data_items(task.status.dataItems)
 
     finally:
@@ -367,7 +369,8 @@ The general development path can be understood as:
 Minimal Direct RPC -> Multi-command state machine -> Persistent task table -> mTLS -> Multi-Partner orchestration -> Discovery / Group / UI
 ```
 
-1.6. What demo-leader / demo-partner Are Suitable for
+## 1.6. What demo-leader / demo-partner Are Suitable for
+
 `demo-leader` and `demo-partner` are not minimal AIP frameworks. They are complex examples in ACPs designed for demonstrations and end-to-end validation. Their characteristics include:
 
 - They rely on LLMs for intent recognition, planning, analysis, completion gating, and result aggregation.
@@ -380,7 +383,8 @@ Minimal Direct RPC -> Multi-command state machine -> Persistent task table -> mT
 
 If your agent is rule-based, tool-based, retrieval-based, or implements a deterministic workflow, you should generally start with the minimal Leader / Partner structure described in this document and introduce SDK capabilities as needed, rather than copying a large amount of LLM orchestration code from the demo.
 
-1.6.1. Reference demo-partner
+### 1.6.1. Reference demo-partner
+
 When you need to implement "multiple configurable Partner Agents", you can refer to demo-partner:
 
 ```text
@@ -459,7 +463,7 @@ Relevant entry points:
 - demo Leader：`demo-leader/leader/assistant/core/group_manager.py`、`demo-leader/leader/assistant/core/group_executor.py`
 - demo Partner：`demo-partner/partners/group_handler.py`
 
-# 1.8. How to Validate During Development
+## 1.8. How to Validate During Development
 
 This document does not repeat the environment setup process, but after completing code changes, you should at least run tests according to the scope of the changes:
 
@@ -480,11 +484,11 @@ For an independent project, testing should focus on:
 - Tasks in terminal states should not be accidentally modified.
 - The structure of `products` and `status.dataItems` should comply with the AIP model.
 
-If you modify demo code, prioritize running the `demo-partner` unit and integration tests for the Partner state machine; for Leader orchestration, planning, completion gates, or aggregation logic, prioritize the `demo-leader` unit, API, integration, and e2e tests. For real cross-service integration testing and CLI-level end-to-end validation, refer back to the testing-layer description in [Development and Testing Overview](../development/development-testing-overview.md).
+If you modify demo code, prioritize running the `demo-partner` unit and integration tests for the Partner state machine; for Leader orchestration, planning, completion gates, or aggregation logic, prioritize the `demo-leader` unit, API, integration, and e2e tests. For real cross-service integration testing and CLI-level end-to-end validation, refer back to the testing-layer description in [Development and Testing Overview](../development/development-testing-overview_en.md).
 
 ## 1.9. What to Read Next
 
-- For detailed AIP SDK references, read [tutorials/aip-sdk-tutorial.md](./aip-sdk-tutorial.md).
+- For detailed AIP SDK references, read [tutorials/aip-sdk-tutorial.md](./aip-sdk-tutorial_en.md).
 - To understand AIP data objects, read [acps-sdk/acps_sdk/aip/aip_base_model.py](../../acps-sdk/acps_sdk/aip/aip_base_model.py).
 - To understand minimal Partner RPC bindings, read [acps-sdk/acps_sdk/aip/aip_rpc_server.py](../../acps-sdk/acps_sdk/aip/aip_rpc_server.py).
 - To understand minimal Leader RPC calls, read [acps-sdk/acps_sdk/aip/aip_rpc_client.py](../../acps-sdk/acps_sdk/aip/aip_rpc_client.py).
@@ -502,12 +506,12 @@ While reading this chapter, you can refer to the following resources for details
 
 | Keyword | Full Name | Abbreviation | Reference Document | Service / SDK Description |
 |----|----|----|----|----|
-| Agent Identity Code | Agent Identity Code | AIC | [ACPs-spec-AIC.md](../../acps-specs/02-ACPs-spec-AIC/ACPs-spec-AIC.md) | [acps-sdk:aic](../../acps-sdk/acps_sdk/aic/README.md) |
-| Agent Capability Specification | Agent Capability Specification | ACS | [ACPs-spec-ACS.md](../../acps-specs/03-ACPs-spec-ACS/ACPs-spec-ACS.md) | [acps-sdk:acs](../../acps-sdk/acps_sdk/acs/README.md) |
-| Agent Trusted Registration | Agent Trusted Registration | ATR | [ACPs-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR.md) | [registry-server](../../registry-server/README.md) |
-| Certificate of Agent Identity | Certificate of Agent Identity | CAI | [ACPs-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR.md) | [ca-server](../../ca-server/README.md) |
+| Agent Identity Code | Agent Identity Code | AIC | [ACPs-spec-AIC.md](../../acps-specs/02-ACPs-spec-AIC/ACPs-spec-AIC_en.md) | [acps-sdk:aic](../../acps-sdk/acps_sdk/aic/README.md) |
+| Agent Capability Specification | Agent Capability Specification | ACS | [ACPs-spec-ACS.md](../../acps-specs/03-ACPs-spec-ACS/ACPs-spec-ACS_en.md) | [acps-sdk:acs](../../acps-sdk/acps_sdk/acs/README.md) |
+| Agent Trusted Registration | Agent Trusted Registration | ATR | [ACPs-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR_en.md) | [registry-server](../../registry-server/README.md) |
+| Certificate of Agent Identity | Certificate of Agent Identity | CAI | [ACPs-spec-ATR.md](../../acps-specs/04-ACPs-spec-ATR/ACPs-spec-ATR_en.md) | [ca-server](../../ca-server/README.md) |
 
-> Note: The Discovery Service (`discovery-server`) automatically obtains agent ACS information from the Registration Service (`registry-server`). For details about this process, refer to [ACPs-spec-DSP.md](../../acps-specs/08-ACPs-spec-DSP/ACPs-spec-DSP.md).
+> Note: The Discovery Service (`discovery-server`) automatically obtains agent ACS information from the Registration Service (`registry-server`). For details about this process, refer to [ACPs-spec-DSP.md](../../acps-specs/08-ACPs-spec-DSP/ACPs-spec-DSP_en.md).
 
 ## 2.1. What Is Agent Trusted Registration?
 
@@ -531,8 +535,9 @@ It is recommended to use `acps-cli` directly to complete trusted registration. F
 
 ```text
 Prepare acps-cli configuration -> Log in to Registry -> Save ACS draft -> Submit for review -> Wait for approval and obtain AIC -> Obtain EAB -> Apply for certificate from CA
+```
 
-> For detailed acps-cli usage instructions, refer to [references/cli-reference.md](../references/cli-reference.md).
+> For detailed acps-cli usage instructions, refer to [references/cli-reference_en.md](../references/cli-reference_en.md).
 
 ### 2.2.1. Complete Trusted Registration Steps
 
@@ -574,7 +579,8 @@ acps-cli admin registry ...
 
 Regular developers only need to know that after submitting with `agent submit`, they must wait for an administrator to approve the request. Only after obtaining the AIC and EAB can they apply for a certificate.
 
-2.2.2. The Most Common Minimal Command Sequence
+### 2.2.2. The Most Common Minimal Command Sequence
+
 If you want to condense the process of "registering a regular agent and obtaining a certificate" into a minimal checklist, it is generally:
 
 ```bash
@@ -592,7 +598,7 @@ A Leader agent can find Partner agents suitable for a task based on capability r
 
 ## 3.1. Obtaining the Discovery Service Interface
 
-The Discovery Service (`discovery-server`) is accessed through a RESTful interface. The API definition can be found in [Agent Discovery (Discovery) API](../../acps-specs/06-ACPs-spec-ADP/ACPs-spec-ADP.md#4-智能体发现discoveryapi).
+The Discovery Service (`discovery-server`) is accessed through a RESTful interface. The API definition can be found in [Agent Discovery (Discovery) API](../../acps-specs/06-ACPs-spec-ADP/ACPs-spec-ADP_en.md#4-agent-discovery-api).
 
 The `discovery-server` implementation provides online documentation. The default service port is `9005`, and a common access URL is:
 `http://your-discovery-server:9005/docs#/`
@@ -612,7 +618,7 @@ curl -X 'POST' \
   -H 'Content-Type: application/json' \
   -d '{
   "type": "explicit",
-  "query": "我想去旅游",
+  "query": "I want to travel",
   "limit": 5
 }'
 ```
@@ -623,6 +629,6 @@ The discovery process implementation can be referenced in `demo-leader`.
 
 ## 4. Next Step: Observability (AMP)
 
-AIP addresses "how agents collaborate"; if you also need the collaboration process to be queryable (access logs, heartbeat status, auditing, etc.), read [Integrating AMP Observability into Agents](./amp-agent-observability.md).  
+AIP addresses "how agents collaborate"; if you also need the collaboration process to be queryable (access logs, heartbeat status, auditing, etc.), read [Integrating AMP Observability into Agents](./amp-agent-observability_en.md).  
 That document only covers how developers implement Emitters and perform queries; it does not cover how to set up the underlying AMP infrastructure.
 
