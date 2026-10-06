@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](manual-deploy-from-app-thin-package_en.md) | [中文](manual-deploy-from-app-thin-package.md)**
 
 # 从应用薄包手工部署
 
