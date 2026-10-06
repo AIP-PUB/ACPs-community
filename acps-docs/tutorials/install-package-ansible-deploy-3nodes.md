@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](install-package-ansible-deploy-3nodes_en.md) | [中文](install-package-ansible-deploy-3nodes.md)**
 
 # 三业务节点部署（Ansible：image / host）
 
