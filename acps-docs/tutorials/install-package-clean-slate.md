@@ -1,4 +1,6 @@
-[首页](../README.md)
+[首页/Home](../README.md)
+
+**[English](install-package-clean-slate_en.md) | [中文](install-package-clean-slate.md)**
 
 # 验收 / 重装前清场（破坏性）
 
