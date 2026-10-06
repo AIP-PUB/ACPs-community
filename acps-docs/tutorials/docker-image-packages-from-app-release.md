@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](docker-image-packages-from-app-release_en.md) | [中文](docker-image-packages-from-app-release.md)**
 
 # 从应用发布包构建 Docker 镜像包
 
