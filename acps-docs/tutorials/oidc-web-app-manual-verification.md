@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](oidc-web-app-manual-verification_en.md) | [中文](oidc-web-app-manual-verification.md)**
 
 # OIDC Web 应用手工验证教程
 
