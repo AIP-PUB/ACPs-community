@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](install-package-build_en.md) | [中文](install-package-build.md)**
 
 # 组装安装包（image-mode / host-mode）
 
