@@ -1,3 +1,7 @@
+[Home](../README.md)
+
+**[English](aip-sdk-tutorial_en.md) | [中文](aip-sdk-tutorial.md)**
+
 # 基于 AIP 协议 SDK 的开发教程
 
 本教程介绍如何使用 `acps_sdk.aip` 开发 AIP（Agent Interaction Protocol，智能体交互协议）代码，重点覆盖当前 SDK 已经落地的两类能力：
