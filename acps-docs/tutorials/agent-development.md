@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](agent-development_en.md) | [中文](agent-development.md)**
 
 # ACPs 智能体快速开发指南
 
