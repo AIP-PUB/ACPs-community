@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README_en.md) | [首页](../README.md)
+
+**[English](README_en.md) | [中文](README.md)**
 
 # ACPs 快速开始
 
