@@ -1,3 +1,7 @@
+[Home](../README.md)
+
+**[English](aip-identity-binding-verification_en.md) | [中文](aip-identity-binding-verification.md)**
+
 # AIP 通信如何防止身份伪造
 
 本教程回答一个常见问题：在 AIP 通信中，如何防止一个 Agent 冒充另一个 Agent 发送业务消息？
