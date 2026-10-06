@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](amp-agent-observability_en.md) | [中文](amp-agent-observability.md)**
 
 # 在 Agent 中接入 AMP 可观测性
 
