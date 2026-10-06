@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](oidc-acps-cli-device-login_en.md) | [中文](oidc-acps-cli-device-login.md)**
 
 # acps-cli OIDC Device 登录教程
 
