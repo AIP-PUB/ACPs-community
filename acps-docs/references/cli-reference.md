@@ -1,3 +1,7 @@
+[Home](../README.md)
+
+**[English](cli-reference_en.md) | [中文](cli-reference.md)**
+
 # acps-cli 命令行使用说明
 
 本文档是 `acps-cli` 的完整命令行参考文档。
