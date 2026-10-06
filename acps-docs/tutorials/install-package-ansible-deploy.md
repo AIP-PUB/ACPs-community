@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](install-package-ansible-deploy_en.md) | [中文](install-package-ansible-deploy.md)**
 
 # 用安装包部署 ACPs（Ansible：image / host）
 
