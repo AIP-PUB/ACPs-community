@@ -1,3 +1,5 @@
+**[English](README_en.md) | [中文](README.md)**
+
 # ACPs Docs
 
 这个目录是 ACPs 项目的参考文档入口：快速开始、教程、CLI 参考与开发测试说明。
