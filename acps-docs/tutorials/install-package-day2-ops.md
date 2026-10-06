@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](install-package-day2-ops_en.md) | [中文](install-package-day2-ops.md)**
 
 # 安装后日常运维（续签 / trust / 升级 / 回滚）
 
