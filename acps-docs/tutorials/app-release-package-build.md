@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README.md)
+
+**[English](app-release-package-build_en.md) | [中文](app-release-package-build.md)**
 
 # 从源代码构建应用发布包
 
