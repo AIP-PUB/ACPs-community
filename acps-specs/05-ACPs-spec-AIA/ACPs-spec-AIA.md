@@ -1,5 +1,7 @@
 [首页](../README.md)
 
+**[English](ACPs-spec-AIA_en.md) | [中文](ACPs-spec-AIA.md)**
+
 AIA：智能体身份认证流程（ACPs-spec-AIA-v02.02）
 
 # 1. 文档定义
