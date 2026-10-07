@@ -1,5 +1,7 @@
 [首页](../README.md)
 
+**[English](ACPs-spec-ADP_en.md) | [中文](ACPs-spec-ADP.md)**
+
 ADP：智能体发现过程（ACPs-spec-ADP-v02.02）
 
 # 1. 文档定义
