@@ -1,4 +1,6 @@
-[首页](../README.md)
+[Home](../README_en.md)
+
+**[English](ACPs-spec-AAC_en.md) | [中文](ACPs-spec-AAC.md)**
 
 AAC：智能体访问控制（ACPs-spec-AAC-v02.02）
 
