@@ -1,5 +1,7 @@
 [首页](../README.md)
 
+**[English](ACPs-spec-AIP_en.md) | [中文](ACPs-spec-AIP.md)**
+
 AIP：智能体交互协议（ACPs-spec-AIP-v02.02）
 
 # 1. 文档定义
