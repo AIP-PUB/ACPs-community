@@ -1,8 +1,8 @@
-# AIP Project Overview
+# ACPs Project Overview
 For the complete project repository, please visit: https://github.com/AIP-PUB/ACPs-community
 
 ## 1. Project Introduction
-This project is part of the open-source ecosystem for agent interconnection. Led by Beijing University of Posts and Telecommunications (BUPT) and developed with the support of the China Electronics Standardization Institute (CESI), the project released version v1.0.0 in November 2025.
+This project is part of the open-source ecosystem for agent interconnection and Internet of Agents (IoA). Led by Beijing University of Posts and Telecommunications (BUPT) and developed with the support of the China Electronics Standardization Institute (CESI), the project released version v1.0.0 in November 2025.
 
 Organizations responsible for document preparation:
 School of Artificial Intelligence, Beijing University of Posts and Telecommunications; China Electronics Standardization Institute
