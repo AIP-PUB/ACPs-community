@@ -1,4 +1,4 @@
-[Home](../README_en.md)
+[Home](../README.md)
 
 **[English](ACPs-spec-AAC_en.md) | [中文](ACPs-spec-AAC.md)**
 
