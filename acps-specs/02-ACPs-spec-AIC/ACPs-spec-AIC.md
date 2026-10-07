@@ -1,5 +1,7 @@
 [首页](../README.md)
 
+**[English](ACPs-spec-AIC_en.md) | [中文](ACPs-spec-AIC.md)**
+
 AIC：智能体身份码定义（ACPs-spec-AIC-v02.02）
 
 # 1. 文档定义
