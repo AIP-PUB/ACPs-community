@@ -1,4 +1,4 @@
-### [Readme(English version)](readme_en.md)
+### [Readme(English version)](README_en.md)
 
-### [说明文档(中文版)](readme_cn.md)
+### [说明文档(中文版)](README_cn.md)
 
