@@ -1,5 +1,7 @@
 [首页](../README.md)
 
+**[English](ACPs-spec-ATR_en.md) | [中文](ACPs-spec-ATR.md)**
+
 ATR：智能体可信注册（ACPs-spec-ATR-v02.02）
 
 # 1. 文档定义
