@@ -1,5 +1,7 @@
 [首页](../README.md)
 
+**[English](ACPs-spec-ACS_en.md) | [中文](ACPs-spec-ACS.md)**
+
 ACS：智能体能力描述（ACPs-spec-ACS-v02.02）
 
 # 1. 文档定义
