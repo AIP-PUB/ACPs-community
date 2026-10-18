@@ -83,6 +83,9 @@ from .aip_group_runtime import (
 
 if TYPE_CHECKING:
     from acps_sdk.amp.message_emitter import MessageEmitter
+    from acps_sdk.amp.access_emitter import AccessEmitter
+
+from acps_sdk.amp.group_access import GroupAccessMiddleware
 
 from acps_sdk.amp import _message_tap as message_tap
 from acps_sdk.amp.trace_context import (
@@ -147,6 +150,7 @@ class GroupPartnerMqClient:
         robust_connection: bool = True,
         *,
         message_emitter: MessageEmitter | None = None,
+        access_emitter: AccessEmitter | None = None,
         message_system: str = "rabbitmq",
         trace_context_provider: Callable[[], TraceContext | None] | None = None,
         identity_binding_enabled: bool = True,
@@ -167,6 +171,7 @@ class GroupPartnerMqClient:
         self._connection_owner = connection_owner
         self._use_robust_connection = robust_connection
         self._message_emitter = message_emitter
+        self._group_access = GroupAccessMiddleware(access_emitter, partner_aic) if access_emitter else None
         self._message_system = message_system
         self._trace_context_provider = trace_context_provider
         self._identity_binding_enabled = identity_binding_enabled
@@ -966,7 +971,10 @@ class GroupPartnerMqClient:
 
         # 统一调用命令处理器
         if self._command_handler:
-            await self._command_handler(command, is_mentioned)
+            if is_mentioned and self._group_access:
+                await self._group_access.run(command, lambda: self._command_handler(command, is_mentioned))
+            else:
+                await self._command_handler(command, is_mentioned)
 
     async def _notify_joined(self) -> None:
         """通知群组自己已加入（加入通知时尚未有会话上下文，不传 sessionId）"""

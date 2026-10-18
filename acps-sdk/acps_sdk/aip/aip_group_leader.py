@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
 import ssl
@@ -83,6 +84,9 @@ from .aip_group_runtime import (
 
 if TYPE_CHECKING:
     from acps_sdk.amp.message_emitter import MessageEmitter
+    from acps_sdk.amp.access_emitter import AccessEmitter
+
+from acps_sdk.amp.group_access import GroupAccessMiddleware
 
 from acps_sdk.amp import _message_tap as message_tap
 from acps_sdk.amp.trace_context import (
@@ -202,6 +206,7 @@ class GroupLeaderMqClient:
         connection_owner: bool = True,
         *,
         message_emitter: MessageEmitter | None = None,
+        access_emitter: AccessEmitter | None = None,
         message_system: str = "rabbitmq",
         trace_context_provider: Callable[[], TraceContext | None] | None = None,
         identity_binding_enabled: bool = True,
@@ -227,6 +232,7 @@ class GroupLeaderMqClient:
         self.ssl_context = ssl_context
         self._connection_owner = connection_owner
         self._message_emitter = message_emitter
+        self._group_access = GroupAccessMiddleware(access_emitter, leader_aic) if access_emitter else None
         self._message_system = message_system
         self._trace_context_provider = trace_context_provider
         self._identity_binding_enabled = identity_binding_enabled
@@ -920,7 +926,10 @@ class GroupLeaderMqClient:
             mentions=mentions,
         )
 
-        await self.publish_message(task_command)
+        if self._group_access:
+            await self._group_access.run(task_command, lambda: self.publish_message(task_command), direction="send")
+        else:
+            await self.publish_message(task_command)
         return task_command
 
     async def start_task(
@@ -1553,12 +1562,16 @@ class GroupLeader:
         identity_binding_enabled: bool = True,
         *,
         message_emitter: MessageEmitter | None = None,
+        access_emitter: AccessEmitter | None = None,
         trace_context_provider: Callable[[], TraceContext | None] | None = None,
     ) -> None:
         self.leader_aic = leader_aic
         self.ssl_context = ssl_context
         self.ssl_cert = ssl_cert
         self._message_emitter = message_emitter
+        self._access_emitter = access_emitter
+        self._task_listeners: list[Callable[..., Any]] = []
+        self._last_task_results: dict[tuple[str, str, str], dict] = {}
         self._trace_context_provider = trace_context_provider
         self.rabbitmq_host = rabbitmq_config.get("host", "localhost")
         self.rabbitmq_port = rabbitmq_config.get("port", 5672)
@@ -1583,6 +1596,15 @@ class GroupLeader:
                 base_url=self.auth_service_url.strip(),
                 ssl_context=self.ssl_context,
             )
+
+    def add_task_listener(self, listener: Callable[..., Any]) -> None:
+        """Listen after task-state recording; callback receives (session, task)."""
+        if listener not in self._task_listeners:
+            self._task_listeners.append(listener)
+
+    def remove_task_listener(self, listener: Callable[..., Any]) -> None:
+        if listener in self._task_listeners:
+            self._task_listeners.remove(listener)
 
     async def _ensure_connection(self) -> AbstractConnection:
         async with self._connection_lock:
@@ -1734,6 +1756,7 @@ class GroupLeader:
             connection_owner=False,
             identity_binding_enabled=self._identity_binding_enabled,
             message_emitter=self._message_emitter,
+            access_emitter=self._access_emitter,
             trace_context_provider=self._trace_context_provider,
         )
 
@@ -2596,13 +2619,26 @@ class GroupLeader:
             state,
         )
 
-        group_session.record_task_state(
-            task_id=task_id,
-            partner_aic=sender_id,
-            state=state,
-            product_text=product_text,
-            awaiting_prompt=awaiting_prompt,
-        )
+        from ._task_order import accepts_task_update
+        key = (group_session.session_id, task_id, sender_id)
+        artifact = task.model_dump(mode="json", exclude_none=True)
+        if accepts_task_update(artifact, self._last_task_results.get(key)):
+            self._last_task_results[key] = artifact
+            group_session.record_task_state(
+                task_id=task_id,
+                partner_aic=sender_id,
+                state=state,
+                product_text=product_text,
+                awaiting_prompt=awaiting_prompt,
+            )
+        else:
+            logger.info("event=out_of_order_task_result session_id=%s task_id=%s partner=%s state=%s",
+                        group_session.session_id, task_id, sender_id, state)
+
+        for listener in tuple(self._task_listeners):
+            result = listener(group_session, task)
+            if inspect.isawaitable(result):
+                await result
 
         logger.info(
             "[GroupLeader] Task state recorded successfully: session=%s task_id=%s partner=%s",
