@@ -1,0 +1,1237 @@
+{
+  "scenarios": {
+    "hydrate_without_checkpoints": {
+      "steps": [
+        {
+          "op": "hydrate"
+        }
+      ],
+      "results": [
+        {
+          "ok": false,
+          "type": "ResyncRequired",
+          "message": "Resync required: no_checkpoints",
+          "reason": "no_checkpoints"
+        }
+      ],
+      "calls": [],
+      "rows": {},
+      "checkpoints": {},
+      "engine": {
+        "last_seen_seq": {},
+        "local_version": {},
+        "cutover_seq_by_shard": {}
+      },
+      "views": {}
+    },
+    "snapshot_then_deltas": {
+      "steps": [
+        {
+          "op": "snapshot",
+          "meta": {
+            "recordType": "snapshot-meta",
+            "type": "amp-alive-delta",
+            "cutoverSeqByShard": {
+              "hb-000": "20",
+              "hb-001": "7"
+            },
+            "generatedAt": "2026-06-13T01:00:00Z"
+          },
+          "rows": [
+            {
+              "shard": "hb-000",
+              "seq": "20",
+              "type": "amp-alive-delta",
+              "id": "urn:amp:alive:AIC-001",
+              "version": "20",
+              "op": "upsert",
+              "kind": "snapshot",
+              "payload": {
+                "aic": "AIC-001",
+                "lastSeenAt": "2026-06-13T01:20:00Z"
+              }
+            },
+            {
+              "shard": "hb-000",
+              "seq": "18",
+              "type": "amp-alive-delta",
+              "id": "urn:amp:alive:AIC-002",
+              "version": "18",
+              "op": "upsert",
+              "kind": "snapshot",
+              "payload": {
+                "aic": "AIC-002",
+                "lastSeenAt": "2026-06-13T01:18:00Z"
+              }
+            },
+            {
+              "shard": "hb-001",
+              "seq": "7",
+              "type": "amp-alive-delta",
+              "id": "urn:amp:alive:AIC-003",
+              "version": "7",
+              "op": "upsert",
+              "kind": "snapshot",
+              "payload": {
+                "aic": "AIC-003",
+                "lastSeenAt": "2026-06-13T01:07:00Z"
+              }
+            }
+          ]
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-000",
+            "seq": "21",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-001",
+            "version": "21",
+            "op": "upsert",
+            "kind": "refresh_alive",
+            "payload": {
+              "aic": "AIC-001",
+              "lastSeenAt": "2026-06-13T01:21:00Z"
+            }
+          },
+          "kafka_next_offset": 101
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-000",
+            "seq": "21",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-001",
+            "version": "21",
+            "op": "upsert",
+            "kind": "refresh_alive",
+            "payload": {
+              "aic": "AIC-001",
+              "lastSeenAt": "2026-06-13T01:21:00Z"
+            }
+          },
+          "kafka_next_offset": 101
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-000",
+            "seq": "22",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-002",
+            "version": "22",
+            "op": "delete",
+            "kind": "leave_alive"
+          },
+          "kafka_next_offset": 102
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-000",
+            "seq": "23",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-004",
+            "version": "23",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-004",
+              "lastSeenAt": "2026-06-13T01:23:00Z"
+            }
+          }
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-000",
+            "seq": "30",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-005",
+            "version": "30",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-005",
+              "lastSeenAt": "2026-06-13T01:30:00Z"
+            }
+          }
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-001",
+            "seq": "8",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-003",
+            "version": "8",
+            "op": "delete",
+            "kind": "leave_alive"
+          },
+          "kafka_next_offset": 7
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-001",
+            "seq": "9",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-003",
+            "version": "5",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-003",
+              "lastSeenAt": "2026-06-13T01:09:00Z"
+            }
+          }
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-002",
+            "seq": "1",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-009",
+            "version": "1",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-009",
+              "lastSeenAt": "2026-06-13T01:01:00Z"
+            }
+          }
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-002",
+            "seq": "3",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-009",
+            "version": "3",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-009",
+              "lastSeenAt": "2026-06-13T01:03:00Z"
+            }
+          }
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-003",
+            "seq": "1000",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-001",
+            "version": "1000",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-001",
+              "lastSeenAt": "2026-06-13T01:40:00Z"
+            }
+          }
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-002",
+            "seq": "abc",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-001",
+            "version": "2",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-001",
+              "lastSeenAt": "2026-06-13T01:02:00Z"
+            }
+          }
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-002",
+            "seq": "2",
+            "type": "amp-alive-delta",
+            "id": "urn:bad:AIC-001",
+            "version": "2",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-001",
+              "lastSeenAt": "2026-06-13T01:02:00Z"
+            }
+          }
+        },
+        {
+          "op": "hydrate"
+        }
+      ],
+      "results": [
+        {
+          "ok": true
+        },
+        {
+          "ok": true,
+          "decision": "APPLY_UPSERT"
+        },
+        {
+          "ok": true,
+          "decision": "SKIP_SEQ_GATE"
+        },
+        {
+          "ok": true,
+          "decision": "APPLY_DELETE"
+        },
+        {
+          "ok": true,
+          "decision": "APPLY_UPSERT"
+        },
+        {
+          "ok": false,
+          "type": "GapDetectedError",
+          "message": "Gap on shard 'hb-000': expected seq 24, got 30",
+          "shard": "hb-000",
+          "expected_seq": 24,
+          "got_seq": 30
+        },
+        {
+          "ok": true,
+          "decision": "APPLY_DELETE"
+        },
+        {
+          "ok": true,
+          "decision": "SKIP_VERSION"
+        },
+        {
+          "ok": true,
+          "decision": "APPLY_UPSERT"
+        },
+        {
+          "ok": false,
+          "type": "GapDetectedError",
+          "message": "Gap on shard 'hb-002': expected seq 2, got 3",
+          "shard": "hb-002",
+          "expected_seq": 2,
+          "got_seq": 3
+        },
+        {
+          "ok": false,
+          "type": "GapDetectedError",
+          "message": "Gap on shard 'hb-003': expected seq 1, got 1000",
+          "shard": "hb-003",
+          "expected_seq": 1,
+          "got_seq": 1000
+        },
+        {
+          "ok": false,
+          "type": "ValueError",
+          "message": "seq 字符串非整数：'abc'"
+        },
+        {
+          "ok": false,
+          "type": "ValueError",
+          "message": "object_id 前缀不匹配，期望 'urn:amp:alive:'，实际 'urn:bad:AIC-001'"
+        },
+        {
+          "ok": true
+        }
+      ],
+      "calls": [
+        [
+          "replace_alive_set",
+          [
+            {
+              "shard": "hb-000",
+              "lastSeenSeq": 20,
+              "cutoverSeq": 20,
+              "kafkaNextOffset": null,
+              "snapshotGeneratedAt": "2026-06-13T01:00:00Z"
+            },
+            {
+              "shard": "hb-001",
+              "lastSeenSeq": 7,
+              "cutoverSeq": 7,
+              "kafkaNextOffset": null,
+              "snapshotGeneratedAt": "2026-06-13T01:00:00Z"
+            }
+          ]
+        ],
+        [
+          "apply_upsert",
+          {
+            "aic": "AIC-001",
+            "alive": true,
+            "lastSeenAt": "2026-06-13T01:21:00Z",
+            "version": 21,
+            "shard": "hb-000"
+          },
+          "hb-000",
+          21,
+          101
+        ],
+        [
+          "apply_delete",
+          "AIC-002",
+          "hb-000",
+          22,
+          102,
+          22
+        ],
+        [
+          "apply_upsert",
+          {
+            "aic": "AIC-004",
+            "alive": true,
+            "lastSeenAt": "2026-06-13T01:23:00Z",
+            "version": 23,
+            "shard": "hb-000"
+          },
+          "hb-000",
+          23,
+          null
+        ],
+        [
+          "apply_delete",
+          "AIC-003",
+          "hb-001",
+          8,
+          7,
+          8
+        ],
+        [
+          "apply_upsert",
+          {
+            "aic": "AIC-009",
+            "alive": true,
+            "lastSeenAt": "2026-06-13T01:01:00Z",
+            "version": 1,
+            "shard": "hb-002"
+          },
+          "hb-002",
+          1,
+          null
+        ]
+      ],
+      "rows": {
+        "AIC-001": {
+          "aic": "AIC-001",
+          "alive": true,
+          "lastSeenAt": "2026-06-13T01:21:00Z",
+          "version": 21,
+          "shard": "hb-000"
+        },
+        "AIC-002": {
+          "aic": "AIC-002",
+          "alive": false,
+          "lastSeenAt": "2026-06-13T01:18:00Z",
+          "version": 22,
+          "shard": "hb-000"
+        },
+        "AIC-003": {
+          "aic": "AIC-003",
+          "alive": false,
+          "lastSeenAt": "2026-06-13T01:07:00Z",
+          "version": 8,
+          "shard": "hb-001"
+        },
+        "AIC-004": {
+          "aic": "AIC-004",
+          "alive": true,
+          "lastSeenAt": "2026-06-13T01:23:00Z",
+          "version": 23,
+          "shard": "hb-000"
+        },
+        "AIC-009": {
+          "aic": "AIC-009",
+          "alive": true,
+          "lastSeenAt": "2026-06-13T01:01:00Z",
+          "version": 1,
+          "shard": "hb-002"
+        }
+      },
+      "checkpoints": {
+        "hb-000": {
+          "shard": "hb-000",
+          "lastSeenSeq": 23,
+          "cutoverSeq": 20,
+          "kafkaNextOffset": null,
+          "snapshotGeneratedAt": "2026-06-13T01:00:00Z"
+        },
+        "hb-001": {
+          "shard": "hb-001",
+          "lastSeenSeq": 8,
+          "cutoverSeq": 7,
+          "kafkaNextOffset": 7,
+          "snapshotGeneratedAt": "2026-06-13T01:00:00Z"
+        },
+        "hb-002": {
+          "shard": "hb-002",
+          "lastSeenSeq": 1,
+          "cutoverSeq": 0,
+          "kafkaNextOffset": null,
+          "snapshotGeneratedAt": null
+        }
+      },
+      "engine": {
+        "last_seen_seq": {
+          "hb-000": 23,
+          "hb-001": 8,
+          "hb-002": 1
+        },
+        "local_version": {
+          "AIC-001": 21,
+          "AIC-002": 22,
+          "AIC-003": 8,
+          "AIC-004": 23,
+          "AIC-009": 1
+        },
+        "cutover_seq_by_shard": {
+          "hb-000": 20,
+          "hb-001": 7,
+          "hb-002": 0
+        }
+      },
+      "views": {
+        "AIC-001": {
+          "alive": true,
+          "aliveLastSeenAt": "2026-06-13T01:21:00Z"
+        },
+        "AIC-002": {
+          "alive": false,
+          "aliveLastSeenAt": "2026-06-13T01:18:00Z"
+        },
+        "AIC-003": {
+          "alive": false,
+          "aliveLastSeenAt": "2026-06-13T01:07:00Z"
+        },
+        "AIC-004": {
+          "alive": true,
+          "aliveLastSeenAt": "2026-06-13T01:23:00Z"
+        },
+        "AIC-009": {
+          "alive": true,
+          "aliveLastSeenAt": "2026-06-13T01:01:00Z"
+        }
+      }
+    },
+    "hydrate_restores": {
+      "steps": [
+        {
+          "op": "seed_checkpoint",
+          "cp": {
+            "shard": "hb-000",
+            "lastSeenSeq": 10,
+            "cutoverSeq": 5,
+            "kafkaNextOffset": 100,
+            "snapshotGeneratedAt": "2026-06-13T00:00:00Z"
+          }
+        },
+        {
+          "op": "seed_row",
+          "row": {
+            "aic": "AIC-001",
+            "alive": true,
+            "lastSeenAt": "2026-06-13T00:00:00Z",
+            "version": 10,
+            "shard": "hb-000"
+          }
+        },
+        {
+          "op": "hydrate"
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-000",
+            "seq": "11",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-001",
+            "version": "11",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-001",
+              "lastSeenAt": "2026-06-13T01:11:00Z"
+            }
+          }
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-000",
+            "seq": "12",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-001",
+            "version": "9",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-001",
+              "lastSeenAt": "2026-06-13T01:12:00Z"
+            }
+          }
+        },
+        {
+          "op": "delta",
+          "env": {
+            "shard": "hb-000",
+            "seq": "14",
+            "type": "amp-alive-delta",
+            "id": "urn:amp:alive:AIC-001",
+            "version": "14",
+            "op": "upsert",
+            "kind": "enter_alive",
+            "payload": {
+              "aic": "AIC-001",
+              "lastSeenAt": "2026-06-13T01:14:00Z"
+            }
+          }
+        }
+      ],
+      "results": [
+        {
+          "ok": true
+        },
+        {
+          "ok": true
+        },
+        {
+          "ok": true
+        },
+        {
+          "ok": true,
+          "decision": "APPLY_UPSERT"
+        },
+        {
+          "ok": true,
+          "decision": "SKIP_VERSION"
+        },
+        {
+          "ok": false,
+          "type": "GapDetectedError",
+          "message": "Gap on shard 'hb-000': expected seq 13, got 14",
+          "shard": "hb-000",
+          "expected_seq": 13,
+          "got_seq": 14
+        }
+      ],
+      "calls": [
+        [
+          "apply_upsert",
+          {
+            "aic": "AIC-001",
+            "alive": true,
+            "lastSeenAt": "2026-06-13T01:11:00Z",
+            "version": 11,
+            "shard": "hb-000"
+          },
+          "hb-000",
+          11,
+          null
+        ]
+      ],
+      "rows": {
+        "AIC-001": {
+          "aic": "AIC-001",
+          "alive": true,
+          "lastSeenAt": "2026-06-13T01:11:00Z",
+          "version": 11,
+          "shard": "hb-000"
+        }
+      },
+      "checkpoints": {
+        "hb-000": {
+          "shard": "hb-000",
+          "lastSeenSeq": 11,
+          "cutoverSeq": 5,
+          "kafkaNextOffset": null,
+          "snapshotGeneratedAt": "2026-06-13T00:00:00Z"
+        }
+      },
+      "engine": {
+        "last_seen_seq": {
+          "hb-000": 12
+        },
+        "local_version": {
+          "AIC-001": 11
+        },
+        "cutover_seq_by_shard": {
+          "hb-000": 5
+        }
+      },
+      "views": {
+        "AIC-001": {
+          "alive": true,
+          "aliveLastSeenAt": "2026-06-13T01:11:00Z"
+        }
+      }
+    },
+    "snapshot_bad_cutover": {
+      "steps": [
+        {
+          "op": "snapshot",
+          "meta": {
+            "recordType": "snapshot-meta",
+            "type": "amp-alive-delta",
+            "cutoverSeqByShard": {
+              "hb-000": "-1"
+            },
+            "generatedAt": "2026-06-13T01:00:00Z"
+          },
+          "rows": []
+        }
+      ],
+      "results": [
+        {
+          "ok": false,
+          "type": "ValueError",
+          "message": "seq 不能为负数：-1"
+        }
+      ],
+      "calls": [],
+      "rows": {},
+      "checkpoints": {},
+      "engine": {
+        "last_seen_seq": {},
+        "local_version": {},
+        "cutover_seq_by_shard": {}
+      },
+      "views": {}
+    }
+  },
+  "seek_timestamp_ms": [
+    {
+      "generated_at": "2026-06-13T01:20:00Z",
+      "lookback_seconds": 0,
+      "result": 1781313600000
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00Z",
+      "lookback_seconds": 300,
+      "result": 1781313300000
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00Z",
+      "lookback_seconds": 999999999,
+      "result": 781313601000
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00+00:00",
+      "lookback_seconds": 60,
+      "result": 1781313540000
+    },
+    {
+      "generated_at": "2026-06-13T09:20:00+08:00",
+      "lookback_seconds": 0,
+      "result": 1781313600000
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00.123456Z",
+      "lookback_seconds": 0,
+      "result": 1781313600123
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00.1234567Z",
+      "lookback_seconds": 0,
+      "result": 1781313600123
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00.5Z",
+      "lookback_seconds": 1,
+      "result": 1781313599500
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00,25Z",
+      "lookback_seconds": 0,
+      "result": 1781313600250
+    },
+    {
+      "generated_at": "2026-06-13 01:20:00Z",
+      "lookback_seconds": 0,
+      "result": 1781313600000
+    },
+    {
+      "generated_at": "2026-06-13X01:20Z",
+      "lookback_seconds": 0,
+      "result": 1781313600000
+    },
+    {
+      "generated_at": "20260613T012000Z",
+      "lookback_seconds": 0,
+      "result": 1781313600000
+    },
+    {
+      "generated_at": "20260613T012000+0530",
+      "lookback_seconds": 0,
+      "result": 1781293800000
+    },
+    {
+      "generated_at": "2026-06-13T01Z",
+      "lookback_seconds": 0,
+      "result": 1781312400000
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00-08:00",
+      "lookback_seconds": 10,
+      "result": 1781342390000
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00+05:30:15.5",
+      "lookback_seconds": 0,
+      "result": 1781293784500
+    },
+    {
+      "generated_at": "1970-01-01T00:00:00Z",
+      "lookback_seconds": 0,
+      "result": 0
+    },
+    {
+      "generated_at": "1970-01-01T00:00:00.000999Z",
+      "lookback_seconds": 0,
+      "result": 0
+    },
+    {
+      "generated_at": "1969-12-31T23:59:59.9995Z",
+      "lookback_seconds": 0,
+      "result": 0
+    },
+    {
+      "generated_at": "0001-01-01T00:00:00Z",
+      "lookback_seconds": 0,
+      "result": 0
+    },
+    {
+      "generated_at": "9999-12-31T23:59:59.999999Z",
+      "lookback_seconds": 0,
+      "result": 253402300800000
+    },
+    {
+      "generated_at": "2024-02-29T12:00:00Z",
+      "lookback_seconds": 0,
+      "result": 1709208000000
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00.001Z",
+      "lookback_seconds": 0,
+      "result": 1781313600001
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00.003Z",
+      "lookback_seconds": 0,
+      "result": 1781313600003
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00.007Z",
+      "lookback_seconds": 0,
+      "result": 1781313600007
+    },
+    {
+      "generated_at": "2033-05-18T03:33:20.999999Z",
+      "lookback_seconds": 0,
+      "result": 2000000000999
+    }
+  ],
+  "seek_timestamp_ms_errors": [
+    {
+      "generated_at": "not-a-date",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: 'not-a-date'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T24:00:00Z",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T24:00:00+00:00'"
+      }
+    },
+    {
+      "generated_at": "2026-02-30T00:00:00Z",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-02-30T00:00:00+00:00'"
+      }
+    },
+    {
+      "generated_at": "2026-13-01T00:00:00Z",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-13-01T00:00:00+00:00'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T01:60:00Z",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T01:60:00+00:00'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T01:20:60Z",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T01:20:60+00:00'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T1:20:00Z",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T1:20:00+00:00'"
+      }
+    },
+    {
+      "generated_at": " 2026-06-13T01:20:00Z",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: ' 2026-06-13T01:20:00+00:00'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00Z ",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T01:20:00Z '"
+      }
+    },
+    {
+      "generated_at": "2026-06",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00+24:00",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T01:20:00+24:00'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00+2",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T01:20:00+2'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00+123",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T01:20:00+123'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00Zjunk",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T01:20:00Zjunk'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T01:2",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T01:2'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T01:20:00.12a",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T01:20:00.12a'"
+      }
+    },
+    {
+      "generated_at": "2026/06/13T01:20:00Z",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026/06/13T01:20:00+00:00'"
+      }
+    },
+    {
+      "generated_at": "0000-01-01T00:00:00Z",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '0000-01-01T00:00:00+00:00'"
+      }
+    },
+    {
+      "generated_at": "",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: ''"
+      }
+    },
+    {
+      "generated_at": "2026-06-013",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-013'"
+      }
+    },
+    {
+      "generated_at": "20260613t",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '20260613t'"
+      }
+    },
+    {
+      "generated_at": "20260613T",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '20260613T'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13 ",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13 '"
+      }
+    },
+    {
+      "generated_at": "2026-06-13-",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13-'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13+",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13+'"
+      }
+    },
+    {
+      "generated_at": "2026-06-13T0",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "generated_at 格式无效: '2026-06-13T0'"
+      }
+    }
+  ],
+  "next_lookback_seconds": [
+    {
+      "current": 300,
+      "factor": 2,
+      "max_seconds": 86400,
+      "result": 600
+    },
+    {
+      "current": 50000,
+      "factor": 2,
+      "max_seconds": 86400,
+      "result": 86400
+    },
+    {
+      "current": 86400,
+      "factor": 2,
+      "max_seconds": 86400,
+      "result": 86400
+    },
+    {
+      "current": 100,
+      "factor": 3,
+      "max_seconds": 10000,
+      "result": 300
+    },
+    {
+      "current": 0,
+      "factor": 2,
+      "max_seconds": 10,
+      "result": 0
+    }
+  ],
+  "parse_meta_line": [
+    {
+      "line": "{\"recordType\": \"snapshot-meta\", \"type\": \"amp-alive-delta\", \"cutoverSeqByShard\": {\"hb-000\": \"42\"}, \"generatedAt\": \"2026-06-13T01:20:00Z\"}",
+      "result": {
+        "ok": true,
+        "value": {
+          "recordType": "snapshot-meta",
+          "type": "amp-alive-delta",
+          "cutoverSeqByShard": {
+            "hb-000": "42"
+          },
+          "generatedAt": "2026-06-13T01:20:00Z"
+        }
+      }
+    },
+    {
+      "line": "{\"recordType\": \"wrong\", \"type\": \"amp-alive-delta\", \"cutoverSeqByShard\": {\"hb-000\": \"42\"}, \"generatedAt\": \"2026-06-13T01:20:00Z\"}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot meta 行 recordType 非法: 期望 'snapshot-meta'，实际 'wrong'"
+      }
+    },
+    {
+      "line": "{\"recordType\": null, \"type\": \"amp-alive-delta\", \"cutoverSeqByShard\": {\"hb-000\": \"42\"}, \"generatedAt\": \"2026-06-13T01:20:00Z\"}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot meta 行 recordType 非法: 期望 'snapshot-meta'，实际 'None'"
+      }
+    },
+    {
+      "line": "{\"recordType\": \"snapshot-meta\", \"type\": 1.5, \"cutoverSeqByShard\": {\"hb-000\": \"42\"}, \"generatedAt\": \"2026-06-13T01:20:00Z\"}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot meta 行 type 非法: 期望 'amp-alive-delta'，实际 '1.5'"
+      }
+    },
+    {
+      "line": "{\"recordType\": \"snapshot-meta\", \"type\": true, \"cutoverSeqByShard\": {\"hb-000\": \"42\"}, \"generatedAt\": \"2026-06-13T01:20:00Z\"}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot meta 行 type 非法: 期望 'amp-alive-delta'，实际 'True'"
+      }
+    },
+    {
+      "line": "{\"recordType\": \"snapshot-meta\", \"cutoverSeqByShard\": {\"hb-000\": \"42\"}, \"generatedAt\": \"2026-06-13T01:20:00Z\"}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot meta 行 type 非法: 期望 'amp-alive-delta'，实际 'None'"
+      }
+    },
+    {
+      "line": "{\"recordType\": {\"a\": [1, null]}, \"type\": \"amp-alive-delta\", \"cutoverSeqByShard\": {\"hb-000\": \"42\"}, \"generatedAt\": \"2026-06-13T01:20:00Z\"}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot meta 行 recordType 非法: 期望 'snapshot-meta'，实际 '{'a': [1, None]}'"
+      }
+    }
+  ],
+  "parse_snapshot_row": [
+    {
+      "line": "{\"shard\": \"hb-000\", \"seq\": \"43\", \"type\": \"amp-alive-delta\", \"id\": \"urn:amp:alive:AIC-001\", \"version\": \"43\", \"op\": \"upsert\", \"kind\": \"snapshot\", \"payload\": {\"aic\": \"AIC-001\", \"lastSeenAt\": \"2026-06-13T01:19:50Z\"}}",
+      "result": {
+        "ok": true,
+        "value": {
+          "shard": "hb-000",
+          "seq": "43",
+          "type": "amp-alive-delta",
+          "id": "urn:amp:alive:AIC-001",
+          "version": "43",
+          "op": "upsert",
+          "kind": "snapshot",
+          "payload": {
+            "aic": "AIC-001",
+            "lastSeenAt": "2026-06-13T01:19:50Z"
+          }
+        }
+      }
+    },
+    {
+      "line": "{\"shard\": \"hb-000\", \"seq\": \"43\", \"type\": \"amp-alive-delta\", \"id\": \"urn:amp:alive:AIC-001\", \"version\": \"43\", \"op\": \"upsert\", \"kind\": \"enter_alive\", \"payload\": {\"aic\": \"AIC-001\", \"lastSeenAt\": \"2026-06-13T01:19:50Z\"}}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot 数据行 kind 非法: 期望 'snapshot'，实际 'enter_alive'"
+      }
+    },
+    {
+      "line": "{\"shard\": \"hb-000\", \"seq\": \"43\", \"type\": \"amp-alive-delta\", \"id\": \"urn:amp:alive:AIC-001\", \"version\": \"43\", \"op\": \"delete\", \"kind\": \"snapshot\", \"payload\": {\"aic\": \"AIC-001\", \"lastSeenAt\": \"2026-06-13T01:19:50Z\"}}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot 数据行 op 非法: 期望 'upsert'，实际 'delete'"
+      }
+    },
+    {
+      "line": "{\"shard\": \"hb-000\", \"seq\": \"43\", \"type\": \"amp-alive-delta\", \"id\": \"urn:amp:alive:AIC-001\", \"version\": \"43\", \"op\": \"upsert\", \"kind\": \"snapshot\"}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot 数据行 payload 为空"
+      }
+    },
+    {
+      "line": "{\"shard\": \"hb-000\", \"seq\": \"43\", \"type\": \"amp-alive-delta\", \"id\": \"urn:amp:alive:AIC-001\", \"version\": \"43\", \"op\": \"upsert\", \"kind\": \"snapshot\", \"payload\": {}}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot 数据行 payload 为空"
+      }
+    },
+    {
+      "line": "{\"shard\": \"hb-000\", \"seq\": \"43\", \"type\": \"amp-alive-delta\", \"id\": \"urn:amp:alive:AIC-001\", \"version\": \"43\", \"op\": \"upsert\", \"kind\": \"snapshot\", \"payload\": 0}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot 数据行 payload 为空"
+      }
+    },
+    {
+      "line": "{\"shard\": \"hb-000\", \"seq\": \"43\", \"type\": \"amp-alive-delta\", \"id\": \"urn:amp:alive:AIC-001\", \"version\": \"43\", \"op\": \"upsert\", \"kind\": \"snapshot\", \"payload\": []}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot 数据行 payload 为空"
+      }
+    },
+    {
+      "line": "{\"shard\": \"hb-000\", \"seq\": \"43\", \"type\": \"amp-alive-delta\", \"id\": \"urn:amp:alive:AIC-001\", \"version\": \"43\", \"op\": \"upsert\", \"kind\": null, \"payload\": {\"aic\": \"AIC-001\", \"lastSeenAt\": \"2026-06-13T01:19:50Z\"}}",
+      "result": {
+        "ok": false,
+        "type": "SnapshotProtocolError",
+        "message": "snapshot 数据行 kind 非法: 期望 'snapshot'，实际 'None'"
+      }
+    }
+  ],
+  "snapshot_row_to_record": {
+    "aic": "AIC-001",
+    "alive": true,
+    "lastSeenAt": "2026-06-13T01:19:50Z",
+    "version": 43,
+    "shard": "hb-000"
+  }
+}

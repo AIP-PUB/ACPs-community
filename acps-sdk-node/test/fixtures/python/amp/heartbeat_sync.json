@@ -1,0 +1,514 @@
+{
+  "alive_object_id": [
+    {
+      "aic": "foo",
+      "object_id": "urn:amp:alive:foo"
+    },
+    {
+      "aic": "",
+      "object_id": "urn:amp:alive:"
+    },
+    {
+      "aic": "1.2.156.3088.1.A.B.C.D.E",
+      "object_id": "urn:amp:alive:1.2.156.3088.1.A.B.C.D.E"
+    },
+    {
+      "aic": "中文",
+      "object_id": "urn:amp:alive:中文"
+    }
+  ],
+  "aic_from_object_id": [
+    {
+      "input": "urn:amp:alive:foo",
+      "result": {
+        "ok": true,
+        "value": "foo"
+      }
+    },
+    {
+      "input": "urn:amp:alive:",
+      "result": {
+        "ok": true,
+        "value": ""
+      }
+    },
+    {
+      "input": "urn:other:foo",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "object_id 前缀不匹配，期望 'urn:amp:alive:'，实际 'urn:other:foo'"
+      }
+    },
+    {
+      "input": "URN:AMP:ALIVE:foo",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "object_id 前缀不匹配，期望 'urn:amp:alive:'，实际 'URN:AMP:ALIVE:foo'"
+      }
+    },
+    {
+      "input": "urn:amp:alive:1.2.156.3088.1.A.B.C.D.E",
+      "result": {
+        "ok": true,
+        "value": "1.2.156.3088.1.A.B.C.D.E"
+      }
+    }
+  ],
+  "shard_id": [
+    {
+      "index": 0,
+      "count": 1,
+      "result": "hb-000"
+    },
+    {
+      "index": 7,
+      "count": 10,
+      "result": "hb-007"
+    },
+    {
+      "index": 0,
+      "count": 1000,
+      "result": "hb-000"
+    },
+    {
+      "index": 999,
+      "count": 1000,
+      "result": "hb-999"
+    },
+    {
+      "index": 0,
+      "count": 1001,
+      "result": "hb-0000"
+    },
+    {
+      "index": 1000,
+      "count": 1001,
+      "result": "hb-1000"
+    },
+    {
+      "index": 0,
+      "count": 10000,
+      "result": "hb-0000"
+    },
+    {
+      "index": 12345,
+      "count": 100000,
+      "result": "hb-12345"
+    },
+    {
+      "index": 5,
+      "count": 0,
+      "result": "hb-005"
+    },
+    {
+      "index": -5,
+      "count": 10,
+      "result": "hb--05"
+    },
+    {
+      "index": -5,
+      "count": 1001,
+      "result": "hb--005"
+    },
+    {
+      "index": 3,
+      "count": -100,
+      "result": "hb-0003"
+    }
+  ],
+  "shard_index_from_id": [
+    {
+      "input": "hb-000",
+      "result": {
+        "ok": true,
+        "value": 0
+      }
+    },
+    {
+      "input": "hb-007",
+      "result": {
+        "ok": true,
+        "value": 7
+      }
+    },
+    {
+      "input": "hb-1000",
+      "result": {
+        "ok": true,
+        "value": 1000
+      }
+    },
+    {
+      "input": "hb-0000123",
+      "result": {
+        "ok": true,
+        "value": 123
+      }
+    },
+    {
+      "input": "007",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "shard id 格式非法，期望 'hb-NNN'，实际 '007'"
+      }
+    },
+    {
+      "input": "hb-abc",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "shard id 数字部分非法：'abc'"
+      }
+    },
+    {
+      "input": "hb-",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "shard id 数字部分非法：''"
+      }
+    },
+    {
+      "input": "hb--1",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "shard id 数字部分非法：'-1'"
+      }
+    },
+    {
+      "input": "HB-001",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "shard id 格式非法，期望 'hb-NNN'，实际 'HB-001'"
+      }
+    },
+    {
+      "input": "hb-1.5",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "shard id 数字部分非法：'1.5'"
+      }
+    },
+    {
+      "input": "hb- 1",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "shard id 数字部分非法：' 1'"
+      }
+    }
+  ],
+  "seq_from_str": [
+    {
+      "input": "0",
+      "result": {
+        "ok": true,
+        "value": 0
+      }
+    },
+    {
+      "input": "42",
+      "result": {
+        "ok": true,
+        "value": 42
+      }
+    },
+    {
+      "input": "1000",
+      "result": {
+        "ok": true,
+        "value": 1000
+      }
+    },
+    {
+      "input": "999",
+      "result": {
+        "ok": true,
+        "value": 999
+      }
+    },
+    {
+      "input": "007",
+      "result": {
+        "ok": true,
+        "value": 7
+      }
+    },
+    {
+      "input": "-0",
+      "result": {
+        "ok": true,
+        "value": 0
+      }
+    },
+    {
+      "input": "-00",
+      "result": {
+        "ok": true,
+        "value": 0
+      }
+    },
+    {
+      "input": "-1",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 不能为负数：-1"
+      }
+    },
+    {
+      "input": "-007",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 不能为负数：-7"
+      }
+    },
+    {
+      "input": "--5",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "invalid literal for int() with base 10: '--5'"
+      }
+    },
+    {
+      "input": "",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 字符串不能为空"
+      }
+    },
+    {
+      "input": "abc",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 字符串非整数：'abc'"
+      }
+    },
+    {
+      "input": "1.5",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 字符串非整数：'1.5'"
+      }
+    },
+    {
+      "input": " 1",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 字符串非整数：' 1'"
+      }
+    },
+    {
+      "input": "1 ",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 字符串非整数：'1 '"
+      }
+    },
+    {
+      "input": "+1",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 字符串非整数：'+1'"
+      }
+    },
+    {
+      "input": "-",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 字符串非整数：'-'"
+      }
+    },
+    {
+      "input": "5-",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 字符串非整数：'5-'"
+      }
+    },
+    {
+      "input": "1_000",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "seq 字符串非整数：'1_000'"
+      }
+    },
+    {
+      "input": "1000000000000000",
+      "result": {
+        "ok": true,
+        "value": 1000000000000000
+      }
+    },
+    {
+      "input": "9007199254740991",
+      "result": {
+        "ok": true,
+        "value": 9007199254740991
+      }
+    }
+  ],
+  "seq_to_str": [
+    {
+      "input": 0,
+      "result": "0"
+    },
+    {
+      "input": 1,
+      "result": "1"
+    },
+    {
+      "input": 42,
+      "result": "42"
+    },
+    {
+      "input": 1000000000000000,
+      "result": "1000000000000000"
+    }
+  ],
+  "envelopes": [
+    {
+      "input": {
+        "shard": "hb-000",
+        "seq": "1",
+        "type": "amp-alive-delta",
+        "id": "urn:amp:alive:agent-001",
+        "version": "1",
+        "op": "upsert",
+        "kind": "enter_alive",
+        "payload": {
+          "aic": "agent-001",
+          "lastSeenAt": "2026-01-01T00:00:00Z",
+          "sourceTimestamp": "2026-01-01T00:00:00.5Z"
+        }
+      },
+      "dump": {
+        "shard": "hb-000",
+        "seq": "1",
+        "type": "amp-alive-delta",
+        "id": "urn:amp:alive:agent-001",
+        "version": "1",
+        "op": "upsert",
+        "kind": "enter_alive",
+        "payload": {
+          "aic": "agent-001",
+          "lastSeenAt": "2026-01-01T00:00:00Z",
+          "sourceTimestamp": "2026-01-01T00:00:00.5Z"
+        }
+      }
+    },
+    {
+      "input": {
+        "shard": "hb-000",
+        "seq": "2",
+        "type": "amp-alive-delta",
+        "id": "urn:amp:alive:agent-001",
+        "version": "2",
+        "op": "delete",
+        "kind": "leave_alive",
+        "payload": null
+      },
+      "dump": {
+        "shard": "hb-000",
+        "seq": "2",
+        "type": "amp-alive-delta",
+        "id": "urn:amp:alive:agent-001",
+        "version": "2",
+        "op": "delete",
+        "kind": "leave_alive"
+      }
+    },
+    {
+      "input": {
+        "shard": "hb-001",
+        "seq": "3",
+        "type": "amp-alive-delta",
+        "id": "urn:amp:alive:agent-002",
+        "version": "3",
+        "op": "upsert",
+        "kind": "refresh_alive",
+        "payload": {
+          "aic": "agent-002",
+          "lastSeenAt": "2026-01-01T00:00:00Z"
+        },
+        "unknownField": 1
+      },
+      "dump": {
+        "shard": "hb-001",
+        "seq": "3",
+        "type": "amp-alive-delta",
+        "id": "urn:amp:alive:agent-002",
+        "version": "3",
+        "op": "upsert",
+        "kind": "refresh_alive",
+        "payload": {
+          "aic": "agent-002",
+          "lastSeenAt": "2026-01-01T00:00:00Z"
+        }
+      }
+    }
+  ],
+  "sync_info": {
+    "input": {
+      "type": "amp-alive-delta",
+      "schemaVersion": "1",
+      "snapshotContentType": "application/x-ndjson",
+      "kafkaTopic": "amp.heartbeat.alive-delta",
+      "shardCount": 2,
+      "refreshEmitIntervalSeconds": 30,
+      "deltaRetentionHours": 168,
+      "currentPublishedSeqByShard": {
+        "hb-000": "10",
+        "hb-001": "20"
+      }
+    },
+    "dump": {
+      "type": "amp-alive-delta",
+      "schemaVersion": "1",
+      "snapshotContentType": "application/x-ndjson",
+      "kafkaTopic": "amp.heartbeat.alive-delta",
+      "shardCount": 2,
+      "refreshEmitIntervalSeconds": 30,
+      "deltaRetentionHours": 168,
+      "currentPublishedSeqByShard": {
+        "hb-000": "10",
+        "hb-001": "20"
+      }
+    }
+  },
+  "snapshot_meta": {
+    "input": {
+      "recordType": "snapshot-meta",
+      "type": "amp-alive-delta",
+      "cutoverSeqByShard": {
+        "hb-000": "5"
+      },
+      "generatedAt": "2026-01-01T00:00:00Z"
+    },
+    "dump": {
+      "recordType": "snapshot-meta",
+      "type": "amp-alive-delta",
+      "cutoverSeqByShard": {
+        "hb-000": "5"
+      },
+      "generatedAt": "2026-01-01T00:00:00Z"
+    }
+  }
+}

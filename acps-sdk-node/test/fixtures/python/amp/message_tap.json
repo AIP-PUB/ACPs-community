@@ -1,0 +1,339 @@
+{
+  "cases": [
+    {
+      "fn": "send",
+      "kwargs": {
+        "system": "rabbitmq",
+        "exchange": "group.abc",
+        "virtual_host": "acps",
+        "routing_key": "",
+        "message_id": "cmd-001",
+        "payload_size_bytes": 256
+      },
+      "dump": {
+        "eventType": "send",
+        "operationName": "publish",
+        "system": "rabbitmq",
+        "destination": {
+          "name": "group.abc",
+          "kind": "exchange",
+          "virtualHost": "acps"
+        },
+        "routing": {
+          "key": ""
+        },
+        "messageId": "cmd-001",
+        "payloadSizeBytes": 256
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-tap\", \"body\": {\"eventType\": \"send\", \"operationName\": \"publish\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"routing\": {\"key\": \"\"}, \"messageId\": \"cmd-001\", \"payloadSizeBytes\": 256}}"
+    },
+    {
+      "fn": "send",
+      "kwargs": {
+        "system": "rabbitmq",
+        "exchange": "group.abc",
+        "virtual_host": "acps",
+        "routing_key": "rk",
+        "message_id": "cmd-002",
+        "payload_size_bytes": 0,
+        "attributes": {
+          "k": "v",
+          "n": null
+        },
+        "error": {
+          "code": "E",
+          "message": "m"
+        }
+      },
+      "dump": {
+        "eventType": "send",
+        "operationName": "publish",
+        "system": "rabbitmq",
+        "destination": {
+          "name": "group.abc",
+          "kind": "exchange",
+          "virtualHost": "acps"
+        },
+        "routing": {
+          "key": "rk"
+        },
+        "messageId": "cmd-002",
+        "payloadSizeBytes": 0,
+        "error": {
+          "code": "E",
+          "message": "m"
+        },
+        "attributes": {
+          "k": "v",
+          "n": null
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-tap\", \"body\": {\"eventType\": \"send\", \"operationName\": \"publish\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"routing\": {\"key\": \"rk\"}, \"messageId\": \"cmd-002\", \"payloadSizeBytes\": 0, \"error\": {\"code\": \"E\", \"message\": \"m\"}, \"attributes\": {\"k\": \"v\", \"n\": null}}}"
+    },
+    {
+      "fn": "receive",
+      "kwargs": {
+        "system": "rabbitmq",
+        "exchange": "group.abc",
+        "virtual_host": "acps",
+        "routing_key": "",
+        "queue_name": "partner.queue.1",
+        "message_id": "cmd-001",
+        "payload_size_bytes": 256,
+        "delivery_attempt": 1,
+        "attributes": {
+          "a": 1
+        }
+      },
+      "dump": {
+        "eventType": "receive",
+        "operationName": "deliver",
+        "system": "rabbitmq",
+        "destination": {
+          "name": "group.abc",
+          "kind": "exchange",
+          "virtualHost": "acps"
+        },
+        "subscriptionName": "partner.queue.1",
+        "routing": {
+          "key": ""
+        },
+        "messageId": "cmd-001",
+        "payloadSizeBytes": 256,
+        "deliveryAttempt": 1,
+        "attributes": {
+          "a": 1
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-tap\", \"body\": {\"eventType\": \"receive\", \"operationName\": \"deliver\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"subscriptionName\": \"partner.queue.1\", \"routing\": {\"key\": \"\"}, \"messageId\": \"cmd-001\", \"payloadSizeBytes\": 256, \"deliveryAttempt\": 1, \"attributes\": {\"a\": 1}}}"
+    },
+    {
+      "fn": "settlement",
+      "event_type": "ack",
+      "kwargs": {
+        "system": "rabbitmq",
+        "exchange": "group.abc",
+        "virtual_host": "acps",
+        "queue_name": "q",
+        "message_id": "cmd-003",
+        "delivery_attempt": 2,
+        "latency_ms": 12,
+        "reason": "why"
+      },
+      "dump": {
+        "eventType": "ack",
+        "operationName": "basic.ack",
+        "system": "rabbitmq",
+        "destination": {
+          "name": "group.abc",
+          "kind": "exchange",
+          "virtualHost": "acps"
+        },
+        "subscriptionName": "q",
+        "messageId": "cmd-003",
+        "deliveryAttempt": 2,
+        "settlement": {
+          "latencyMs": 12.0
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-tap\", \"body\": {\"eventType\": \"ack\", \"operationName\": \"basic.ack\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"subscriptionName\": \"q\", \"messageId\": \"cmd-003\", \"deliveryAttempt\": 2, \"settlement\": {\"latencyMs\": 12.0}}}"
+    },
+    {
+      "fn": "settlement",
+      "event_type": "nack",
+      "kwargs": {
+        "system": "rabbitmq",
+        "exchange": "group.abc",
+        "virtual_host": "acps",
+        "queue_name": "q",
+        "message_id": "cmd-003",
+        "delivery_attempt": 2,
+        "latency_ms": 12,
+        "reason": "why"
+      },
+      "dump": {
+        "eventType": "nack",
+        "operationName": "basic.nack",
+        "system": "rabbitmq",
+        "destination": {
+          "name": "group.abc",
+          "kind": "exchange",
+          "virtualHost": "acps"
+        },
+        "subscriptionName": "q",
+        "messageId": "cmd-003",
+        "deliveryAttempt": 2,
+        "settlement": {
+          "latencyMs": 12.0,
+          "reason": "why"
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-tap\", \"body\": {\"eventType\": \"nack\", \"operationName\": \"basic.nack\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"subscriptionName\": \"q\", \"messageId\": \"cmd-003\", \"deliveryAttempt\": 2, \"settlement\": {\"latencyMs\": 12.0, \"reason\": \"why\"}}}"
+    },
+    {
+      "fn": "settlement",
+      "event_type": "reject",
+      "kwargs": {
+        "system": "rabbitmq",
+        "exchange": "group.abc",
+        "virtual_host": "acps",
+        "queue_name": "q",
+        "message_id": "cmd-003",
+        "delivery_attempt": 2,
+        "latency_ms": 12,
+        "reason": "why"
+      },
+      "dump": {
+        "eventType": "reject",
+        "operationName": "basic.reject",
+        "system": "rabbitmq",
+        "destination": {
+          "name": "group.abc",
+          "kind": "exchange",
+          "virtualHost": "acps"
+        },
+        "subscriptionName": "q",
+        "messageId": "cmd-003",
+        "deliveryAttempt": 2,
+        "settlement": {
+          "latencyMs": 12.0
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-tap\", \"body\": {\"eventType\": \"reject\", \"operationName\": \"basic.reject\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"subscriptionName\": \"q\", \"messageId\": \"cmd-003\", \"deliveryAttempt\": 2, \"settlement\": {\"latencyMs\": 12.0}}}"
+    },
+    {
+      "fn": "settlement",
+      "event_type": "timeout",
+      "kwargs": {
+        "system": "rabbitmq",
+        "exchange": "group.abc",
+        "virtual_host": "acps",
+        "queue_name": "q",
+        "message_id": "cmd-003",
+        "delivery_attempt": 2,
+        "latency_ms": 12,
+        "reason": "why"
+      },
+      "dump": {
+        "eventType": "timeout",
+        "operationName": "basic.timeout",
+        "system": "rabbitmq",
+        "destination": {
+          "name": "group.abc",
+          "kind": "exchange",
+          "virtualHost": "acps"
+        },
+        "subscriptionName": "q",
+        "messageId": "cmd-003",
+        "deliveryAttempt": 2,
+        "settlement": {
+          "latencyMs": 12.0
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-tap\", \"body\": {\"eventType\": \"timeout\", \"operationName\": \"basic.timeout\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"subscriptionName\": \"q\", \"messageId\": \"cmd-003\", \"deliveryAttempt\": 2, \"settlement\": {\"latencyMs\": 12.0}}}"
+    },
+    {
+      "fn": "settlement",
+      "event_type": "dead_letter",
+      "kwargs": {
+        "system": "rabbitmq",
+        "exchange": "group.abc",
+        "virtual_host": "acps",
+        "queue_name": "q",
+        "message_id": "cmd-003",
+        "delivery_attempt": 2,
+        "latency_ms": 12,
+        "reason": "why"
+      },
+      "dump": {
+        "eventType": "dead_letter",
+        "operationName": "basic.dead_letter",
+        "system": "rabbitmq",
+        "destination": {
+          "name": "group.abc",
+          "kind": "exchange",
+          "virtualHost": "acps"
+        },
+        "subscriptionName": "q",
+        "messageId": "cmd-003",
+        "deliveryAttempt": 2,
+        "settlement": {
+          "latencyMs": 12.0
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-tap\", \"body\": {\"eventType\": \"dead_letter\", \"operationName\": \"basic.dead_letter\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"subscriptionName\": \"q\", \"messageId\": \"cmd-003\", \"deliveryAttempt\": 2, \"settlement\": {\"latencyMs\": 12.0}}}"
+    },
+    {
+      "fn": "settlement",
+      "event_type": "nack",
+      "kwargs": {
+        "system": "rabbitmq",
+        "exchange": "group.abc",
+        "virtual_host": "acps",
+        "queue_name": "q",
+        "message_id": "m",
+        "delivery_attempt": 1,
+        "latency_ms": 0.5
+      },
+      "dump": {
+        "eventType": "nack",
+        "operationName": "basic.nack",
+        "system": "rabbitmq",
+        "destination": {
+          "name": "group.abc",
+          "kind": "exchange",
+          "virtualHost": "acps"
+        },
+        "subscriptionName": "q",
+        "messageId": "m",
+        "deliveryAttempt": 1,
+        "settlement": {
+          "latencyMs": 0.5
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-tap\", \"body\": {\"eventType\": \"nack\", \"operationName\": \"basic.nack\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"subscriptionName\": \"q\", \"messageId\": \"m\", \"deliveryAttempt\": 1, \"settlement\": {\"latencyMs\": 0.5}}}"
+    }
+  ],
+  "errors": [
+    {
+      "event_type": "send",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "invalid settlement event_type: 'send'"
+      }
+    },
+    {
+      "event_type": "receive",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "invalid settlement event_type: 'receive'"
+      }
+    },
+    {
+      "event_type": "ACK",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "invalid settlement event_type: 'ACK'"
+      }
+    },
+    {
+      "event_type": "",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "invalid settlement event_type: ''"
+      }
+    },
+    {
+      "event_type": "it's",
+      "result": {
+        "ok": false,
+        "type": "ValueError",
+        "message": "invalid settlement event_type: \"it's\""
+      }
+    }
+  ]
+}

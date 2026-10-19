@@ -1,0 +1,915 @@
+{
+  "cases": [
+    {
+      "name": "heartbeat_0",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": 0
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": 0.0}}"
+    },
+    {
+      "name": "heartbeat_1",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": 12
+        },
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "parent_span_id": "",
+        "correlation_id": "会话-1",
+        "severity_text": "INFO",
+        "severity_number": 9
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": 12.0}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"span_id\": \"00f067aa0ba902b7\", \"parent_span_id\": \"\", \"correlation_id\": \"会话-1\", \"severity_text\": \"INFO\", \"severity_number\": 9}"
+    },
+    {
+      "name": "heartbeat_2",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": 0.1
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": 0.1}}"
+    },
+    {
+      "name": "heartbeat_3",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": 1e+16
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": 1e+16}}"
+    },
+    {
+      "name": "heartbeat_4",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": 1e-07
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": 1e-07}}"
+    },
+    {
+      "name": "heartbeat_5",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": 123456789.123
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": 123456789.123}}"
+    },
+    {
+      "name": "heartbeat_6",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": 1e+22
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": 1e+22}}"
+    },
+    {
+      "name": "heartbeat_7",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": -0.0
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": -0.0}}"
+    },
+    {
+      "name": "heartbeat_8",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": 1000000000000000.0
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": 1000000000000000.0}}"
+    },
+    {
+      "name": "heartbeat_9",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+        "body": {
+          "uptimeSeconds": 5e-324
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"uptimeSeconds\": 5e-324}}"
+    },
+    {
+      "name": "heartbeat_no_uptime_tricky_text",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "quote\" back\\ nl\n tab\t ctl\u0001\u001f del ls  é 中文 😀 /slash",
+        "body": {}
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"quote\\\" back\\\\ nl\\n tab\\t ctl\\u0001\\u001f del ls  é 中文 😀 /slash\", \"body\": {}}"
+    },
+    {
+      "name": "metrics_full",
+      "kind": "metrics",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "aic-metrics",
+        "body": {
+          "uptimeSeconds": 3600,
+          "loadMetrics": {
+            "activeTasks": 3,
+            "queuedTasks": 0,
+            "maxActiveTasks": 10,
+            "cpuUsage": 50,
+            "memoryUsage": 37.5,
+            "diskUsage": 0.1,
+            "networkInUsage": 1e-05,
+            "networkOutUsage": 99.99
+          },
+          "windowMetrics": [
+            {
+              "window": "PT1M",
+              "successRate": 100,
+              "requestTotal": 600,
+              "requestPerSecond": 10,
+              "avgThroughputMBps": 1.25,
+              "peakThroughputMBps": 2,
+              "avgLatencyMs": 12.345,
+              "p99LatencyMs": 99,
+              "p95LatencyMs": 95.5,
+              "p90LatencyMs": 90,
+              "p80LatencyMs": 80.25,
+              "p75LatencyMs": 75,
+              "p50LatencyMs": 50.125
+            },
+            {
+              "window": "PT5M",
+              "successRate": 99.9
+            }
+          ]
+        },
+        "resource": {
+          "service.name": "svc-测试",
+          "deployment.environment.name": "dev",
+          "nested": {
+            "k": [
+              1,
+              2.5,
+              null,
+              true
+            ],
+            "z": null
+          }
+        },
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "parent_span_id": "",
+        "correlation_id": "会话-1",
+        "severity_text": "INFO",
+        "severity_number": 9
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"metrics\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"aic-metrics\", \"body\": {\"uptimeSeconds\": 3600.0, \"loadMetrics\": {\"activeTasks\": 3, \"queuedTasks\": 0, \"maxActiveTasks\": 10, \"cpuUsage\": 50.0, \"memoryUsage\": 37.5, \"diskUsage\": 0.1, \"networkInUsage\": 1e-05, \"networkOutUsage\": 99.99}, \"windowMetrics\": [{\"window\": \"PT1M\", \"successRate\": 100.0, \"requestTotal\": 600, \"requestPerSecond\": 10.0, \"avgThroughputMBps\": 1.25, \"peakThroughputMBps\": 2.0, \"avgLatencyMs\": 12.345, \"p99LatencyMs\": 99.0, \"p95LatencyMs\": 95.5, \"p90LatencyMs\": 90.0, \"p80LatencyMs\": 80.25, \"p75LatencyMs\": 75.0, \"p50LatencyMs\": 50.125}, {\"window\": \"PT5M\", \"successRate\": 99.9}]}, \"resource\": {\"service.name\": \"svc-测试\", \"deployment.environment.name\": \"dev\", \"nested\": {\"k\": [1, 2.5, null, true], \"z\": null}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"span_id\": \"00f067aa0ba902b7\", \"parent_span_id\": \"\", \"correlation_id\": \"会话-1\", \"severity_text\": \"INFO\", \"severity_number\": 9}"
+    },
+    {
+      "name": "metrics_empty_resource",
+      "kind": "metrics",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "aic-metrics",
+        "body": {
+          "uptimeSeconds": 3600,
+          "loadMetrics": {
+            "activeTasks": 3,
+            "queuedTasks": 0,
+            "maxActiveTasks": 10,
+            "cpuUsage": 50,
+            "memoryUsage": 37.5,
+            "diskUsage": 0.1,
+            "networkInUsage": 1e-05,
+            "networkOutUsage": 99.99
+          },
+          "windowMetrics": [
+            {
+              "window": "PT1M",
+              "successRate": 100,
+              "requestTotal": 600,
+              "requestPerSecond": 10,
+              "avgThroughputMBps": 1.25,
+              "peakThroughputMBps": 2,
+              "avgLatencyMs": 12.345,
+              "p99LatencyMs": 99,
+              "p95LatencyMs": 95.5,
+              "p90LatencyMs": 90,
+              "p80LatencyMs": 80.25,
+              "p75LatencyMs": 75,
+              "p50LatencyMs": 50.125
+            },
+            {
+              "window": "PT5M",
+              "successRate": 99.9
+            }
+          ]
+        },
+        "resource": {}
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"metrics\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"aic-metrics\", \"body\": {\"uptimeSeconds\": 3600.0, \"loadMetrics\": {\"activeTasks\": 3, \"queuedTasks\": 0, \"maxActiveTasks\": 10, \"cpuUsage\": 50.0, \"memoryUsage\": 37.5, \"diskUsage\": 0.1, \"networkInUsage\": 1e-05, \"networkOutUsage\": 99.99}, \"windowMetrics\": [{\"window\": \"PT1M\", \"successRate\": 100.0, \"requestTotal\": 600, \"requestPerSecond\": 10.0, \"avgThroughputMBps\": 1.25, \"peakThroughputMBps\": 2.0, \"avgLatencyMs\": 12.345, \"p99LatencyMs\": 99.0, \"p95LatencyMs\": 95.5, \"p90LatencyMs\": 90.0, \"p80LatencyMs\": 80.25, \"p75LatencyMs\": 75.0, \"p50LatencyMs\": 50.125}, {\"window\": \"PT5M\", \"successRate\": 99.9}]}, \"resource\": {}}"
+    },
+    {
+      "name": "metrics_no_resource",
+      "kind": "metrics",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "aic-metrics",
+        "body": {
+          "uptimeSeconds": 3600,
+          "loadMetrics": {
+            "activeTasks": 3,
+            "queuedTasks": 0,
+            "maxActiveTasks": 10,
+            "cpuUsage": 50,
+            "memoryUsage": 37.5,
+            "diskUsage": 0.1,
+            "networkInUsage": 1e-05,
+            "networkOutUsage": 99.99
+          },
+          "windowMetrics": [
+            {
+              "window": "PT1M",
+              "successRate": 100,
+              "requestTotal": 600,
+              "requestPerSecond": 10,
+              "avgThroughputMBps": 1.25,
+              "peakThroughputMBps": 2,
+              "avgLatencyMs": 12.345,
+              "p99LatencyMs": 99,
+              "p95LatencyMs": 95.5,
+              "p90LatencyMs": 90,
+              "p80LatencyMs": 80.25,
+              "p75LatencyMs": 75,
+              "p50LatencyMs": 50.125
+            },
+            {
+              "window": "PT5M",
+              "successRate": 99.9
+            }
+          ]
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"metrics\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"aic-metrics\", \"body\": {\"uptimeSeconds\": 3600.0, \"loadMetrics\": {\"activeTasks\": 3, \"queuedTasks\": 0, \"maxActiveTasks\": 10, \"cpuUsage\": 50.0, \"memoryUsage\": 37.5, \"diskUsage\": 0.1, \"networkInUsage\": 1e-05, \"networkOutUsage\": 99.99}, \"windowMetrics\": [{\"window\": \"PT1M\", \"successRate\": 100.0, \"requestTotal\": 600, \"requestPerSecond\": 10.0, \"avgThroughputMBps\": 1.25, \"peakThroughputMBps\": 2.0, \"avgLatencyMs\": 12.345, \"p99LatencyMs\": 99.0, \"p95LatencyMs\": 95.5, \"p90LatencyMs\": 90.0, \"p80LatencyMs\": 80.25, \"p75LatencyMs\": 75.0, \"p50LatencyMs\": 50.125}, {\"window\": \"PT5M\", \"successRate\": 99.9}]}}"
+    },
+    {
+      "name": "access_full",
+      "kind": "access",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-leader",
+        "body": {
+          "durationMs": 12,
+          "request": {
+            "method": "POST",
+            "url": "https://partner.example/rpc?q=中文",
+            "route": "/rpc",
+            "headers": {
+              "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+              "content-type": "application/json"
+            },
+            "bodySizeBytes": 256
+          },
+          "response": {
+            "statusCode": 200,
+            "bodySizeBytes": 1024
+          },
+          "caller": {
+            "aic": "caller-aic",
+            "serviceName": "demo-leader",
+            "ip": "10.0.0.1"
+          },
+          "callee": {
+            "aic": "callee-aic",
+            "serviceName": "demo-partner"
+          },
+          "error": {
+            "code": "REJECTED",
+            "message": "quote\" back\\ nl\n tab\t ctl\u0001\u001f del ls  é 中文 😀 /slash",
+            "data": {
+              "a": null,
+              "b": [
+                1,
+                2.5,
+                "x"
+              ],
+              "c": {
+                "d": false
+              }
+            },
+            "stackTrace": "line1\nline2"
+          }
+        },
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "parent_span_id": "",
+        "correlation_id": "会话-1",
+        "severity_text": "INFO",
+        "severity_number": 9
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"access\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-leader\", \"body\": {\"durationMs\": 12.0, \"request\": {\"method\": \"POST\", \"url\": \"https://partner.example/rpc?q=中文\", \"route\": \"/rpc\", \"headers\": {\"traceparent\": \"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01\", \"content-type\": \"application/json\"}, \"bodySizeBytes\": 256}, \"response\": {\"statusCode\": 200, \"bodySizeBytes\": 1024}, \"caller\": {\"aic\": \"caller-aic\", \"serviceName\": \"demo-leader\", \"ip\": \"10.0.0.1\"}, \"callee\": {\"aic\": \"callee-aic\", \"serviceName\": \"demo-partner\"}, \"error\": {\"code\": \"REJECTED\", \"message\": \"quote\\\" back\\\\ nl\\n tab\\t ctl\\u0001\\u001f del ls  é 中文 😀 /slash\", \"data\": {\"a\": null, \"b\": [1, 2.5, \"x\"], \"c\": {\"d\": false}}, \"stackTrace\": \"line1\\nline2\"}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"span_id\": \"00f067aa0ba902b7\", \"parent_span_id\": \"\", \"correlation_id\": \"会话-1\", \"severity_text\": \"INFO\", \"severity_number\": 9, \"resource\": {\"service.name\": \"demo-leader\", \"n\": 1.5}}",
+      "resource": {
+        "service.name": "demo-leader",
+        "n": 1.5
+      }
+    },
+    {
+      "name": "access_empty_resource",
+      "kind": "access",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-leader",
+        "body": {
+          "durationMs": 12,
+          "request": {
+            "method": "POST",
+            "url": "https://partner.example/rpc?q=中文",
+            "route": "/rpc",
+            "headers": {
+              "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+              "content-type": "application/json"
+            },
+            "bodySizeBytes": 256
+          },
+          "response": {
+            "statusCode": 200,
+            "bodySizeBytes": 1024
+          },
+          "caller": {
+            "aic": "caller-aic",
+            "serviceName": "demo-leader",
+            "ip": "10.0.0.1"
+          },
+          "callee": {
+            "aic": "callee-aic",
+            "serviceName": "demo-partner"
+          },
+          "error": {
+            "code": "REJECTED",
+            "message": "quote\" back\\ nl\n tab\t ctl\u0001\u001f del ls  é 中文 😀 /slash",
+            "data": {
+              "a": null,
+              "b": [
+                1,
+                2.5,
+                "x"
+              ],
+              "c": {
+                "d": false
+              }
+            },
+            "stackTrace": "line1\nline2"
+          }
+        },
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "parent_span_id": "",
+        "correlation_id": "会话-1",
+        "severity_text": "INFO",
+        "severity_number": 9
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"access\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-leader\", \"body\": {\"durationMs\": 12.0, \"request\": {\"method\": \"POST\", \"url\": \"https://partner.example/rpc?q=中文\", \"route\": \"/rpc\", \"headers\": {\"traceparent\": \"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01\", \"content-type\": \"application/json\"}, \"bodySizeBytes\": 256}, \"response\": {\"statusCode\": 200, \"bodySizeBytes\": 1024}, \"caller\": {\"aic\": \"caller-aic\", \"serviceName\": \"demo-leader\", \"ip\": \"10.0.0.1\"}, \"callee\": {\"aic\": \"callee-aic\", \"serviceName\": \"demo-partner\"}, \"error\": {\"code\": \"REJECTED\", \"message\": \"quote\\\" back\\\\ nl\\n tab\\t ctl\\u0001\\u001f del ls  é 中文 😀 /slash\", \"data\": {\"a\": null, \"b\": [1, 2.5, \"x\"], \"c\": {\"d\": false}}, \"stackTrace\": \"line1\\nline2\"}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"span_id\": \"00f067aa0ba902b7\", \"parent_span_id\": \"\", \"correlation_id\": \"会话-1\", \"severity_text\": \"INFO\", \"severity_number\": 9}",
+      "resource": {}
+    },
+    {
+      "name": "access_no_resource",
+      "kind": "access",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-leader",
+        "body": {
+          "durationMs": 12,
+          "request": {
+            "method": "POST",
+            "url": "https://partner.example/rpc?q=中文",
+            "route": "/rpc",
+            "headers": {
+              "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+              "content-type": "application/json"
+            },
+            "bodySizeBytes": 256
+          },
+          "response": {
+            "statusCode": 200,
+            "bodySizeBytes": 1024
+          },
+          "caller": {
+            "aic": "caller-aic",
+            "serviceName": "demo-leader",
+            "ip": "10.0.0.1"
+          },
+          "callee": {
+            "aic": "callee-aic",
+            "serviceName": "demo-partner"
+          },
+          "error": {
+            "code": "REJECTED",
+            "message": "quote\" back\\ nl\n tab\t ctl\u0001\u001f del ls  é 中文 😀 /slash",
+            "data": {
+              "a": null,
+              "b": [
+                1,
+                2.5,
+                "x"
+              ],
+              "c": {
+                "d": false
+              }
+            },
+            "stackTrace": "line1\nline2"
+          }
+        },
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "parent_span_id": "",
+        "correlation_id": "会话-1",
+        "severity_text": "INFO",
+        "severity_number": 9
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"access\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-leader\", \"body\": {\"durationMs\": 12.0, \"request\": {\"method\": \"POST\", \"url\": \"https://partner.example/rpc?q=中文\", \"route\": \"/rpc\", \"headers\": {\"traceparent\": \"00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01\", \"content-type\": \"application/json\"}, \"bodySizeBytes\": 256}, \"response\": {\"statusCode\": 200, \"bodySizeBytes\": 1024}, \"caller\": {\"aic\": \"caller-aic\", \"serviceName\": \"demo-leader\", \"ip\": \"10.0.0.1\"}, \"callee\": {\"aic\": \"callee-aic\", \"serviceName\": \"demo-partner\"}, \"error\": {\"code\": \"REJECTED\", \"message\": \"quote\\\" back\\\\ nl\\n tab\\t ctl\\u0001\\u001f del ls  é 中文 😀 /slash\", \"data\": {\"a\": null, \"b\": [1, 2.5, \"x\"], \"c\": {\"d\": false}}, \"stackTrace\": \"line1\\nline2\"}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"span_id\": \"00f067aa0ba902b7\", \"parent_span_id\": \"\", \"correlation_id\": \"会话-1\", \"severity_text\": \"INFO\", \"severity_number\": 9}"
+    },
+    {
+      "name": "access_minimal",
+      "kind": "access",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-leader",
+        "body": {
+          "durationMs": 0.5,
+          "error": {
+            "code": 404
+          }
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"access\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-leader\", \"body\": {\"durationMs\": 0.5, \"error\": {\"code\": 404}}}"
+    },
+    {
+      "name": "message_full",
+      "kind": "message",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-partner",
+        "body": {
+          "eventType": "nack",
+          "operationName": "basic.nack",
+          "system": "rabbitmq",
+          "destination": {
+            "name": "group.abc",
+            "kind": "exchange",
+            "virtualHost": "acps"
+          },
+          "consumerGroupName": "cg",
+          "subscriptionName": "partner.queue.1",
+          "routing": {
+            "key": "rk",
+            "partition": "0",
+            "offset": 42
+          },
+          "messageId": "cmd-001",
+          "payloadSizeBytes": 128,
+          "deliveryAttempt": 2,
+          "settlement": {
+            "latencyMs": 5,
+            "reason": "handler failed"
+          },
+          "error": {
+            "code": 500,
+            "message": "boom"
+          },
+          "attributes": {
+            "x": "y",
+            "n": 1,
+            "f": 0.25,
+            "nested": {
+              "list": [
+                null,
+                "中文"
+              ]
+            }
+          }
+        },
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "parent_span_id": "",
+        "correlation_id": "会话-1",
+        "severity_text": "INFO",
+        "severity_number": 9
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-partner\", \"body\": {\"eventType\": \"nack\", \"operationName\": \"basic.nack\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"consumerGroupName\": \"cg\", \"subscriptionName\": \"partner.queue.1\", \"routing\": {\"key\": \"rk\", \"partition\": \"0\", \"offset\": 42}, \"messageId\": \"cmd-001\", \"payloadSizeBytes\": 128, \"deliveryAttempt\": 2, \"settlement\": {\"latencyMs\": 5.0, \"reason\": \"handler failed\"}, \"error\": {\"code\": 500, \"message\": \"boom\"}, \"attributes\": {\"x\": \"y\", \"n\": 1, \"f\": 0.25, \"nested\": {\"list\": [null, \"中文\"]}}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"span_id\": \"00f067aa0ba902b7\", \"parent_span_id\": \"\", \"correlation_id\": \"会话-1\", \"severity_text\": \"INFO\", \"severity_number\": 9, \"resource\": {\"service.name\": \"demo-partner\"}}",
+      "resource": {
+        "service.name": "demo-partner"
+      }
+    },
+    {
+      "name": "message_empty_resource",
+      "kind": "message",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-partner",
+        "body": {
+          "eventType": "nack",
+          "operationName": "basic.nack",
+          "system": "rabbitmq",
+          "destination": {
+            "name": "group.abc",
+            "kind": "exchange",
+            "virtualHost": "acps"
+          },
+          "consumerGroupName": "cg",
+          "subscriptionName": "partner.queue.1",
+          "routing": {
+            "key": "rk",
+            "partition": "0",
+            "offset": 42
+          },
+          "messageId": "cmd-001",
+          "payloadSizeBytes": 128,
+          "deliveryAttempt": 2,
+          "settlement": {
+            "latencyMs": 5,
+            "reason": "handler failed"
+          },
+          "error": {
+            "code": 500,
+            "message": "boom"
+          },
+          "attributes": {
+            "x": "y",
+            "n": 1,
+            "f": 0.25,
+            "nested": {
+              "list": [
+                null,
+                "中文"
+              ]
+            }
+          }
+        },
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "parent_span_id": "",
+        "correlation_id": "会话-1",
+        "severity_text": "INFO",
+        "severity_number": 9
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-partner\", \"body\": {\"eventType\": \"nack\", \"operationName\": \"basic.nack\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"group.abc\", \"kind\": \"exchange\", \"virtualHost\": \"acps\"}, \"consumerGroupName\": \"cg\", \"subscriptionName\": \"partner.queue.1\", \"routing\": {\"key\": \"rk\", \"partition\": \"0\", \"offset\": 42}, \"messageId\": \"cmd-001\", \"payloadSizeBytes\": 128, \"deliveryAttempt\": 2, \"settlement\": {\"latencyMs\": 5.0, \"reason\": \"handler failed\"}, \"error\": {\"code\": 500, \"message\": \"boom\"}, \"attributes\": {\"x\": \"y\", \"n\": 1, \"f\": 0.25, \"nested\": {\"list\": [null, \"中文\"]}}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"span_id\": \"00f067aa0ba902b7\", \"parent_span_id\": \"\", \"correlation_id\": \"会话-1\", \"severity_text\": \"INFO\", \"severity_number\": 9}",
+      "resource": {}
+    },
+    {
+      "name": "audit_unsigned",
+      "kind": "audit",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "aic-audit",
+        "body": {
+          "actor": {
+            "id": "user-001",
+            "type": "user",
+            "name": "张三",
+            "role": "admin",
+            "ip": "10.1.2.3",
+            "userAgent": "curl/8.0"
+          },
+          "action": {
+            "name": "user.delete",
+            "type": "user_management",
+            "method": "DELETE /api/users/bob"
+          },
+          "target": {
+            "type": "user",
+            "id": "bob",
+            "name": "Bob",
+            "before": {
+              "z": 1,
+              "a": [
+                1,
+                2.5,
+                null
+              ],
+              "u": "é"
+            },
+            "after": null
+          },
+          "result": {
+            "status": "failure",
+            "reason": "quote\" back\\ nl\n tab\t ctl\u0001\u001f del ls  é 中文 😀 /slash",
+            "errorCode": "RESOURCE_NOT_FOUND"
+          }
+        },
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "parent_span_id": "",
+        "correlation_id": "会话-1",
+        "severity_text": "INFO",
+        "severity_number": 9
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"audit\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"aic-audit\", \"body\": {\"actor\": {\"id\": \"user-001\", \"type\": \"user\", \"name\": \"张三\", \"role\": \"admin\", \"ip\": \"10.1.2.3\", \"userAgent\": \"curl/8.0\"}, \"action\": {\"name\": \"user.delete\", \"type\": \"user_management\", \"method\": \"DELETE /api/users/bob\"}, \"target\": {\"type\": \"user\", \"id\": \"bob\", \"name\": \"Bob\", \"before\": {\"z\": 1, \"a\": [1, 2.5, null], \"u\": \"é\"}}, \"result\": {\"status\": \"failure\", \"reason\": \"quote\\\" back\\\\ nl\\n tab\\t ctl\\u0001\\u001f del ls  é 中文 😀 /slash\", \"errorCode\": \"RESOURCE_NOT_FOUND\"}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"span_id\": \"00f067aa0ba902b7\", \"parent_span_id\": \"\", \"correlation_id\": \"会话-1\", \"severity_text\": \"INFO\", \"severity_number\": 9}"
+    },
+    {
+      "name": "system_full",
+      "kind": "system",
+      "input": {
+        "schema_version": "1.0",
+        "log_type": "system",
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-system",
+        "severity_number": 17,
+        "severity_text": "ERROR",
+        "trace_id": "tttttttttttttttttttttttttttttttt",
+        "correlation_id": "corr-1",
+        "body": {
+          "message": "hi",
+          "category": "llm",
+          "tokens": 12,
+          "ratio": 0.75,
+          "meta": {
+            "k": null
+          }
+        },
+        "resource": {
+          "service.name": "svc"
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-system\", \"log_type\": \"system\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"trace_id\": \"tttttttttttttttttttttttttttttttt\", \"correlation_id\": \"corr-1\", \"severity_text\": \"ERROR\", \"severity_number\": 17, \"body\": {\"message\": \"hi\", \"category\": \"llm\", \"tokens\": 12, \"ratio\": 0.75, \"meta\": {\"k\": null}}, \"resource\": {\"service.name\": \"svc\"}}"
+    },
+    {
+      "name": "system_empty_resource",
+      "kind": "system",
+      "input": {
+        "schema_version": "1.0",
+        "log_type": "system",
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-system",
+        "severity_number": 17,
+        "severity_text": "ERROR",
+        "trace_id": "tttttttttttttttttttttttttttttttt",
+        "correlation_id": "corr-1",
+        "body": {
+          "message": "quote\" back\\ nl\n tab\t ctl\u0001\u001f del ls  é 中文 😀 /slash"
+        },
+        "resource": {}
+      },
+      "line": "{\"schema_version\": \"1.0\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-system\", \"log_type\": \"system\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"trace_id\": \"tttttttttttttttttttttttttttttttt\", \"correlation_id\": \"corr-1\", \"severity_text\": \"ERROR\", \"severity_number\": 17, \"body\": {\"message\": \"quote\\\" back\\\\ nl\\n tab\\t ctl\\u0001\\u001f del ls  é 中文 😀 /slash\"}, \"resource\": {}}"
+    },
+    {
+      "name": "system_no_body",
+      "kind": "system",
+      "input": {
+        "schema_version": "1.0",
+        "log_type": "system",
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-system",
+        "severity_number": 17,
+        "severity_text": "ERROR",
+        "trace_id": "tttttttttttttttttttttttttttttttt",
+        "correlation_id": "corr-1"
+      },
+      "line": "{\"schema_version\": \"1.0\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-system\", \"log_type\": \"system\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"trace_id\": \"tttttttttttttttttttttttttttttttt\", \"correlation_id\": \"corr-1\", \"severity_text\": \"ERROR\", \"severity_number\": 17}"
+    },
+    {
+      "name": "system_big_ints",
+      "kind": "system",
+      "input": {
+        "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+        "span_id": "00f067aa0ba902b7",
+        "parent_span_id": "",
+        "correlation_id": "会话-1",
+        "severity_text": "INFO",
+        "severity_number": 9,
+        "schema_version": "1.0",
+        "log_type": "system",
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-system",
+        "body": {
+          "p53": 9007199254740992,
+          "p60": 1152921504606846976,
+          "e20": 100000000000000000000,
+          "ns": 1760860872160000000,
+          "neg": -1152921504606846976,
+          "f": 1e+21
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"aic-system\", \"log_type\": \"system\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"span_id\": \"00f067aa0ba902b7\", \"parent_span_id\": \"\", \"correlation_id\": \"会话-1\", \"severity_text\": \"INFO\", \"severity_number\": 9, \"body\": {\"p53\": 9007199254740992, \"p60\": 1152921504606846976, \"e20\": 100000000000000000000, \"ns\": 1760860872160000000, \"neg\": -1152921504606846976, \"f\": 1e+21}}"
+    },
+    {
+      "name": "heartbeat_big_int_uptime",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "aic",
+        "body": {
+          "uptimeSeconds": 1152921504606846976
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"aic\", \"body\": {\"uptimeSeconds\": 1.152921504606847e+18}}"
+    },
+    {
+      "name": "nonfinite_heartbeat",
+      "kind": "heartbeat",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "a",
+        "body": {
+          "uptimeSeconds": "__NaN__"
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"heartbeat\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"a\", \"body\": {\"uptimeSeconds\": NaN}}"
+    },
+    {
+      "name": "nonfinite_metrics",
+      "kind": "metrics",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "a",
+        "body": {
+          "uptimeSeconds": "__Infinity__",
+          "loadMetrics": {
+            "activeTasks": 0,
+            "queuedTasks": 0,
+            "cpuUsage": "__NaN__",
+            "memoryUsage": "__-Infinity__"
+          },
+          "windowMetrics": [
+            {
+              "window": "PT1M",
+              "successRate": "__NaN__",
+              "p50LatencyMs": "__Infinity__"
+            }
+          ]
+        },
+        "resource": {
+          "r": "__NaN__",
+          "ok": 1
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"metrics\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"a\", \"body\": {\"uptimeSeconds\": Infinity, \"loadMetrics\": {\"activeTasks\": 0, \"queuedTasks\": 0, \"cpuUsage\": NaN, \"memoryUsage\": -Infinity}, \"windowMetrics\": [{\"window\": \"PT1M\", \"successRate\": NaN, \"p50LatencyMs\": Infinity}]}, \"resource\": {\"r\": null, \"ok\": 1}}"
+    },
+    {
+      "name": "nonfinite_access",
+      "kind": "access",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "a",
+        "body": {
+          "durationMs": "__-Infinity__",
+          "error": {
+            "code": 1,
+            "data": {
+              "x": "__NaN__",
+              "y": [
+                "__Infinity__"
+              ]
+            }
+          }
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"access\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"a\", \"body\": {\"durationMs\": -Infinity, \"error\": {\"code\": 1, \"data\": {\"x\": null, \"y\": [null]}}}, \"resource\": {\"r\": NaN, \"s\": [-Infinity]}}",
+      "resource": {
+        "r": "__NaN__",
+        "s": [
+          "__-Infinity__"
+        ]
+      }
+    },
+    {
+      "name": "nonfinite_message",
+      "kind": "message",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "a",
+        "body": {
+          "eventType": "ack",
+          "system": "rabbitmq",
+          "destination": {
+            "name": "x"
+          },
+          "settlement": {
+            "latencyMs": "__NaN__"
+          },
+          "attributes": {
+            "a": "__Infinity__"
+          }
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"message\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"a\", \"body\": {\"eventType\": \"ack\", \"system\": \"rabbitmq\", \"destination\": {\"name\": \"x\"}, \"settlement\": {\"latencyMs\": NaN}, \"attributes\": {\"a\": null}}}"
+    },
+    {
+      "name": "nonfinite_system",
+      "kind": "system",
+      "input": {
+        "schema_version": "1.0",
+        "log_type": "system",
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "a",
+        "body": {
+          "x": "__NaN__",
+          "nested": [
+            {
+              "y": "__-Infinity__"
+            }
+          ]
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"timestamp\": \"2026-10-19T08:01:12.160000Z\", \"aic\": \"a\", \"log_type\": \"system\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"body\": {\"x\": null, \"nested\": [{\"y\": null}]}}"
+    },
+    {
+      "name": "nonfinite_audit",
+      "kind": "audit",
+      "input": {
+        "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "a",
+        "body": {
+          "actor": {
+            "id": "u",
+            "type": "user"
+          },
+          "action": {
+            "name": "n",
+            "type": "t"
+          },
+          "target": {
+            "type": "t",
+            "id": "i",
+            "before": {
+              "v": "__NaN__"
+            }
+          },
+          "result": {
+            "status": "success"
+          }
+        }
+      },
+      "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"audit\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"a\", \"body\": {\"actor\": {\"id\": \"u\", \"type\": \"user\"}, \"action\": {\"name\": \"n\", \"type\": \"t\"}, \"target\": {\"type\": \"t\", \"id\": \"i\", \"before\": {\"v\": null}}, \"result\": {\"status\": \"success\"}}}"
+    }
+  ],
+  "nonfinite_sentinels": [
+    "__NaN__",
+    "__Infinity__",
+    "__-Infinity__"
+  ]
+}

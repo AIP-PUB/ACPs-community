@@ -1,0 +1,436 @@
+{
+  "all": [
+    {
+      "name": "LogRecord",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "LogRecordIntegrity",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "LOG_ID_HASH_FIELDS",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "compute_log_id_fallback",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "AccessEmitter",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "MessageEmitter",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "SystemEmitter",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "AuditEmitter",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "HeartbeatEmitter",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "MetricsEmitter",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "AuditSigner",
+      "kind": "protocol",
+      "methods": []
+    },
+    {
+      "name": "CertificateAuditSigner",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "Ed25519AuditSigner",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "load_signer_from_keys_json",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "HeartbeatBody",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "HeartbeatLogRecord",
+      "kind": "model",
+      "methods": [
+        "new_log_id"
+      ]
+    },
+    {
+      "name": "ALIVE_DELTA_TYPE",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "ALIVE_DELTA_SCHEMA_VERSION",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "SNAPSHOT_META_RECORD_TYPE",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "SNAPSHOT_CONTENT_TYPE",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "ALIVE_OBJECT_ID_PREFIX",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "HEARTBEAT_TOPIC_DEFAULT",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "ALIVE_DELTA_TOPIC_DEFAULT",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "DeltaOp",
+      "kind": "type_alias",
+      "methods": []
+    },
+    {
+      "name": "DeltaKind",
+      "kind": "type_alias",
+      "methods": []
+    },
+    {
+      "name": "alive_object_id",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "aic_from_object_id",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "shard_id",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "shard_index_from_id",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "seq_to_str",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "seq_from_str",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "AliveSetEntry",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AliveDeltaEnvelope",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "HeartbeatSyncInfo",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AliveSnapshotMeta",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AliveSyncEngine",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "AliveSyncStore",
+      "kind": "protocol",
+      "methods": []
+    },
+    {
+      "name": "AliveReader",
+      "kind": "protocol",
+      "methods": []
+    },
+    {
+      "name": "AliveRecord",
+      "kind": "dataclass",
+      "methods": []
+    },
+    {
+      "name": "ShardCheckpoint",
+      "kind": "dataclass",
+      "methods": []
+    },
+    {
+      "name": "AliveView",
+      "kind": "dataclass",
+      "methods": [
+        "to_output_dict"
+      ]
+    },
+    {
+      "name": "DeltaDecision",
+      "kind": "enum",
+      "methods": []
+    },
+    {
+      "name": "classify_delta",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "passes_seq_gate",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "is_gap",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "passes_version",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "parse_meta_line",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "parse_snapshot_row",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "snapshot_row_to_record",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "seek_timestamp_ms",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "next_lookback_seconds",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "AliveSyncError",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "GapDetectedError",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "ResyncRequired",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "SnapshotProtocolError",
+      "kind": "class",
+      "methods": []
+    },
+    {
+      "name": "MetricFamily",
+      "kind": "enum",
+      "methods": []
+    },
+    {
+      "name": "KNOWN_WINDOWS",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "KNOWN_QUANTILES",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "PublicMetricMeta",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "PUBLIC_METRIC_CATALOG",
+      "kind": "constant",
+      "methods": []
+    },
+    {
+      "name": "lookup_public_metric",
+      "kind": "function",
+      "methods": []
+    },
+    {
+      "name": "LoadMetrics",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "WindowMetrics",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "MetricsBody",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "MetricsLogRecord",
+      "kind": "model",
+      "methods": [
+        "new_log_id"
+      ]
+    },
+    {
+      "name": "ErrorInfo",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AccessRequest",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AccessResponse",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AccessParticipant",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AccessBody",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AccessLogRecord",
+      "kind": "model",
+      "methods": [
+        "new_log_id"
+      ]
+    },
+    {
+      "name": "MessageDestination",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "MessageRouting",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "MessageSettlement",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "MessageAck",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "MessageBody",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "MessageLogRecord",
+      "kind": "model",
+      "methods": [
+        "new_log_id"
+      ]
+    },
+    {
+      "name": "AuditActor",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AuditAction",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AuditTarget",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AuditResult",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AuditBody",
+      "kind": "model",
+      "methods": []
+    },
+    {
+      "name": "AuditLogRecord",
+      "kind": "model",
+      "methods": [
+        "new_log_id"
+      ]
+    },
+    {
+      "name": "AuditLogBody",
+      "kind": "model",
+      "methods": []
+    }
+  ]
+}

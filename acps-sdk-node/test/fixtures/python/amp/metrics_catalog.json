@@ -1,0 +1,285 @@
+{
+  "families": {
+    "SAMPLE_COUNT_GAUGE": "sample_count_gauge",
+    "RESOURCE_USAGE_GAUGE": "resource_usage_gauge",
+    "WINDOW_RATE_LATENCY": "window_rate_latency",
+    "WINDOW_TOTAL": "window_total",
+    "MONOTONIC_UPTIME_GAUGE": "monotonic_uptime_gauge"
+  },
+  "known_windows": [
+    "PT1M",
+    "PT5M",
+    "PT15M",
+    "PT1H"
+  ],
+  "known_quantiles": [
+    "p50",
+    "p75",
+    "p80",
+    "p90",
+    "p95",
+    "p99"
+  ],
+  "catalog": [
+    [
+      "activeTasks",
+      {
+        "public_name": "activeTasks",
+        "family": "sample_count_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "queuedTasks",
+      {
+        "public_name": "queuedTasks",
+        "family": "sample_count_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "maxActiveTasks",
+      {
+        "public_name": "maxActiveTasks",
+        "family": "sample_count_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "maxQueuedTasks",
+      {
+        "public_name": "maxQueuedTasks",
+        "family": "sample_count_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "cpuUsage",
+      {
+        "public_name": "cpuUsage",
+        "family": "resource_usage_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "memoryUsage",
+      {
+        "public_name": "memoryUsage",
+        "family": "resource_usage_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "diskUsage",
+      {
+        "public_name": "diskUsage",
+        "family": "resource_usage_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "networkInUsage",
+      {
+        "public_name": "networkInUsage",
+        "family": "resource_usage_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "networkOutUsage",
+      {
+        "public_name": "networkOutUsage",
+        "family": "resource_usage_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "successRate",
+      {
+        "public_name": "successRate",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "requestPerSecond",
+      {
+        "public_name": "requestPerSecond",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "avgThroughputMBps",
+      {
+        "public_name": "avgThroughputMBps",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "peakThroughputMBps",
+      {
+        "public_name": "peakThroughputMBps",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "avgLatencyMs",
+      {
+        "public_name": "avgLatencyMs",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "requestTotal",
+      {
+        "public_name": "requestTotal",
+        "family": "window_total",
+        "needs_window": true,
+        "fixed_quantile": null
+      }
+    ],
+    [
+      "p50LatencyMs",
+      {
+        "public_name": "p50LatencyMs",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": "p50"
+      }
+    ],
+    [
+      "p75LatencyMs",
+      {
+        "public_name": "p75LatencyMs",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": "p75"
+      }
+    ],
+    [
+      "p80LatencyMs",
+      {
+        "public_name": "p80LatencyMs",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": "p80"
+      }
+    ],
+    [
+      "p90LatencyMs",
+      {
+        "public_name": "p90LatencyMs",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": "p90"
+      }
+    ],
+    [
+      "p95LatencyMs",
+      {
+        "public_name": "p95LatencyMs",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": "p95"
+      }
+    ],
+    [
+      "p99LatencyMs",
+      {
+        "public_name": "p99LatencyMs",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": "p99"
+      }
+    ],
+    [
+      "uptimeSeconds",
+      {
+        "public_name": "uptimeSeconds",
+        "family": "monotonic_uptime_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    ]
+  ],
+  "lookups": [
+    {
+      "name": "cpuUsage",
+      "result": {
+        "public_name": "cpuUsage",
+        "family": "resource_usage_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    },
+    {
+      "name": "p95LatencyMs",
+      "result": {
+        "public_name": "p95LatencyMs",
+        "family": "window_rate_latency",
+        "needs_window": true,
+        "fixed_quantile": "p95"
+      }
+    },
+    {
+      "name": "requestTotal",
+      "result": {
+        "public_name": "requestTotal",
+        "family": "window_total",
+        "needs_window": true,
+        "fixed_quantile": null
+      }
+    },
+    {
+      "name": "uptimeSeconds",
+      "result": {
+        "public_name": "uptimeSeconds",
+        "family": "monotonic_uptime_gauge",
+        "needs_window": false,
+        "fixed_quantile": null
+      }
+    },
+    {
+      "name": "amp_load_cpu_usage",
+      "result": null
+    },
+    {
+      "name": "",
+      "result": null
+    },
+    {
+      "name": "nonexistent",
+      "result": null
+    },
+    {
+      "name": "toString",
+      "result": null
+    },
+    {
+      "name": "__proto__",
+      "result": null
+    },
+    {
+      "name": "CPUUSAGE",
+      "result": null
+    }
+  ]
+}
