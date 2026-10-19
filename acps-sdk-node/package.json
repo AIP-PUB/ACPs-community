@@ -1,0 +1,137 @@
+{
+  "name": "acps-sdk",
+  "version": "2.2.0",
+  "description": "ACPs SDK for Node.js - Agent Collaboration Protocols SDK (TypeScript)",
+  "license": "MulanPSL-2.0",
+  "author": "Team <team@ioa.pub>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AIP-PUB/ACPs-community.git",
+    "directory": "acps-sdk-node"
+  },
+  "homepage": "https://github.com/AIP-PUB/ACPs-community/tree/main/acps-sdk-node#readme",
+  "bugs": {
+    "url": "https://github.com/AIP-PUB/ACPs-community/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "README_en.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./aic": {
+      "import": {
+        "types": "./dist/aic/index.d.ts",
+        "default": "./dist/aic/index.js"
+      },
+      "require": {
+        "types": "./dist/aic/index.d.cts",
+        "default": "./dist/aic/index.cjs"
+      }
+    },
+    "./acs": {
+      "import": {
+        "types": "./dist/acs/index.d.ts",
+        "default": "./dist/acs/index.js"
+      },
+      "require": {
+        "types": "./dist/acs/index.d.cts",
+        "default": "./dist/acs/index.cjs"
+      }
+    },
+    "./adp": {
+      "import": {
+        "types": "./dist/adp/index.d.ts",
+        "default": "./dist/adp/index.js"
+      },
+      "require": {
+        "types": "./dist/adp/index.d.cts",
+        "default": "./dist/adp/index.cjs"
+      }
+    },
+    "./aip": {
+      "import": {
+        "types": "./dist/aip/index.d.ts",
+        "default": "./dist/aip/index.js"
+      },
+      "require": {
+        "types": "./dist/aip/index.d.cts",
+        "default": "./dist/aip/index.cjs"
+      }
+    },
+    "./amp": {
+      "import": {
+        "types": "./dist/amp/index.d.ts",
+        "default": "./dist/amp/index.js"
+      },
+      "require": {
+        "types": "./dist/amp/index.d.cts",
+        "default": "./dist/amp/index.cjs"
+      }
+    },
+    "./oidc": {
+      "import": {
+        "types": "./dist/oidc/index.d.ts",
+        "default": "./dist/oidc/index.js"
+      },
+      "require": {
+        "types": "./dist/oidc/index.d.cts",
+        "default": "./dist/oidc/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:coverage": "vitest run --coverage",
+    "fixtures:python": "uv run --project ../acps-sdk --python 3.12 python -I scripts/gen_python_fixtures.py",
+    "interop": "npm run build && uv run --project ../acps-sdk --python 3.12 python -I scripts/interop/run_interop.py",
+    "qa": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run check:package",
+    "check:package": "attw --pack . --profile node16"
+  },
+  "dependencies": {
+    "amqplib": "^2.2.0",
+    "jose": "^6.2.12",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@eslint/js": "^10.0.1",
+    "@peculiar/x509": "^2.2.0",
+    "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^10.13.0",
+    "prettier": "^3.9.10",
+    "reflect-metadata": "^0.2.2",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.5"
+  }
+}

@@ -1,0 +1,20 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+# 安装依赖
+install:
+    npm ci
+
+# 运行全部测试；可传 unit / integration
+test scope="all":
+    if [ "{{scope}}" = "all" ]; then npm test; else npm run test:{{scope}}; fi
+
+# 用 Python 版 acps-sdk 重新生成跨语言对照样例
+fixtures:
+    npm run fixtures:python
+
+# 格式、lint、类型检查、测试、构建
+qa:
+    npm run qa
+
+build:
+    npm run build
