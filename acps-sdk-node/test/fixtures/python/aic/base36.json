@@ -1,0 +1,289 @@
+{
+  "encode": [
+    {
+      "num": 0,
+      "length": 0,
+      "result": "0"
+    },
+    {
+      "num": 0,
+      "length": 1,
+      "result": "0"
+    },
+    {
+      "num": 0,
+      "length": 4,
+      "result": "0000"
+    },
+    {
+      "num": 0,
+      "length": 10,
+      "result": "0000000000"
+    },
+    {
+      "num": 1,
+      "length": 0,
+      "result": "1"
+    },
+    {
+      "num": 1,
+      "length": 1,
+      "result": "1"
+    },
+    {
+      "num": 1,
+      "length": 4,
+      "result": "0001"
+    },
+    {
+      "num": 1,
+      "length": 10,
+      "result": "0000000001"
+    },
+    {
+      "num": 35,
+      "length": 0,
+      "result": "Z"
+    },
+    {
+      "num": 35,
+      "length": 1,
+      "result": "Z"
+    },
+    {
+      "num": 35,
+      "length": 4,
+      "result": "000Z"
+    },
+    {
+      "num": 35,
+      "length": 10,
+      "result": "000000000Z"
+    },
+    {
+      "num": 36,
+      "length": 0,
+      "result": "10"
+    },
+    {
+      "num": 36,
+      "length": 1,
+      "result": "10"
+    },
+    {
+      "num": 36,
+      "length": 4,
+      "result": "0010"
+    },
+    {
+      "num": 36,
+      "length": 10,
+      "result": "0000000010"
+    },
+    {
+      "num": 1295,
+      "length": 0,
+      "result": "ZZ"
+    },
+    {
+      "num": 1295,
+      "length": 1,
+      "result": "ZZ"
+    },
+    {
+      "num": 1295,
+      "length": 4,
+      "result": "00ZZ"
+    },
+    {
+      "num": 1295,
+      "length": 10,
+      "result": "00000000ZZ"
+    },
+    {
+      "num": 1296,
+      "length": 0,
+      "result": "100"
+    },
+    {
+      "num": 1296,
+      "length": 1,
+      "result": "100"
+    },
+    {
+      "num": 1296,
+      "length": 4,
+      "result": "0100"
+    },
+    {
+      "num": 1296,
+      "length": 10,
+      "result": "0000000100"
+    },
+    {
+      "num": 46655,
+      "length": 0,
+      "result": "ZZZ"
+    },
+    {
+      "num": 46655,
+      "length": 1,
+      "result": "ZZZ"
+    },
+    {
+      "num": 46655,
+      "length": 4,
+      "result": "0ZZZ"
+    },
+    {
+      "num": 46655,
+      "length": 10,
+      "result": "0000000ZZZ"
+    },
+    {
+      "num": 65535,
+      "length": 0,
+      "result": "1EKF"
+    },
+    {
+      "num": 65535,
+      "length": 1,
+      "result": "1EKF"
+    },
+    {
+      "num": 65535,
+      "length": 4,
+      "result": "1EKF"
+    },
+    {
+      "num": 65535,
+      "length": 10,
+      "result": "0000001EKF"
+    },
+    {
+      "num": 2147483648,
+      "length": 0,
+      "result": "ZIK0ZK"
+    },
+    {
+      "num": 2147483648,
+      "length": 1,
+      "result": "ZIK0ZK"
+    },
+    {
+      "num": 2147483648,
+      "length": 4,
+      "result": "ZIK0ZK"
+    },
+    {
+      "num": 2147483648,
+      "length": 10,
+      "result": "0000ZIK0ZK"
+    },
+    {
+      "num": 9007199254740991,
+      "length": 0,
+      "result": "2GOSA7PA2GV"
+    },
+    {
+      "num": 9007199254740991,
+      "length": 1,
+      "result": "2GOSA7PA2GV"
+    },
+    {
+      "num": 9007199254740991,
+      "length": 4,
+      "result": "2GOSA7PA2GV"
+    },
+    {
+      "num": 9007199254740991,
+      "length": 10,
+      "result": "2GOSA7PA2GV"
+    },
+    {
+      "num": -1,
+      "length": 0,
+      "error": "ValueError"
+    }
+  ],
+  "decode": [
+    {
+      "text": "",
+      "result": 0
+    },
+    {
+      "text": "0",
+      "result": 0
+    },
+    {
+      "text": "z",
+      "result": 35
+    },
+    {
+      "text": "Z",
+      "result": 35
+    },
+    {
+      "text": "10",
+      "result": 36
+    },
+    {
+      "text": "zz",
+      "result": 1295
+    },
+    {
+      "text": "ZZZZ",
+      "result": 1679615
+    },
+    {
+      "text": " 1A ",
+      "result": 46
+    },
+    {
+      "text": "\t1a\n",
+      "result": 46
+    },
+    {
+      "text": "\u001c1A",
+      "result": 46
+    },
+    {
+      "text": "1A",
+      "result": 46
+    },
+    {
+      "text": "1A﻿",
+      "error": "ValueError"
+    },
+    {
+      "text": "2GOSA7PA2GV",
+      "result": 9007199254740991
+    },
+    {
+      "text": "!",
+      "error": "ValueError"
+    },
+    {
+      "text": "1.2",
+      "error": "ValueError"
+    },
+    {
+      "text": "É",
+      "error": "ValueError"
+    },
+    {
+      "text": "1 A",
+      "error": "ValueError"
+    },
+    {
+      "text": "ZZZZZZZZZZZ",
+      "pythonResult": "131621703842267135",
+      "nodeError": "RangeError"
+    },
+    {
+      "text": "1Y2P0IJ32E8E8",
+      "pythonResult": "9223372036854775808",
+      "nodeError": "RangeError"
+    }
+  ]
+}

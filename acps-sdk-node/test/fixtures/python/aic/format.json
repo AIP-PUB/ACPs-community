@@ -1,0 +1,4596 @@
+[
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "000000",
+      "checksum": "0SV9",
+      "isOntology": true,
+      "isEntity": false,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "000000",
+      "0SV9",
+      null
+    ],
+    "isOntology": true,
+    "isEntity": false,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "  1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4  ",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "  1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4  ",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "\t1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\n",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "\t1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\n",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": null,
+    "validate": [
+      false,
+      "AIC 不能为空"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "",
+    "validate": [
+      false,
+      "AIC 不能为空"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "AIC 不能为空"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "   ",
+    "validate": [
+      false,
+      "AIC 必须包含 10 段，当前为 0 段"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+    "validate": [
+      false,
+      "AIC 必须包含 10 段，当前为 9 段"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4.X",
+    "validate": [
+      false,
+      "AIC 必须包含 10 段，当前为 11 段"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 11 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 11 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 11 段"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 11 段"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 11 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 11 段"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2..156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "AIC 必须包含 10 段，当前为 0 段"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4.",
+    "validate": [
+      false,
+      "AIC 必须包含 10 段，当前为 0 段"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": ".1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "AIC 必须包含 10 段，当前为 0 段"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "AIC 必须包含 10 段，当前为 0 段"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3089.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "前缀不匹配，期望 1.2.156.3088，实际 1.2.156.3089"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088.1，实际 1.2.156.3089.1"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3089"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3089"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088，实际 1.2.156.3089"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3089",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "01.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "前缀不匹配，期望 1.2.156.3088，实际 01.2.156.3088"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156，实际 01.2.156"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088.1，实际 01.2.156.3088.1"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 01.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 01.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088，实际 01.2.156.3088"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "01",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.11.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "第 5 级长度必须在 1-1 之间，实际为 2"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 5 级长度必须在 1-1 之间，实际为 2"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 5 级长度必须在 1-1 之间，实际为 2"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088.1，实际 1.2.156.3088.11"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 5 级长度必须在 1-1 之间，实际为 2"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "11",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.Z.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088.1，实际 1.2.156.3088.Z"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.Z.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.Z.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "Z",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.Z.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.Z.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "Z",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.Z.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088.1.1234567.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "第 6 级长度必须在 1-6 之间，实际为 7"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 6 级长度必须在 1-6 之间，实际为 7"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 6 级长度必须在 1-6 之间，实际为 7"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 6 级长度必须在 1-6 之间，实际为 7"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 6 级长度必须在 1-6 之间，实际为 7"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1234567",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.1234567.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "第 7 级长度必须在 1-6 之间，实际为 7"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 7 级长度必须在 1-6 之间，实际为 7"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 7 级长度必须在 1-6 之间，实际为 7"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 7 级长度必须在 1-6 之间，实际为 7"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 7 级长度必须在 1-6 之间，实际为 7"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "1234567",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.1234567890.3GF546.0JU4",
+    "validate": [
+      false,
+      "第 8 级长度必须在 1-9 之间，实际为 10"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 8 级长度必须在 1-9 之间，实际为 10"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 8 级长度必须在 1-9 之间，实际为 10"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 8 级长度必须在 1-9 之间，实际为 10"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 8 级长度必须在 1-9 之间，实际为 10"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "1234567890",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.1234567890.0JU4",
+    "validate": [
+      false,
+      "第 9 级长度必须在 1-9 之间，实际为 10"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 9 级长度必须在 1-9 之间，实际为 10"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 9 级长度必须在 1-9 之间，实际为 10"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 9 级长度必须在 1-9 之间，实际为 10"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 9 级长度必须在 1-9 之间，实际为 10"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "1234567890",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU",
+    "validate": [
+      false,
+      "第 10 级长度必须在 4-4 之间，实际为 3"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 10 级长度必须在 4-4 之间，实际为 3"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 10 级长度必须在 4-4 之间，实际为 3"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 10 级长度必须在 4-4 之间，实际为 3"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 10 级长度必须在 4-4 之间，实际为 3"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU45",
+    "validate": [
+      false,
+      "第 10 级长度必须在 4-4 之间，实际为 5"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 10 级长度必须在 4-4 之间，实际为 5"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 10 级长度必须在 4-4 之间，实际为 5"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 10 级长度必须在 4-4 之间，实际为 5"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 10 级长度必须在 4-4 之间，实际为 5"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU45",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C_2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "第 7 级必须为 Base36 字符，实际为 '34C_2'"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34C_2'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34C_2'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34C_2'"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34C_2'"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C_2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34-2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "第 7 级必须为 Base36 字符，实际为 '34-2'"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34-2'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34-2'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34-2'"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34-2'"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34-2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34É2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "第 7 级必须为 Base36 字符，实际为 '34É2'"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34É2'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34É2'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34É2'"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 7 级必须为 Base36 字符，实际为 '34É2'"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34É2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34ß.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34ß.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34SS.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34SS",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34SS.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34SS.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34SS",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34SS.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34ſ2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34ſ2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34S2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34S2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34S2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34S2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34S2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34S2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34ı2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34ı2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34I2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34I2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34I2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34I2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34I2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34I2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.０JU4",
+    "validate": [
+      false,
+      "第 10 级必须为 Base36 字符，实际为 '０JU4'"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 10 级必须为 Base36 字符，实际为 '０JU4'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 10 级必须为 Base36 字符，实际为 '０JU4'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "第 10 级必须为 Base36 字符，实际为 '０JU4'"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "第 10 级必须为 Base36 字符，实际为 '０JU4'"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "０JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.0.0SV9",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34C2.478BDF.0.0SV9",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.0.0SV9",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "0",
+      "checksum": "0SV9",
+      "isOntology": true,
+      "isEntity": false,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.0",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "0",
+      "0SV9",
+      null
+    ],
+    "isOntology": true,
+    "isEntity": false,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.000000000.0SV9",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34C2.478BDF.000000000.0SV9",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000000.0SV9",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "000000000",
+      "checksum": "0SV9",
+      "isOntology": true,
+      "isEntity": false,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.000000000",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "000000000",
+      "0SV9",
+      null
+    ],
+    "isOntology": true,
+    "isEntity": false,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.00A.0SV9",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34C2.478BDF.00A.0SV9",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.00A.0SV9",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "00A",
+      "checksum": "0SV9",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.00A",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "00A",
+      "0SV9",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "9.9.9.9.1.1.A.B.C.ABCD",
+    "validate": [
+      false,
+      "前缀不匹配，期望 1.2.156.3088，实际 9.9.9.9"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156，实际 9.9.9"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088.1，实际 9.9.9.9.1"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 9.9.9.9"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088，实际 9.9.9.9"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "9",
+      "9",
+      "9",
+      "9",
+      "1",
+      "1",
+      "A",
+      "B",
+      "C",
+      "ABCD",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "A.B.C.D.1.1.A.B.C.ABCD",
+    "validate": [
+      false,
+      "前缀不匹配，期望 1.2.156.3088，实际 A.B.C.D"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 1 级必须为纯数字，实际为 'A'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156，实际 A.B.C"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088.1，实际 A.B.C.D.1"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 A.B.C.D"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "第 1 级必须为纯数字，实际为 'A'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088，实际 A.B.C.D"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "A",
+      "B",
+      "C",
+      "D",
+      "1",
+      "1",
+      "A",
+      "B",
+      "C",
+      "ABCD",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\n",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\n",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088\u001c.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088\u001c.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088\u001d.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088\u001d.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088\u001e.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088\u001e.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088\u001f.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088\u001f.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088\t.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088\t.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088\n.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088\n.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088\u000b.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088\u000b.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088\f.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088\f.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088\r.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088\r.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088 .1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088　.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      true,
+      null
+    ],
+    "isValid": true,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          true,
+          null
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          true,
+          null
+        ]
+      }
+    ],
+    "parse": {
+      "raw": "1.2.156.3088　.1.1.34C2.478BDF.3GF546.0JU4",
+      "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "prefix": "1.2.156.3088",
+      "version": "1",
+      "arsp": "1",
+      "vendor": "34C2",
+      "ontologySerial": "478BDF",
+      "instanceSerial": "3GF546",
+      "checksum": "0JU4",
+      "isOntology": false,
+      "isEntity": true,
+      "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+      "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+    },
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": true,
+    "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+  },
+  {
+    "aic": "1.2.156.3088﻿.1.1.34C2.478BDF.3GF546.0JU4",
+    "validate": [
+      false,
+      "前缀不匹配，期望 1.2.156.3088，实际 1.2.156.3088﻿"
+    ],
+    "isValid": false,
+    "byPrefix": [
+      {
+        "expectedPrefix": "",
+        "validate": [
+          false,
+          "第 4 级必须为纯数字，实际为 '3088﻿'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156",
+        "validate": [
+          false,
+          "第 4 级必须为纯数字，实际为 '3088﻿'"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088.1",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088.1，实际 1.2.156.3088﻿.1"
+        ]
+      },
+      {
+        "expectedPrefix": "9.9.9.9",
+        "validate": [
+          false,
+          "前缀不匹配，期望 9.9.9.9，实际 1.2.156.3088﻿"
+        ]
+      },
+      {
+        "expectedPrefix": "A.B.C.D",
+        "validate": [
+          false,
+          "前缀不匹配，期望 A.B.C.D，实际 1.2.156.3088﻿"
+        ]
+      },
+      {
+        "expectedPrefix": "1.2.156.3088",
+        "validate": [
+          false,
+          "前缀不匹配，期望 1.2.156.3088，实际 1.2.156.3088﻿"
+        ]
+      }
+    ],
+    "parse": null,
+    "segments": [
+      null,
+      null,
+      "1",
+      "2",
+      "156",
+      "3088﻿",
+      "1",
+      "1",
+      "34C2",
+      "478BDF",
+      "3GF546",
+      "0JU4",
+      null
+    ],
+    "isOntology": false,
+    "isEntity": false,
+    "ontologyPrefix": null
+  }
+]
