@@ -1,0 +1,1189 @@
+[
+  {
+    "name": "crud without identity binding",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "steps": [
+      {
+        "method": "set",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/set",
+          "params": {
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          },
+          "id": "1"
+        }
+      },
+      {
+        "method": "set",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/set",
+          "params": {
+            "url": "https://leader/cb2",
+            "token": "tok",
+            "taskId": "task-1"
+          }
+        }
+      },
+      {
+        "method": "set",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/set",
+          "params": {
+            "id": "fixed",
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          },
+          "id": 5
+        }
+      },
+      {
+        "method": "set",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/set",
+          "params": {
+            "id": "fixed",
+            "url": "https://leader/updated",
+            "token": "tok",
+            "taskId": "task-1"
+          },
+          "id": "1"
+        }
+      },
+      {
+        "method": "get",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/get",
+          "params": {
+            "taskId": "task-1"
+          },
+          "id": "2"
+        }
+      },
+      {
+        "method": "get",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/get",
+          "params": {
+            "taskId": "task-1",
+            "notificationConfigId": "fixed"
+          },
+          "id": "2"
+        }
+      },
+      {
+        "method": "get",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/get",
+          "params": {
+            "taskId": "task-1",
+            "notificationConfigId": "missing"
+          },
+          "id": "2"
+        }
+      },
+      {
+        "method": "get",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/get",
+          "params": {
+            "taskId": "other"
+          }
+        }
+      },
+      {
+        "method": "delete",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/delete",
+          "params": {
+            "taskId": "task-1",
+            "notificationConfigId": "fixed"
+          },
+          "id": "2"
+        }
+      },
+      {
+        "method": "delete",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/delete",
+          "params": {
+            "taskId": "task-1",
+            "notificationConfigId": "fixed"
+          },
+          "id": "2"
+        }
+      },
+      {
+        "method": "delete",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/delete",
+          "params": {
+            "taskId": "task-1"
+          },
+          "id": "2"
+        }
+      },
+      {
+        "method": "delete",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/delete",
+          "params": {
+            "taskId": "task-1"
+          },
+          "id": "2"
+        }
+      },
+      {
+        "method": "get",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/get",
+          "params": {
+            "taskId": "task-1"
+          },
+          "id": "2"
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "1",
+          "result": {
+            "id": "notification-00000000-0000-0000-0000-000000000001",
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": {
+            "id": "notification-00000000-0000-0000-0000-000000000002",
+            "url": "https://leader/cb2",
+            "token": "tok",
+            "taskId": "task-1"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 5,
+          "result": {
+            "id": "fixed",
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "1",
+          "result": {
+            "id": "fixed",
+            "url": "https://leader/updated",
+            "token": "tok",
+            "taskId": "task-1"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "2",
+          "result": [
+            {
+              "id": "notification-00000000-0000-0000-0000-000000000001",
+              "url": "https://leader/cb",
+              "token": "tok",
+              "taskId": "task-1"
+            },
+            {
+              "id": "notification-00000000-0000-0000-0000-000000000002",
+              "url": "https://leader/cb2",
+              "token": "tok",
+              "taskId": "task-1"
+            },
+            {
+              "id": "fixed",
+              "url": "https://leader/updated",
+              "token": "tok",
+              "taskId": "task-1"
+            }
+          ]
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "2",
+          "result": [
+            {
+              "id": "fixed",
+              "url": "https://leader/updated",
+              "token": "tok",
+              "taskId": "task-1"
+            }
+          ]
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "2",
+          "result": []
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "result": []
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "2",
+          "result": {
+            "success": true
+          }
+        }
+      },
+      {
+        "status": 404,
+        "body": {
+          "detail": {
+            "code": -32001,
+            "message": "Notification config not found"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "2",
+          "result": {
+            "success": true
+          }
+        }
+      },
+      {
+        "status": 404,
+        "body": {
+          "detail": {
+            "code": -32001,
+            "message": "Notification config not found"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "2",
+          "result": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "parse errors",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "steps": [
+      {
+        "method": "set",
+        "body": {
+          "bad": "data"
+        }
+      },
+      {
+        "method": "set",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/get",
+          "params": {
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          },
+          "id": "1"
+        }
+      },
+      {
+        "method": "delete",
+        "body": {
+          "params": {}
+        }
+      },
+      {
+        "method": "get",
+        "body": []
+      },
+      {
+        "method": "start",
+        "body": {
+          "params": {
+            "message": {
+              "command": "start"
+            }
+          }
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "status": 400,
+        "body": {
+          "detail": {
+            "code": -32700,
+            "message": "Parse error"
+          }
+        },
+        "parseErrorDataOmitted": true
+      },
+      {
+        "status": 400,
+        "body": {
+          "detail": {
+            "code": -32700,
+            "message": "Parse error"
+          }
+        },
+        "parseErrorDataOmitted": true
+      },
+      {
+        "status": 400,
+        "body": {
+          "detail": {
+            "code": -32700,
+            "message": "Parse error"
+          }
+        },
+        "parseErrorDataOmitted": true
+      },
+      {
+        "status": 400,
+        "body": {
+          "detail": {
+            "code": -32700,
+            "message": "Parse error"
+          }
+        },
+        "parseErrorDataOmitted": true
+      },
+      {
+        "status": 400,
+        "body": {
+          "detail": {
+            "code": -32700,
+            "message": "Parse error"
+          }
+        },
+        "parseErrorDataOmitted": true
+      }
+    ]
+  },
+  {
+    "name": "start validation",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "steps": [
+      {
+        "method": "set",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/set",
+          "params": {
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          },
+          "id": "1"
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+              }
+            }
+          },
+          "id": "3"
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1"
+            }
+          },
+          "id": "3"
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": ""
+              }
+            }
+          },
+          "id": "3"
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "missing"
+              }
+            }
+          },
+          "id": "3"
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-2",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+              }
+            }
+          },
+          "id": "3"
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+              }
+            }
+          },
+          "id": "3"
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+              }
+            }
+          }
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001",
+                "notifyOnStates": [
+                  "completed",
+                  "failed"
+                ]
+              }
+            }
+          },
+          "id": 7
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001",
+                "notifyOnStates": [
+                  "completed",
+                  "bogus"
+                ]
+              }
+            }
+          },
+          "id": "3"
+        }
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001",
+                "notifyOnStates": []
+              }
+            }
+          },
+          "id": "3"
+        }
+      },
+      {
+        "matches": [
+          "task-1",
+          "working"
+        ]
+      },
+      {
+        "matches": [
+          "task-1",
+          "completed"
+        ]
+      },
+      {
+        "matches": [
+          "task-2",
+          "completed"
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "1",
+          "result": {
+            "id": "notification-00000000-0000-0000-0000-000000000001",
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          }
+        }
+      },
+      {
+        "status": 400,
+        "body": {
+          "detail": {
+            "code": -32602,
+            "message": "taskId is required"
+          }
+        }
+      },
+      {
+        "status": 400,
+        "body": {
+          "detail": {
+            "code": -32602,
+            "message": "commandParams.notificationConfigId is required"
+          }
+        }
+      },
+      {
+        "status": 400,
+        "body": {
+          "detail": {
+            "code": -32602,
+            "message": "commandParams.notificationConfigId is required"
+          }
+        }
+      },
+      {
+        "status": 404,
+        "body": {
+          "detail": {
+            "code": -32001,
+            "message": "'NotificationConfig missing not found'"
+          }
+        }
+      },
+      {
+        "status": 404,
+        "body": {
+          "detail": {
+            "code": -32001,
+            "message": "'NotificationConfig notification-00000000-0000-0000-0000-000000000001 not found'"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "3",
+          "result": true
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": null,
+          "result": true
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": 7,
+          "result": true
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "3",
+          "result": true
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "3",
+          "result": true
+        }
+      },
+      {
+        "matches": [
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": null,
+            "notifyOnStates": null
+          },
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": null,
+            "notifyOnStates": null
+          },
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": null,
+            "notifyOnStates": null
+          },
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": null,
+            "notifyOnStates": null
+          }
+        ]
+      },
+      {
+        "matches": [
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": null,
+            "notifyOnStates": null
+          },
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": null,
+            "notifyOnStates": null
+          },
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": null,
+            "notifyOnStates": [
+              "completed",
+              "failed"
+            ]
+          },
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": null,
+            "notifyOnStates": null
+          },
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": null,
+            "notifyOnStates": null
+          }
+        ]
+      },
+      {
+        "matches": []
+      }
+    ]
+  },
+  {
+    "name": "owner scoping with identity binding",
+    "options": {
+      "identityBindingEnabled": true,
+      "localAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+    },
+    "steps": [
+      {
+        "method": "set",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/set",
+          "params": {
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          },
+          "id": "1"
+        },
+        "peerAic": null
+      },
+      {
+        "method": "set",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/set",
+          "params": {
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          },
+          "id": "1"
+        },
+        "peerAic": "bad-aic"
+      },
+      {
+        "method": "set",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/set",
+          "params": {
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          },
+          "id": "1"
+        },
+        "peerAic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4"
+      },
+      {
+        "method": "get",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/get",
+          "params": {
+            "taskId": "task-1"
+          },
+          "id": "2"
+        },
+        "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      {
+        "method": "get",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/get",
+          "params": {
+            "taskId": "task-1",
+            "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+          },
+          "id": "2"
+        },
+        "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      {
+        "method": "delete",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/delete",
+          "params": {
+            "taskId": "task-1",
+            "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+          },
+          "id": "2"
+        },
+        "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+              }
+            }
+          },
+          "id": "3"
+        },
+        "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+              }
+            }
+          },
+          "id": "3"
+        },
+        "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+              }
+            }
+          },
+          "id": "3"
+        },
+        "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      {
+        "method": "start",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/start",
+          "params": {
+            "message": {
+              "type": "task-command",
+              "id": "cmd",
+              "sentAt": "2026-06-24T00:00:00Z",
+              "senderRole": "leader",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+              "command": "start",
+              "sessionId": "sess-1",
+              "taskId": "task-1",
+              "commandParams": {
+                "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+              }
+            }
+          },
+          "id": "3"
+        },
+        "peerAic": null
+      },
+      {
+        "matches": [
+          "task-1",
+          "completed"
+        ]
+      },
+      {
+        "method": "delete",
+        "body": {
+          "jsonrpc": "2.0",
+          "method": "notification/delete",
+          "params": {
+            "taskId": "task-1",
+            "notificationConfigId": "notification-00000000-0000-0000-0000-000000000001"
+          },
+          "id": "2"
+        },
+        "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      }
+    ],
+    "outputs": [
+      {
+        "status": 401,
+        "body": {
+          "detail": {
+            "code": -32008,
+            "message": "AuthenticationRequiredError",
+            "data": "peer AIC is required for notification identity binding"
+          }
+        }
+      },
+      {
+        "status": 401,
+        "body": {
+          "detail": {
+            "code": -32008,
+            "message": "AuthenticationRequiredError",
+            "data": "peer AIC is invalid: AIC 必须包含 10 段，当前为 1 段"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "1",
+          "result": {
+            "id": "notification-00000000-0000-0000-0000-000000000001",
+            "url": "https://leader/cb",
+            "token": "tok",
+            "taskId": "task-1"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "2",
+          "result": [
+            {
+              "id": "notification-00000000-0000-0000-0000-000000000001",
+              "url": "https://leader/cb",
+              "token": "tok",
+              "taskId": "task-1"
+            }
+          ]
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "2",
+          "result": []
+        }
+      },
+      {
+        "status": 404,
+        "body": {
+          "detail": {
+            "code": -32001,
+            "message": "Notification config not found"
+          }
+        }
+      },
+      {
+        "status": 403,
+        "body": {
+          "detail": {
+            "code": -32009,
+            "message": "AuthorizationFailedError",
+            "data": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          }
+        }
+      },
+      {
+        "status": 404,
+        "body": {
+          "detail": {
+            "code": -32001,
+            "message": "'NotificationConfig notification-00000000-0000-0000-0000-000000000001 not found'"
+          }
+        }
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "3",
+          "result": true
+        }
+      },
+      {
+        "status": 401,
+        "body": {
+          "detail": {
+            "code": -32008,
+            "message": "AuthenticationRequiredError",
+            "data": "peer AIC is required for notification identity binding"
+          }
+        }
+      },
+      {
+        "matches": [
+          {
+            "taskId": "task-1",
+            "configId": "notification-00000000-0000-0000-0000-000000000001",
+            "ownerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "notifyOnStates": null
+          }
+        ]
+      },
+      {
+        "status": 200,
+        "body": {
+          "jsonrpc": "2.0",
+          "id": "2",
+          "result": {
+            "success": true
+          }
+        }
+      }
+    ]
+  }
+]

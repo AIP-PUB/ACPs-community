@@ -1,0 +1,338 @@
+[
+  {
+    "response": {
+      "id": "r",
+      "result": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "accepted",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "status": 200,
+    "errorStatus": 200,
+    "errorInfo": null
+  },
+  {
+    "response": {
+      "id": "r",
+      "result": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "working",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "status": 200,
+    "errorStatus": 200,
+    "errorInfo": null
+  },
+  {
+    "response": {
+      "id": "r",
+      "result": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "awaiting-input",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "status": 200,
+    "errorStatus": 200,
+    "errorInfo": null
+  },
+  {
+    "response": {
+      "id": "r",
+      "result": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "awaiting-completion",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "status": 200,
+    "errorStatus": 200,
+    "errorInfo": null
+  },
+  {
+    "response": {
+      "id": "r",
+      "result": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "completed",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "status": 200,
+    "errorStatus": 200,
+    "errorInfo": null
+  },
+  {
+    "response": {
+      "id": "r",
+      "result": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "canceled",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "status": 200,
+    "errorStatus": 200,
+    "errorInfo": null
+  },
+  {
+    "response": {
+      "id": "r",
+      "result": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "failed",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "status": 500,
+    "errorStatus": 200,
+    "errorInfo": {
+      "code": 500,
+      "message": "task failed"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "result": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "rejected",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "status": 200,
+    "errorStatus": 200,
+    "errorInfo": {
+      "code": "REJECTED",
+      "message": "task rejected"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": -32001,
+        "message": "err -32001"
+      }
+    },
+    "status": 404,
+    "errorStatus": 404,
+    "errorInfo": {
+      "code": 404,
+      "message": "err -32001"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": -32602,
+        "message": "err -32602"
+      }
+    },
+    "status": 400,
+    "errorStatus": 400,
+    "errorInfo": {
+      "code": 400,
+      "message": "err -32602"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": -32700,
+        "message": "err -32700"
+      }
+    },
+    "status": 400,
+    "errorStatus": 400,
+    "errorInfo": {
+      "code": 400,
+      "message": "err -32700"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": -32603,
+        "message": "err -32603"
+      }
+    },
+    "status": 500,
+    "errorStatus": 500,
+    "errorInfo": {
+      "code": 500,
+      "message": "err -32603"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": -32000,
+        "message": "err -32000"
+      }
+    },
+    "status": 500,
+    "errorStatus": 500,
+    "errorInfo": {
+      "code": 500,
+      "message": "err -32000"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": -32008,
+        "message": "err -32008"
+      }
+    },
+    "status": 500,
+    "errorStatus": 500,
+    "errorInfo": {
+      "code": 500,
+      "message": "err -32008"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": -32009,
+        "message": "err -32009"
+      }
+    },
+    "status": 500,
+    "errorStatus": 500,
+    "errorInfo": {
+      "code": 500,
+      "message": "err -32009"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": 0,
+        "message": "err 0"
+      }
+    },
+    "status": 500,
+    "errorStatus": 500,
+    "errorInfo": {
+      "code": 500,
+      "message": "err 0"
+    }
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": 404,
+        "message": "err 404"
+      }
+    },
+    "status": 500,
+    "errorStatus": 500,
+    "errorInfo": {
+      "code": 500,
+      "message": "err 404"
+    }
+  },
+  {
+    "response": {
+      "id": "r"
+    },
+    "status": 200,
+    "errorStatus": 200,
+    "errorInfo": null
+  },
+  {
+    "response": {
+      "id": "r",
+      "error": {
+        "code": -32001,
+        "message": "nf"
+      },
+      "result": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "working",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "status": 404,
+    "errorStatus": 404,
+    "errorInfo": {
+      "code": 404,
+      "message": "nf"
+    }
+  }
+]

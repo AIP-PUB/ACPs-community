@@ -1,0 +1,197 @@
+[
+  {
+    "name": "two subscriptions with state filter",
+    "states": [
+      null,
+      [
+        "completed"
+      ]
+    ],
+    "result": {
+      "type": "task-result",
+      "id": "res",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1",
+      "status": {
+        "state": "completed",
+        "stateChangedAt": "2026-06-24T00:00:00Z"
+      }
+    },
+    "requests": [
+      {
+        "url": "https://leader/cb/0",
+        "token": "tok-0",
+        "contentType": "application/json",
+        "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}"
+      },
+      {
+        "url": "https://leader/cb/1",
+        "token": "tok-1",
+        "contentType": "application/json",
+        "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}"
+      }
+    ]
+  },
+  {
+    "name": "state filter excludes working",
+    "states": [
+      [
+        "completed"
+      ]
+    ],
+    "result": {
+      "type": "task-result",
+      "id": "res",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1",
+      "status": {
+        "state": "working",
+        "stateChangedAt": "2026-06-24T00:00:00Z"
+      }
+    },
+    "requests": []
+  },
+  {
+    "name": "full task result body",
+    "states": [
+      null
+    ],
+    "result": {
+      "statusHistory": [
+        {
+          "state": "working",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        },
+        {
+          "dataItems": [
+            {
+              "type": "text",
+              "text": "progress",
+              "metadata": {
+                "k": null
+              }
+            }
+          ],
+          "stateChangedAt": "2026-06-24T00:00:00Z",
+          "state": "awaiting-input"
+        }
+      ],
+      "commandHistory": [
+        {
+          "type": "task-command",
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start"
+        },
+        {
+          "taskId": "task-1",
+          "commandParams": {
+            "a": null,
+            "nested": {
+              "b": [
+                1,
+                null,
+                "x"
+              ]
+            },
+            "lastCommandSentAt": "2026-06-24T00:00:00Z"
+          },
+          "command": "continue",
+          "sessionId": "sess-1",
+          "groupId": "group-1",
+          "dataItems": [
+            {
+              "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n"
+            },
+            {
+              "type": "file",
+              "name": "a.txt",
+              "mimeType": "text/plain",
+              "uri": "https://x/a.txt",
+              "bytes": "YWJj"
+            },
+            {
+              "type": "data",
+              "data": {
+                "k": null,
+                "list": [
+                  true,
+                  false,
+                  null
+                ]
+              },
+              "metadata": {}
+            }
+          ],
+          "mentions": [
+            "p1",
+            "p2"
+          ],
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "senderRole": "leader",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "id": "cmd-2",
+          "type": "task-command"
+        }
+      ],
+      "products": [
+        {
+          "dataItems": [
+            {
+              "type": "text",
+              "text": "answer"
+            },
+            {
+              "data": {
+                "score": 3
+              }
+            }
+          ],
+          "description": "desc",
+          "name": "Result",
+          "id": "prod-1"
+        },
+        {
+          "id": "prod-2",
+          "dataItems": []
+        }
+      ],
+      "status": {
+        "dataItems": [
+          {
+            "type": "text",
+            "text": "progress",
+            "metadata": {
+              "k": null
+            }
+          }
+        ],
+        "stateChangedAt": "2026-06-24T00:00:00Z",
+        "state": "awaiting-input"
+      },
+      "taskId": "task-1",
+      "sessionId": "sess-1",
+      "groupId": null,
+      "dataItems": null,
+      "mentions": "all",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "senderRole": "partner",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "id": "res-2"
+    },
+    "requests": [
+      {
+        "url": "https://leader/cb/0",
+        "token": "tok-0",
+        "contentType": "application/json",
+        "body": "{\"type\":\"task-result\",\"id\":\"res-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"mentions\":\"all\",\"sessionId\":\"sess-1\",\"taskId\":\"task-1\",\"status\":{\"state\":\"awaiting-input\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\",\"dataItems\":[{\"metadata\":{\"k\":null},\"type\":\"text\",\"text\":\"progress\"}]},\"products\":[{\"id\":\"prod-1\",\"name\":\"Result\",\"description\":\"desc\",\"dataItems\":[{\"type\":\"text\",\"text\":\"answer\"},{\"type\":\"data\",\"data\":{\"score\":3}}]},{\"id\":\"prod-2\",\"dataItems\":[]}],\"commandHistory\":[{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"},{\"type\":\"task-command\",\"id\":\"cmd-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":[\"p1\",\"p2\"],\"dataItems\":[{\"type\":\"text\",\"text\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"},{\"type\":\"file\",\"name\":\"a.txt\",\"mimeType\":\"text/plain\",\"uri\":\"https://x/a.txt\",\"bytes\":\"YWJj\"},{\"metadata\":{},\"type\":\"data\",\"data\":{\"k\":null,\"list\":[true,false,null]}}],\"groupId\":\"group-1\",\"sessionId\":\"sess-1\",\"command\":\"continue\",\"commandParams\":{\"a\":null,\"nested\":{\"b\":[1,null,\"x\"]},\"lastCommandSentAt\":\"2026-06-24T00:00:00Z\"},\"taskId\":\"task-1\"}],\"statusHistory\":[{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"},{\"state\":\"awaiting-input\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\",\"dataItems\":[{\"metadata\":{\"k\":null},\"type\":\"text\",\"text\":\"progress\"}]}]}"
+      }
+    ]
+  }
+]
