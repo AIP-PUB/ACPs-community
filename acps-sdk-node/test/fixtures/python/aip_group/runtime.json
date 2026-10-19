@@ -1,0 +1,391 @@
+{
+  "constants": {
+    "INBOX_EXCHANGE_NAME": "inbox.topic",
+    "INBOX_QUEUE_EXPIRES_MS": 5184000000,
+    "INBOX_MESSAGE_TTL_MS": 604800000,
+    "DEFAULT_INVITATION_TIMEOUT_SECONDS": 300,
+    "INVITATION_CLOCK_SKEW_SECONDS": 30
+  },
+  "names": {
+    "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+    "queue": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+    "inbox": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+    "invalid_aic": "AIC 必须包含 10 段，当前为 1 段",
+    "invalid_group": "group_id must match [a-zA-Z0-9-] and be at most 128 characters",
+    "placeholder_missing_aic": "AMQP endpoint contains {AIC} placeholder but AIC is missing",
+    "placeholder_replaced": "x1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4y1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+  },
+  "normalize_group_id": [
+    {
+      "input": "group-sess_b50a1a6a8fb24024",
+      "output": "group-sess-b50a1a6a8fb24024"
+    },
+    {
+      "input": "  group with spaces  ",
+      "output": "group-with-spaces"
+    },
+    {
+      "input": "--leading--and--trailing--",
+      "output": "leading--and--trailing"
+    },
+    {
+      "input": "中文-group",
+      "output": "group"
+    },
+    {
+      "input": "___",
+      "error": "group_id cannot be empty after normalization"
+    },
+    {
+      "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-b",
+      "output": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx_y",
+      "output": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  ],
+  "plain_urls": [
+    {
+      "input": {
+        "host": "localhost",
+        "port": 5672,
+        "vhost": "/",
+        "username": "guest",
+        "password": "guest",
+        "connection_name": "agent-1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "output": "amqp://guest:guest@localhost:5672/%2F?name=agent-1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": {
+        "host": "mq.example.com",
+        "port": 5673,
+        "vhost": "acps",
+        "username": "u@x",
+        "password": "p:w/d!*'()~ é",
+        "connection_name": null
+      },
+      "output": "amqp://u%40x:p%3Aw%2Fd%21%2A%27%28%29~%20%C3%A9@mq.example.com:5673/acps"
+    },
+    {
+      "input": {
+        "host": "mq",
+        "port": 1,
+        "vhost": " /team/a b ",
+        "username": "a",
+        "password": "b",
+        "connection_name": "name with space&x=1"
+      },
+      "output": "amqp://a:b@mq:1/team%2Fa%20b?name=name%20with%20space%26x%3D1"
+    },
+    {
+      "input": {
+        "host": "mq",
+        "port": 1,
+        "vhost": "",
+        "username": "a",
+        "password": "b",
+        "connection_name": ""
+      },
+      "output": "amqp://a:b@mq:1/%2F"
+    }
+  ],
+  "external_urls": [
+    {
+      "input": {
+        "host": "mq.acps.example.com",
+        "port": 5671,
+        "vhost": "acps",
+        "connection_name": "agent-1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      },
+      "output": "amqps://mq.acps.example.com:5671/acps?auth=external&name=agent-1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+    },
+    {
+      "input": {
+        "host": "mq",
+        "port": 5671,
+        "vhost": "/",
+        "connection_name": "x/y"
+      },
+      "output": "amqps://mq:5671/%2F?auth=external&name=x%2Fy"
+    },
+    {
+      "input": {
+        "host": "mq",
+        "port": 5671,
+        "vhost": "//double",
+        "connection_name": "名"
+      },
+      "output": "amqps://mq:5671/%2Fdouble?auth=external&name=%E5%90%8D"
+    }
+  ],
+  "endpoints": [
+    {
+      "url": "amqps://mq.acps.example.com:5671/acps?inbox=inbox_{AIC}",
+      "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "output": {
+        "url": "amqps://mq.acps.example.com:5671/acps?inbox=inbox_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "host": "mq.acps.example.com",
+        "port": 5671,
+        "vhost": "acps",
+        "inbox": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      }
+    },
+    {
+      "url": "amqp://MQ.Example.COM/?inbox=inbox_x",
+      "aic": null,
+      "output": {
+        "url": "amqp://MQ.Example.COM/?inbox=inbox_x",
+        "host": "mq.example.com",
+        "port": 5672,
+        "vhost": "/",
+        "inbox": "inbox_x"
+      }
+    },
+    {
+      "url": "amqps://mq.example.com?inbox=a%20b&inbox=second",
+      "aic": null,
+      "output": {
+        "url": "amqps://mq.example.com?inbox=a%20b&inbox=second",
+        "host": "mq.example.com",
+        "port": 5671,
+        "vhost": "/",
+        "inbox": "a b"
+      }
+    },
+    {
+      "url": "amqps://user:pw@[::1]:5999/v%2Fhost%20x?inbox=q",
+      "aic": null,
+      "output": {
+        "url": "amqps://user:pw@[::1]:5999/v%2Fhost%20x?inbox=q",
+        "host": "::1",
+        "port": 5999,
+        "vhost": "v/host x",
+        "inbox": "q"
+      }
+    },
+    {
+      "url": "amqps://mq:0/acps?inbox=q",
+      "aic": null,
+      "output": {
+        "url": "amqps://mq:0/acps?inbox=q",
+        "host": "mq",
+        "port": 5671,
+        "vhost": "acps",
+        "inbox": "q"
+      }
+    },
+    {
+      "url": "amqps://mq/acps;params?inbox=q#frag",
+      "aic": null,
+      "output": {
+        "url": "amqps://mq/acps;params?inbox=q#frag",
+        "host": "mq",
+        "port": 5671,
+        "vhost": "acps;params",
+        "inbox": "q"
+      }
+    },
+    {
+      "url": "amqps://mq/acps?inbox=",
+      "aic": null,
+      "error": "AMQP endpoint missing inbox query parameter: amqps://mq/acps?inbox="
+    },
+    {
+      "url": "amqps://mq/acps",
+      "aic": null,
+      "error": "AMQP endpoint missing inbox query parameter: amqps://mq/acps"
+    },
+    {
+      "url": "http://mq/acps?inbox=q",
+      "aic": null,
+      "error": "Unsupported AMQP endpoint scheme: http"
+    },
+    {
+      "url": "amqps:///acps?inbox=q",
+      "aic": null,
+      "error": "AMQP endpoint missing hostname: amqps:///acps?inbox=q"
+    },
+    {
+      "url": "amqps://mq:99999/acps?inbox=q",
+      "aic": null,
+      "error": "Port out of range 0-65535"
+    },
+    {
+      "url": "amqps://mq:abc/acps?inbox=q",
+      "aic": null,
+      "error": "Port could not be cast to integer value as 'abc'"
+    },
+    {
+      "url": "amqps://mq/acps?inbox=inbox_{AIC}",
+      "aic": null,
+      "error": "AMQP endpoint contains {AIC} placeholder but AIC is missing"
+    },
+    {
+      "url": "amqps://mq/acps?inbox=inbox_{AIC}",
+      "aic": "bad-aic",
+      "error": "AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "url": "  AMQPS://mq/%E4%B8%AD?inbox=%E4%B8%AD+x  ",
+      "aic": null,
+      "output": {
+        "url": "  AMQPS://mq/%E4%B8%AD?inbox=%E4%B8%AD+x  ",
+        "host": "mq",
+        "port": 5671,
+        "vhost": "中",
+        "inbox": "中 x  "
+      }
+    }
+  ],
+  "get_endpoint_url": {
+    "acs_data": {
+      "endPoints": [
+        "not-a-dict",
+        {
+          "transport": null,
+          "url": "amqps://none"
+        },
+        {
+          "transport": "amqp",
+          "url": "   "
+        },
+        {
+          "transport": "amqp",
+          "url": "  amqps://mq/acps?inbox=inbox_{AIC}  "
+        },
+        {
+          "transport": "JSONRPC",
+          "url": "https://partner.example.com/group/rpc"
+        }
+      ]
+    },
+    "amqp": "amqps://mq/acps?inbox=inbox_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+    "jsonrpc": "https://partner.example.com/group/rpc",
+    "missing": null,
+    "not_dict": null,
+    "no_list": null
+  },
+  "parse_utc_datetime": [
+    {
+      "input": "2026-06-24",
+      "output": "2026-06-24T00:00:00+00:00"
+    },
+    {
+      "input": "20260624",
+      "output": "2026-06-24T00:00:00+00:00"
+    },
+    {
+      "input": "2026-06-24T00:00:00",
+      "output": "2026-06-24T00:00:00+00:00"
+    },
+    {
+      "input": "2026-06-24T00:00:00Z",
+      "output": "2026-06-24T00:00:00+00:00"
+    },
+    {
+      "input": " 2026-06-24 08:30:00+08:00 ",
+      "output": "2026-06-24T00:30:00+00:00"
+    },
+    {
+      "input": "2026-06-24T00:00:00.1234567+00:00",
+      "output": "2026-06-24T00:00:00.123456+00:00"
+    },
+    {
+      "input": "2026-06-24T00:00:00,5Z",
+      "output": "2026-06-24T00:00:00.500000+00:00"
+    },
+    {
+      "input": "2026-06-24T07",
+      "output": "2026-06-24T07:00:00+00:00"
+    },
+    {
+      "input": "2026-06-24T0730",
+      "output": "2026-06-24T07:30:00+00:00"
+    },
+    {
+      "input": "2026-06-24T073015",
+      "output": "2026-06-24T07:30:15+00:00"
+    },
+    {
+      "input": "2026-06-24T00:00:00+0530",
+      "output": "2026-06-23T18:30:00+00:00"
+    },
+    {
+      "input": "2026-06-24T00:00:00+05",
+      "output": "2026-06-23T19:00:00+00:00"
+    },
+    {
+      "input": "2026-06-24T00:00:00-05:30:15",
+      "output": "2026-06-24T05:30:15+00:00"
+    },
+    {
+      "input": "2026-W26-3",
+      "output": "2026-06-24T00:00:00+00:00"
+    },
+    {
+      "input": "2026W263",
+      "output": "2026-06-24T00:00:00+00:00"
+    },
+    {
+      "input": "2026-W26",
+      "output": "2026-06-22T00:00:00+00:00"
+    },
+    {
+      "input": "2020-W53-1",
+      "output": "2020-12-28T00:00:00+00:00"
+    },
+    {
+      "input": "2026-W53",
+      "output": "2026-12-28T00:00:00+00:00"
+    },
+    {
+      "input": "2026-06-24X12:00",
+      "output": "2026-06-24T12:00:00+00:00"
+    },
+    {
+      "input": "2026-06-24T24:00:00",
+      "error": "hour must be in 0..23"
+    },
+    {
+      "input": "2026-02-29",
+      "error": "day is out of range for month"
+    },
+    {
+      "input": "2024-02-29T12:00:00Z",
+      "output": "2024-02-29T12:00:00+00:00"
+    },
+    {
+      "input": "garbage",
+      "error": "Invalid isoformat string: 'garbage'"
+    },
+    {
+      "input": "2026-6-24",
+      "error": "Invalid isoformat string: '2026-6-24'"
+    },
+    {
+      "input": "2026-06-24T1",
+      "error": "Invalid isoformat string: '2026-06-24T1'"
+    },
+    {
+      "input": "2026-06-24T00:00:00.",
+      "error": "Invalid isoformat string: '2026-06-24T00:00:00.'"
+    },
+    {
+      "input": "2026-06-24T00:00:00Z+00:00",
+      "error": "Invalid isoformat string: '2026-06-24T00:00:00Z+00:00'"
+    },
+    {
+      "input": "2026-06-24T00:00:00z",
+      "error": "Invalid isoformat string: '2026-06-24T00:00:00z'"
+    }
+  ],
+  "invitation_expiry_300": "2026-10-19T08:06:12.160000+00:00",
+  "now": "2026-10-19T08:01:12.160000+00:00",
+  "expired": {
+    "2026-10-19T08:00:42.160000+00:00": true,
+    "2026-10-19T08:00:42.161000+00:00": false,
+    "2026-10-19T08:01:12.160000+00:00": false
+  }
+}

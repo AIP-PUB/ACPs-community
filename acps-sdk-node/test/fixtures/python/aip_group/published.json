@@ -1,0 +1,777 @@
+{
+  "leader_create_group": {
+    "group_id": "group-session-1",
+    "ops": [
+      {
+        "op": "open_channel"
+      },
+      {
+        "op": "declare_exchange",
+        "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "type": "fanout",
+        "durable": true,
+        "auto_delete": true,
+        "passive": false
+      },
+      {
+        "op": "declare_queue",
+        "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "durable": true,
+        "exclusive": false,
+        "auto_delete": true,
+        "arguments": null
+      },
+      {
+        "op": "bind",
+        "queue": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "routing_key": null
+      }
+    ]
+  },
+  "leader_publishes": [
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"task-command\", \"id\": \"cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"mentions\": [\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\"], \"dataItems\": [{\"type\": \"text\", \"text\": \"请处理：Ünïcödé ✓\"}, {\"type\": \"data\", \"data\": {\"k\": [1, 2.5, null, true], \"nested\": {\"x\": null}}}], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"start\", \"taskId\": \"task-1\"}",
+      "body_size": 504,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"task-command\", \"id\": \"cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"mentions\": \"all\", \"dataItems\": [{\"type\": \"text\", \"text\": \"start text\"}], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"start\", \"taskId\": \"task-12345678-1234-4678-9234-567812345678\"}",
+      "body_size": 405,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"task-command\", \"id\": \"cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"dataItems\": [{\"type\": \"text\", \"text\": \"more\"}], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"continue\", \"taskId\": \"task-1\"}",
+      "body_size": 348,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"task-command\", \"id\": \"cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"dataItems\": [], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"complete\", \"taskId\": \"task-1\"}",
+      "body_size": 316,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"task-command\", \"id\": \"cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"dataItems\": [{\"type\": \"text\", \"text\": \"stop\"}], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"cancel\", \"taskId\": \"task-1\"}",
+      "body_size": 346,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"group-mgmt-command\", \"id\": \"mgmt-cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"mentions\": \"all\", \"dataItems\": [], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"get-status\"}",
+      "body_size": 328,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"group-mgmt-command\", \"id\": \"mgmt-cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"mentions\": [\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\"], \"dataItems\": [], \"groupId\": \"group-session-1\", \"command\": \"get-status\"}",
+      "body_size": 341,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"group-mgmt-command\", \"id\": \"mgmt-cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"mentions\": [\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\"], \"dataItems\": [], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"mute\"}",
+      "body_size": 361,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"group-mgmt-command\", \"id\": \"mgmt-cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"mentions\": [\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\"], \"dataItems\": [], \"groupId\": \"group-session-1\", \"command\": \"unmute\"}",
+      "body_size": 337,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"group-mgmt-command\", \"id\": \"mgmt-cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"mentions\": [\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\"], \"dataItems\": [], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"leave-group\"}",
+      "body_size": 368,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "priority": 0,
+      "message_id": null
+    }
+  ],
+  "leader_invite_via_inbox": {
+    "invitation": {
+      "type": "group-invitation",
+      "id": "invite-12345678-1234-4678-9234-567812345678",
+      "sentAt": "2026-10-19T08:01:12.160000+00:00",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "groupId": "group-session-1",
+      "protocol": "rabbitmq:4.2",
+      "expiresAt": "2026-10-19T08:06:12.160000+00:00",
+      "invitationToken": "token-abc",
+      "group": {
+        "groupId": "group-session-1",
+        "leader": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        },
+        "partners": [
+          {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+          },
+          {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+          }
+        ]
+      },
+      "amqp": {
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "exchangeType": "fanout",
+        "routingKey": ""
+      }
+    },
+    "ops": [
+      {
+        "op": "declare_exchange",
+        "name": "inbox.topic",
+        "type": "topic",
+        "durable": true,
+        "auto_delete": false,
+        "passive": false
+      },
+      {
+        "op": "publish",
+        "exchange": "inbox.topic",
+        "routing_key": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "body": "{\"type\": \"group-invitation\", \"id\": \"invite-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"groupId\": \"group-session-1\", \"protocol\": \"rabbitmq:4.2\", \"expiresAt\": \"2026-10-19T08:06:12.160000+00:00\", \"invitationToken\": \"token-abc\", \"group\": {\"groupId\": \"group-session-1\", \"leader\": {\"aic\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\"}, \"partners\": [{\"aic\": \"1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6\"}, {\"aic\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\"}]}, \"amqp\": {\"exchange\": \"group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1\", \"exchangeType\": \"fanout\", \"routingKey\": \"\"}}",
+        "body_size": 702,
+        "content_type": "application/json",
+        "delivery_mode": 2,
+        "headers": {},
+        "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "priority": 0,
+        "message_id": null
+      },
+      {
+        "op": "declare_exchange",
+        "name": "inbox.topic",
+        "type": "topic",
+        "durable": true,
+        "auto_delete": false,
+        "passive": false
+      },
+      {
+        "op": "publish",
+        "exchange": "inbox.topic",
+        "routing_key": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "body": "{\"type\": \"group-invitation\", \"id\": \"invite-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"groupId\": \"group-session-1\", \"protocol\": \"rabbitmq:4.2\", \"expiresAt\": \"2026-10-19T08:06:12.160000+00:00\", \"invitationToken\": \"fixed-invitation-token\", \"group\": {\"groupId\": \"group-session-1\", \"leader\": {\"aic\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\"}, \"partners\": [{\"aic\": \"1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6\"}, {\"aic\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\"}]}, \"amqp\": {\"exchange\": \"group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1\", \"exchangeType\": \"fanout\", \"routingKey\": \"\"}}",
+        "body_size": 715,
+        "content_type": "application/json",
+        "delivery_mode": 2,
+        "headers": {},
+        "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "priority": 0,
+        "message_id": null
+      }
+    ]
+  },
+  "leader_cleanup": [
+    {
+      "op": "queue_delete",
+      "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "if_unused": false,
+      "if_empty": false
+    },
+    {
+      "op": "queue_delete",
+      "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "if_unused": false,
+      "if_empty": false
+    },
+    {
+      "op": "exchange_delete",
+      "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "if_unused": false
+    }
+  ],
+  "leader_connect_urls": [
+    {
+      "url": "amqp://guest:guest@mq.example.com:5672/%2F?name=agent-1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "ssl_context": false
+    },
+    {
+      "url": "amqps://mq.acps.example.com:5671/acps?auth=external&name=agent-1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "ssl_context": true
+    }
+  ],
+  "leader_external_without_ssl": "ssl_context is required for AMQPS + EXTERNAL authentication",
+  "group_leader_create_session": {
+    "connect_calls": [
+      {
+        "url": "amqp://u:p@mq.acps.example.com:5671/acps?name=agent-1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "ssl_context": false
+      }
+    ],
+    "group_id": "group-sess-b50a1a6a",
+    "ops": [
+      {
+        "op": "open_channel"
+      },
+      {
+        "op": "declare_queue",
+        "name": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "durable": true,
+        "exclusive": false,
+        "auto_delete": false,
+        "arguments": {
+          "x-expires": 5184000000,
+          "x-message-ttl": 604800000
+        }
+      },
+      {
+        "op": "declare_exchange",
+        "name": "inbox.topic",
+        "type": "topic",
+        "durable": true,
+        "auto_delete": false,
+        "passive": false
+      },
+      {
+        "op": "bind",
+        "queue": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "exchange": "inbox.topic",
+        "routing_key": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      {
+        "op": "consume",
+        "queue": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      {
+        "op": "open_channel"
+      },
+      {
+        "op": "declare_exchange",
+        "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-sess-b50a1a6a",
+        "type": "fanout",
+        "durable": true,
+        "auto_delete": true,
+        "passive": false
+      },
+      {
+        "op": "declare_queue",
+        "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-sess-b50a1a6a_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "durable": true,
+        "exclusive": false,
+        "auto_delete": true,
+        "arguments": null
+      },
+      {
+        "op": "bind",
+        "queue": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-sess-b50a1a6a_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-sess-b50a1a6a",
+        "routing_key": null
+      }
+    ],
+    "runtime": {
+      "session_id": "sess_b50a1a6a",
+      "group_id": "group-sess-b50a1a6a",
+      "leader_aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "state": "READY",
+      "total_members": 0,
+      "connected_members": 0,
+      "pending_invitations": [],
+      "members": []
+    }
+  },
+  "partner_join_group": {
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "req-1",
+      "result": {
+        "connectionName": "agent-1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "vhost": "acps",
+        "nodeName": "unknown",
+        "queueName": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "processId": "pid-4242"
+      }
+    },
+    "connect_calls": [
+      {
+        "url": "amqp://user:pa%3Ass@mq.acps.example.com:5672/acps?name=agent-1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "ssl_context": false,
+        "robust": true
+      }
+    ],
+    "ops": [
+      {
+        "op": "open_channel"
+      },
+      {
+        "op": "get_exchange",
+        "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "ensure": false
+      },
+      {
+        "op": "declare_queue",
+        "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "durable": true,
+        "exclusive": false,
+        "auto_delete": true,
+        "arguments": null
+      },
+      {
+        "op": "bind",
+        "queue": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "routing_key": null
+      },
+      {
+        "op": "consume",
+        "queue": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      },
+      {
+        "op": "publish",
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "routing_key": "",
+        "body": "{\"type\": \"group-mgmt-result\", \"id\": \"mgmt-result-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"dataItems\": [], \"groupId\": \"group-session-1\", \"status\": {\"connected\": true, \"muted\": false}}",
+        "body_size": 308,
+        "content_type": "application/json",
+        "delivery_mode": 2,
+        "headers": {},
+        "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "priority": 0,
+        "message_id": null
+      }
+    ],
+    "user": "user",
+    "password": "pa:ss"
+  },
+  "partner_publishes": [
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"group-mgmt-result\", \"id\": \"mgmt-result-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"dataItems\": [], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"status\": {\"connected\": true, \"muted\": true}}",
+      "body_size": 333,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"task-result\", \"id\": \"result-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"taskId\": \"task-1\", \"status\": {\"state\": \"accepted\", \"stateChangedAt\": \"2026-10-19T08:01:12.160000+00:00\"}}",
+      "body_size": 366,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"task-result\", \"id\": \"result-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"taskId\": \"task-1\", \"status\": {\"state\": \"awaiting-input\", \"stateChangedAt\": \"2026-10-19T08:01:12.160000+00:00\", \"dataItems\": [{\"type\": \"text\", \"text\": \"need more ✓\"}]}}",
+      "body_size": 430,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"task-result\", \"id\": \"result-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"taskId\": \"task-1\", \"status\": {\"state\": \"awaiting-completion\", \"stateChangedAt\": \"2026-10-19T08:01:12.160000+00:00\"}, \"products\": [{\"id\": \"p-1\", \"name\": \"report\", \"dataItems\": [{\"type\": \"text\", \"text\": \"done\"}, {\"type\": \"data\", \"data\": {\"score\": 0.5}}]}]}",
+      "body_size": 515,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"task-result\", \"id\": \"result-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"taskId\": \"task-1\", \"status\": {\"state\": \"failed\", \"stateChangedAt\": \"2026-10-19T08:01:12.160000+00:00\", \"dataItems\": [{\"type\": \"text\", \"text\": \"boom\"}]}}",
+      "body_size": 413,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "priority": 0,
+      "message_id": null
+    }
+  ],
+  "partner_leave_group": [
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"group-mgmt-command\", \"id\": \"mgmt-cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"mentions\": [\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\"], \"dataItems\": [], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"leave-group\"}",
+      "body_size": 369,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "publish",
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "routing_key": "",
+      "body": "{\"type\": \"group-mgmt-result\", \"id\": \"mgmt-result-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"dataItems\": [], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"status\": {\"connected\": false, \"muted\": false}}",
+      "body_size": 335,
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "headers": {},
+      "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "priority": 0,
+      "message_id": null
+    },
+    {
+      "op": "cancel",
+      "queue": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "consumer_tag": "ctag-group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+    },
+    {
+      "op": "queue_object_delete",
+      "queue": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "if_unused": false,
+      "if_empty": false
+    },
+    {
+      "op": "channel_close"
+    },
+    {
+      "op": "connection_close"
+    }
+  ],
+  "partner_join_failed": {
+    "jsonrpc": "2.0",
+    "id": 99,
+    "error": {
+      "code": -32021,
+      "message": "Connection failed",
+      "data": {
+        "errorType": "CONNECTION_FAILED",
+        "details": {
+          "host": "mq",
+          "port": 5671,
+          "reason": "ssl_context is required when accessToken is missing or null"
+        }
+      }
+    }
+  },
+  "partner_join_rejected": {
+    "jsonrpc": "2.0",
+    "id": 99,
+    "error": {
+      "code": -32020,
+      "message": "Invitation rejected by partner policy",
+      "data": {
+        "errorType": "INVITATION_REJECTED",
+        "details": "Partner invitation handler rejected direct RPC invite"
+      }
+    }
+  },
+  "partner_join_rejected_no_id": {
+    "jsonrpc": "2.0",
+    "error": {
+      "code": -32020,
+      "message": "Invitation rejected by partner policy",
+      "data": {
+        "errorType": "INVITATION_REJECTED",
+        "details": "Partner invitation handler rejected direct RPC invite"
+      }
+    }
+  },
+  "partner_inbox": {
+    "connect_calls": [
+      {
+        "url": "amqps://mq.acps.example.com:5671/acps?auth=external&name=agent-1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "ssl_context": true,
+        "robust": false
+      }
+    ],
+    "ops": [
+      {
+        "op": "open_channel"
+      },
+      {
+        "op": "open_channel"
+      },
+      {
+        "op": "declare_queue",
+        "name": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "durable": true,
+        "exclusive": false,
+        "auto_delete": false,
+        "arguments": {
+          "x-expires": 5184000000,
+          "x-message-ttl": 604800000
+        }
+      },
+      {
+        "op": "declare_exchange",
+        "name": "inbox.topic",
+        "type": "topic",
+        "durable": true,
+        "auto_delete": false,
+        "passive": false
+      },
+      {
+        "op": "bind",
+        "queue": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "exchange": "inbox.topic",
+        "routing_key": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      },
+      {
+        "op": "declare_exchange",
+        "name": "inbox.topic",
+        "type": "topic",
+        "durable": true,
+        "auto_delete": false,
+        "passive": false
+      },
+      {
+        "op": "publish",
+        "exchange": "inbox.topic",
+        "routing_key": "inbox_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "body": "{\"type\": \"group-invitation-error\", \"id\": \"invite-err-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"groupId\": \"group-session-1\", \"invitationToken\": \"token-abc\", \"error\": {\"code\": -32021, \"message\": \"Connection failed\", \"data\": {\"errorType\": \"CONNECTION_FAILED\", \"details\": \"reason ✓\"}}}",
+        "body_size": 408,
+        "content_type": "application/json",
+        "delivery_mode": 2,
+        "headers": {},
+        "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "priority": 0,
+        "message_id": null
+      }
+    ]
+  },
+  "emitter": {
+    "leader_send": {
+      "publish": {
+        "op": "publish",
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "routing_key": "",
+        "body": "{\"type\": \"task-command\", \"id\": \"cmd-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"leader\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\", \"dataItems\": [{\"type\": \"text\", \"text\": \"状态？\"}], \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"command\": \"get\", \"taskId\": \"task-1\"}",
+        "body_size": 348,
+        "content_type": "application/json",
+        "delivery_mode": 2,
+        "headers": {
+          "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-b7ad6b7169203331-01"
+        },
+        "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "priority": 0,
+        "message_id": null
+      },
+      "emits": [
+        {
+          "body": {
+            "eventType": "send",
+            "operationName": "publish",
+            "system": "rabbitmq",
+            "destination": {
+              "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+              "kind": "exchange",
+              "virtualHost": "acps"
+            },
+            "routing": {
+              "key": ""
+            },
+            "messageId": "cmd-12345678-1234-4678-9234-567812345678",
+            "payloadSizeBytes": 348,
+            "attributes": {
+              "groupId": "group-session-1",
+              "msgType": "task-command",
+              "taskId": "task-1"
+            }
+          },
+          "options": {
+            "trace_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "span_id": "b7ad6b7169203331",
+            "parent_span_id": "cccccccccccccccc",
+            "correlation_id": "session-1"
+          }
+        }
+      ]
+    },
+    "leader_receive": {
+      "incoming_body": "{\"type\": \"task-result\", \"id\": \"res-1\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"taskId\": \"task-1\", \"status\": {\"state\": \"working\", \"stateChangedAt\": \"2026-10-19T08:01:12.160000+00:00\"}}",
+      "emits": [
+        {
+          "body": {
+            "eventType": "receive",
+            "operationName": "deliver",
+            "system": "rabbitmq",
+            "destination": {
+              "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+              "kind": "exchange",
+              "virtualHost": "acps"
+            },
+            "subscriptionName": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "routing": {
+              "key": ""
+            },
+            "messageId": "res-1",
+            "payloadSizeBytes": 327,
+            "deliveryAttempt": 1,
+            "attributes": {
+              "groupId": "group-session-1",
+              "msgType": "task-result",
+              "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+            }
+          },
+          "options": {
+            "trace_id": "dddddddddddddddddddddddddddddddd",
+            "span_id": "b7ad6b7169203331",
+            "parent_span_id": "eeeeeeeeeeeeeeee",
+            "correlation_id": "session-1"
+          }
+        },
+        {
+          "body": {
+            "eventType": "ack",
+            "operationName": "basic.ack",
+            "system": "rabbitmq",
+            "destination": {
+              "name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+              "kind": "exchange",
+              "virtualHost": "acps"
+            },
+            "subscriptionName": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "messageId": "res-1",
+            "deliveryAttempt": 1
+          },
+          "options": {
+            "trace_id": "dddddddddddddddddddddddddddddddd",
+            "span_id": "b7ad6b7169203331",
+            "parent_span_id": "b7ad6b7169203331",
+            "correlation_id": "session-1"
+          }
+        }
+      ]
+    },
+    "partner_send": {
+      "publish": {
+        "op": "publish",
+        "exchange": "group.test",
+        "routing_key": "",
+        "body": "{\"type\": \"task-result\", \"id\": \"result-12345678-1234-4678-9234-567812345678\", \"sentAt\": \"2026-10-19T08:01:12.160000+00:00\", \"senderRole\": \"partner\", \"senderId\": \"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\", \"groupId\": \"group-session-1\", \"sessionId\": \"session-1\", \"taskId\": \"task-1\", \"status\": {\"state\": \"completed\", \"stateChangedAt\": \"2026-10-19T08:01:12.160000+00:00\"}}",
+        "body_size": 367,
+        "content_type": "application/json",
+        "delivery_mode": 2,
+        "headers": {
+          "traceparent": "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+        },
+        "user_id": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "priority": 0,
+        "message_id": null
+      },
+      "emits": [
+        {
+          "body": {
+            "eventType": "send",
+            "operationName": "publish",
+            "system": "rabbitmq",
+            "destination": {
+              "name": "group.test",
+              "kind": "exchange",
+              "virtualHost": "acps"
+            },
+            "routing": {
+              "key": ""
+            },
+            "messageId": "result-12345678-1234-4678-9234-567812345678",
+            "payloadSizeBytes": 367,
+            "attributes": {
+              "groupId": "group-session-1",
+              "msgType": "task-result",
+              "taskId": "task-1"
+            }
+          },
+          "options": {
+            "trace_id": "0af7651916cd43dd8448eb211c80319c",
+            "span_id": "b7ad6b7169203331",
+            "parent_span_id": "",
+            "correlation_id": "session-1"
+          }
+        }
+      ]
+    }
+  }
+}
