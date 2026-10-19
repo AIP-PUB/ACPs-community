@@ -45,6 +45,8 @@ ACPs-community/
 |-- acps-specs/             ............. ACPs protocol specifications
 |-- acps-sdk/               ............. ACPs SDK, providing agent developers with convenient
 |                                      support for agent interconnection and collaboration
+|-- acps-sdk-node/          ............. ACPs SDK for Node.js / TypeScript, API and wire format
+|                                      aligned with the Python SDK
 |-- acps-cli/               ............. ACPs unified command-line toolset
 |-- acps-docs/              ............. ACPs reference documentation
 |-- acps-infra/             ............. ACPs infrastructure and deployment orchestration repository
