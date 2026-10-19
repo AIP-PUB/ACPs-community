@@ -1,0 +1,31 @@
+{
+  "all": [
+    "AgentCapabilitySpec",
+    "AgentProvider",
+    "AgentCapabilities",
+    "MQProtocolVersion",
+    "SecurityScheme",
+    "MutualTLSSecurityScheme",
+    "OpenIdConnectSecurityScheme",
+    "APIKeySecurityScheme",
+    "HTTPAuthSecurityScheme",
+    "OAuth2SecurityScheme",
+    "AgentEndPoint",
+    "AgentSkill"
+  ],
+  "mqProtocolVersion": {
+    "MQTT_3_1_1": "mqtt:3.1.1",
+    "MQTT_5_0": "mqtt:5.0",
+    "AMQP_0_9_1": "amqp:0.9.1",
+    "AMQP_1_0": "amqp:1.0",
+    "KAFKA_2_8": "kafka:2.8",
+    "KAFKA_3_0": "kafka:3.0",
+    "KAFKA_3_1": "kafka:3.1",
+    "REDIS_6_0": "redis:6.0",
+    "REDIS_7_0": "redis:7.0",
+    "REDIS_7_2": "redis:7.2",
+    "RABBITMQ_3_9": "rabbitmq:3.9",
+    "RABBITMQ_3_10": "rabbitmq:3.10",
+    "RABBITMQ_3_11": "rabbitmq:3.11"
+  }
+}

@@ -1,0 +1,575 @@
+{
+  "codes": {
+    "CAPACITY_REDIRECT": 30701,
+    "REGION_REDIRECT": 30702,
+    "MAX_REDIRECTS_EXCEEDED": 30703,
+    "MISSING_QUERY": 40001,
+    "FORWARD_DEPTH_LIMIT_INVALID": 40002,
+    "FORWARD_CHAIN_INVALID": 40003,
+    "FILTER_INVALID": 40004,
+    "FORWARD_FANOUT_LIMIT_INVALID": 40005,
+    "CERTIFICATE_INVALID": 40101,
+    "CALLER_RATE_LIMITED": 42901,
+    "TENANT_RATE_LIMITED": 42902,
+    "FORWARD_LOOP_DETECTED": 50801,
+    "FORWARD_DEPTH_EXCEEDED": 50802,
+    "FORWARD_CHAIN_TAMPERED": 50803,
+    "FORWARD_FANOUT_EXCEEDED": 50804,
+    "FORWARD_SIGNATURE_INVALID": 50805,
+    "INTERNAL_ERROR": 50001
+  },
+  "classification": {
+    "CAPACITY_REDIRECT": {
+      "isRedirect": true,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    "REGION_REDIRECT": {
+      "isRedirect": true,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    "MAX_REDIRECTS_EXCEEDED": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    "MISSING_QUERY": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": true,
+      "isForwardError": false
+    },
+    "FORWARD_DEPTH_LIMIT_INVALID": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": true,
+      "isForwardError": false
+    },
+    "FORWARD_CHAIN_INVALID": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": true,
+      "isForwardError": false
+    },
+    "FILTER_INVALID": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": true,
+      "isForwardError": false
+    },
+    "FORWARD_FANOUT_LIMIT_INVALID": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": true,
+      "isForwardError": false
+    },
+    "CERTIFICATE_INVALID": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    "CALLER_RATE_LIMITED": {
+      "isRedirect": false,
+      "isRetryable": true,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    "TENANT_RATE_LIMITED": {
+      "isRedirect": false,
+      "isRetryable": true,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    "FORWARD_LOOP_DETECTED": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": true
+    },
+    "FORWARD_DEPTH_EXCEEDED": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": true
+    },
+    "FORWARD_CHAIN_TAMPERED": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": true
+    },
+    "FORWARD_FANOUT_EXCEEDED": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": true
+    },
+    "FORWARD_SIGNATURE_INVALID": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": true
+    },
+    "INTERNAL_ERROR": {
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    }
+  },
+  "names": {
+    "30701": "CapacityRedirect",
+    "30702": "RegionRedirect",
+    "30703": "MaxRedirectsExceeded",
+    "40001": "MissingQuery",
+    "40002": "ForwardDepthLimitInvalid",
+    "40003": "ForwardChainInvalid",
+    "40004": "FilterInvalid",
+    "40005": "ForwardFanoutLimitInvalid",
+    "40101": "CertificateInvalid",
+    "42901": "CallerRateLimited",
+    "42902": "TenantRateLimited",
+    "50801": "ForwardLoopDetected",
+    "50802": "ForwardDepthExceeded",
+    "50803": "ForwardChainTampered",
+    "50804": "ForwardFanoutExceeded",
+    "50805": "ForwardSignatureInvalid",
+    "50001": "InternalError"
+  },
+  "httpStatus": {
+    "30701": 307,
+    "30702": 307,
+    "30703": 400,
+    "40001": 400,
+    "40002": 400,
+    "40003": 400,
+    "40004": 400,
+    "40005": 400,
+    "40101": 401,
+    "42901": 429,
+    "42902": 429,
+    "50801": 508,
+    "50802": 508,
+    "50803": 508,
+    "50804": 508,
+    "50805": 508,
+    "50001": 500
+  },
+  "adpErrors": [
+    {
+      "name": "known code, default message",
+      "args": {
+        "code": 40001,
+        "message": null,
+        "data": null
+      },
+      "message": "MissingQuery",
+      "str": "MissingQuery",
+      "httpStatus": 400,
+      "errorBody": {
+        "code": 40001,
+        "message": "MissingQuery"
+      },
+      "responseDict": {
+        "error": {
+          "code": 40001,
+          "message": "MissingQuery"
+        }
+      },
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": true,
+      "isForwardError": false
+    },
+    {
+      "name": "known code, custom message, dict data",
+      "args": {
+        "code": 50804,
+        "message": "Fan-out budget exhausted",
+        "data": {
+          "availableBudget": 1,
+          "requiredBranches": 3
+        }
+      },
+      "message": "Fan-out budget exhausted",
+      "str": "Fan-out budget exhausted",
+      "httpStatus": 508,
+      "errorBody": {
+        "code": 50804,
+        "message": "Fan-out budget exhausted",
+        "data": {
+          "availableBudget": 1,
+          "requiredBranches": 3
+        }
+      },
+      "responseDict": {
+        "error": {
+          "code": 50804,
+          "message": "Fan-out budget exhausted",
+          "data": {
+            "availableBudget": 1,
+            "requiredBranches": 3
+          }
+        }
+      },
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": true
+    },
+    {
+      "name": "empty message falls back to name",
+      "args": {
+        "code": 30701,
+        "message": "",
+        "data": null
+      },
+      "message": "CapacityRedirect",
+      "str": "CapacityRedirect",
+      "httpStatus": 307,
+      "errorBody": {
+        "code": 30701,
+        "message": "CapacityRedirect"
+      },
+      "responseDict": {
+        "error": {
+          "code": 30701,
+          "message": "CapacityRedirect"
+        }
+      },
+      "isRedirect": true,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    {
+      "name": "falsy data 0 is kept",
+      "args": {
+        "code": 50001,
+        "message": "boom",
+        "data": 0
+      },
+      "message": "boom",
+      "str": "boom",
+      "httpStatus": 500,
+      "errorBody": {
+        "code": 50001,
+        "message": "boom",
+        "data": 0
+      },
+      "responseDict": {
+        "error": {
+          "code": 50001,
+          "message": "boom",
+          "data": 0
+        }
+      },
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    {
+      "name": "falsy data false is kept",
+      "args": {
+        "code": 42902,
+        "message": null,
+        "data": false
+      },
+      "message": "TenantRateLimited",
+      "str": "TenantRateLimited",
+      "httpStatus": 429,
+      "errorBody": {
+        "code": 42902,
+        "message": "TenantRateLimited",
+        "data": false
+      },
+      "responseDict": {
+        "error": {
+          "code": 42902,
+          "message": "TenantRateLimited",
+          "data": false
+        }
+      },
+      "isRedirect": false,
+      "isRetryable": true,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    {
+      "name": "empty dict data is kept",
+      "args": {
+        "code": 50801,
+        "message": "loop",
+        "data": {}
+      },
+      "message": "loop",
+      "str": "loop",
+      "httpStatus": 508,
+      "errorBody": {
+        "code": 50801,
+        "message": "loop",
+        "data": {}
+      },
+      "responseDict": {
+        "error": {
+          "code": 50801,
+          "message": "loop",
+          "data": {}
+        }
+      },
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": true
+    },
+    {
+      "name": "list data",
+      "args": {
+        "code": 50803,
+        "message": null,
+        "data": [
+          "a",
+          null
+        ]
+      },
+      "message": "ForwardChainTampered",
+      "str": "ForwardChainTampered",
+      "httpStatus": 508,
+      "errorBody": {
+        "code": 50803,
+        "message": "ForwardChainTampered",
+        "data": [
+          "a",
+          null
+        ]
+      },
+      "responseDict": {
+        "error": {
+          "code": 50803,
+          "message": "ForwardChainTampered",
+          "data": [
+            "a",
+            null
+          ]
+        }
+      },
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": true
+    },
+    {
+      "name": "unknown code in client range",
+      "args": {
+        "code": 40099,
+        "message": null,
+        "data": null
+      },
+      "message": "UnknownError",
+      "str": "UnknownError",
+      "httpStatus": 500,
+      "errorBody": {
+        "code": 40099,
+        "message": "UnknownError"
+      },
+      "responseDict": {
+        "error": {
+          "code": 40099,
+          "message": "UnknownError"
+        }
+      },
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    {
+      "name": "unknown code in forward range",
+      "args": {
+        "code": 50899,
+        "message": "custom",
+        "data": "detail"
+      },
+      "message": "custom",
+      "str": "custom",
+      "httpStatus": 500,
+      "errorBody": {
+        "code": 50899,
+        "message": "custom",
+        "data": "detail"
+      },
+      "responseDict": {
+        "error": {
+          "code": 50899,
+          "message": "custom",
+          "data": "detail"
+        }
+      },
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    },
+    {
+      "name": "unknown code",
+      "args": {
+        "code": 12345,
+        "message": null,
+        "data": null
+      },
+      "message": "UnknownError",
+      "str": "UnknownError",
+      "httpStatus": 500,
+      "errorBody": {
+        "code": 12345,
+        "message": "UnknownError"
+      },
+      "responseDict": {
+        "error": {
+          "code": 12345,
+          "message": "UnknownError"
+        }
+      },
+      "isRedirect": false,
+      "isRetryable": false,
+      "isClientError": false,
+      "isForwardError": false
+    }
+  ],
+  "makeErrorResponse": [
+    {
+      "args": {
+        "code": 40001,
+        "message": null,
+        "data": null
+      },
+      "result": {
+        "error": {
+          "code": 40001,
+          "message": "MissingQuery"
+        }
+      }
+    },
+    {
+      "args": {
+        "code": 50804,
+        "message": "Fan-out budget exhausted",
+        "data": {
+          "availableBudget": 1,
+          "requiredBranches": 3
+        }
+      },
+      "result": {
+        "error": {
+          "code": 50804,
+          "message": "Fan-out budget exhausted",
+          "data": {
+            "availableBudget": 1,
+            "requiredBranches": 3
+          }
+        }
+      }
+    },
+    {
+      "args": {
+        "code": 99999,
+        "message": null,
+        "data": null
+      },
+      "result": {
+        "error": {
+          "code": 99999,
+          "message": "UnknownError"
+        }
+      }
+    }
+  ],
+  "getHttpStatusForError": [
+    {
+      "code": 30701,
+      "status": 307
+    },
+    {
+      "code": 30702,
+      "status": 307
+    },
+    {
+      "code": 30703,
+      "status": 400
+    },
+    {
+      "code": 40001,
+      "status": 400
+    },
+    {
+      "code": 40002,
+      "status": 400
+    },
+    {
+      "code": 40003,
+      "status": 400
+    },
+    {
+      "code": 40004,
+      "status": 400
+    },
+    {
+      "code": 40005,
+      "status": 400
+    },
+    {
+      "code": 40101,
+      "status": 401
+    },
+    {
+      "code": 42901,
+      "status": 429
+    },
+    {
+      "code": 42902,
+      "status": 429
+    },
+    {
+      "code": 50801,
+      "status": 508
+    },
+    {
+      "code": 50802,
+      "status": 508
+    },
+    {
+      "code": 50803,
+      "status": 508
+    },
+    {
+      "code": 50804,
+      "status": 508
+    },
+    {
+      "code": 50805,
+      "status": 508
+    },
+    {
+      "code": 50001,
+      "status": 500
+    },
+    {
+      "code": 40099,
+      "status": 500
+    },
+    {
+      "code": 99999,
+      "status": 500
+    },
+    {
+      "code": 0,
+      "status": 500
+    }
+  ]
+}

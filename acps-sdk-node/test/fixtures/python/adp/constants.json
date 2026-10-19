@@ -1,0 +1,33 @@
+{
+  "FORWARD_DEPTH_LIMIT_DEFAULT": 3,
+  "FORWARD_DEPTH_LIMIT_MAX": 5,
+  "FORWARD_DEPTH_LIMIT_MIN": 1,
+  "FORWARD_FANOUT_LIMIT_DEFAULT": 1,
+  "FORWARD_FANOUT_LIMIT_MAX": 5,
+  "FORWARD_FANOUT_LIMIT_MIN": 1,
+  "FORWARD_EACH_TIMEOUT_MS_DEFAULT": 10000,
+  "FORWARD_TOTAL_TIMEOUT_MS_DEFAULT": 60000,
+  "MAX_REDIRECT_HOPS": 5,
+  "FILTER_MAX_NESTING_DEPTH": 3,
+  "CONTEXT_MAX_PAYLOAD_BYTES": 2048,
+  "DISCOVER_API_PATH": "/discover",
+  "HEADER_TRACE_ID": "X-Trace-Id",
+  "HEADER_SPAN_ID": "X-Span-Id",
+  "HEADER_PARENT_SPAN_ID": "X-Parent-Span-Id",
+  "QUERY_TYPE_EXPLICIT": "explicit",
+  "QUERY_TYPE_EXPLORATORY": "exploratory",
+  "QUERY_TYPE_TRENDING": "trending",
+  "QUERY_TYPE_FILTERED": "filtered",
+  "QUERY_TYPES": [
+    "explicit",
+    "exploratory",
+    "trending",
+    "filtered"
+  ],
+  "ROUTE_STATUS_OK": "ok",
+  "ROUTE_STATUS_TIMEOUT": "timeout",
+  "ROUTE_STATUS_ERROR": "error",
+  "FILTER_LOGIC_AND": "and",
+  "FILTER_LOGIC_OR": "or",
+  "FILTER_LOGIC_NOT": "not"
+}

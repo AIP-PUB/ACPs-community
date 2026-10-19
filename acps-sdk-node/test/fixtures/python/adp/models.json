@@ -1,0 +1,2217 @@
+[
+  {
+    "model": "FilterCondition",
+    "name": "bool value",
+    "input": {
+      "field": "active",
+      "op": "eq",
+      "value": true
+    },
+    "ok": true,
+    "dump": {
+      "field": "active",
+      "op": "eq",
+      "value": true
+    },
+    "json": "{\"field\":\"active\",\"op\":\"eq\",\"value\":true}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "null value is dropped",
+    "input": {
+      "field": "skills.tags",
+      "op": "exists",
+      "value": null
+    },
+    "ok": true,
+    "dump": {
+      "field": "skills.tags",
+      "op": "exists"
+    },
+    "json": "{\"field\":\"skills.tags\",\"op\":\"exists\"}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "missing value",
+    "input": {
+      "field": "x",
+      "op": "exists"
+    },
+    "ok": true,
+    "dump": {
+      "field": "x",
+      "op": "exists"
+    },
+    "json": "{\"field\":\"x\",\"op\":\"exists\"}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "falsy values are kept",
+    "input": {
+      "field": "x",
+      "op": "size",
+      "value": 0
+    },
+    "ok": true,
+    "dump": {
+      "field": "x",
+      "op": "size",
+      "value": 0
+    },
+    "json": "{\"field\":\"x\",\"op\":\"size\",\"value\":0}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "false value is kept",
+    "input": {
+      "field": "x",
+      "op": "eq",
+      "value": false
+    },
+    "ok": true,
+    "dump": {
+      "field": "x",
+      "op": "eq",
+      "value": false
+    },
+    "json": "{\"field\":\"x\",\"op\":\"eq\",\"value\":false}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "dict value keeps inner null",
+    "input": {
+      "field": "entityMeta",
+      "op": "hasKey",
+      "value": {
+        "k": null,
+        "n": [
+          1,
+          null
+        ]
+      }
+    },
+    "ok": true,
+    "dump": {
+      "field": "entityMeta",
+      "op": "hasKey",
+      "value": {
+        "k": null,
+        "n": [
+          1,
+          null
+        ]
+      }
+    },
+    "json": "{\"field\":\"entityMeta\",\"op\":\"hasKey\",\"value\":{\"k\":null,\"n\":[1,null]}}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "between tuple",
+    "input": {
+      "field": "version",
+      "op": "between",
+      "value": [
+        "1.0.0",
+        "2.0.0"
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "field": "version",
+      "op": "between",
+      "value": [
+        "1.0.0",
+        "2.0.0"
+      ]
+    },
+    "json": "{\"field\":\"version\",\"op\":\"between\",\"value\":[\"1.0.0\",\"2.0.0\"]}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "operator notContains",
+    "input": {
+      "field": "f",
+      "op": "notContains",
+      "value": [
+        "a"
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "field": "f",
+      "op": "notContains",
+      "value": [
+        "a"
+      ]
+    },
+    "json": "{\"field\":\"f\",\"op\":\"notContains\",\"value\":[\"a\"]}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "operator startsWithCs",
+    "input": {
+      "field": "f",
+      "op": "startsWithCs",
+      "value": [
+        "a"
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "field": "f",
+      "op": "startsWithCs",
+      "value": [
+        "a"
+      ]
+    },
+    "json": "{\"field\":\"f\",\"op\":\"startsWithCs\",\"value\":[\"a\"]}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "operator hasAllKeys",
+    "input": {
+      "field": "f",
+      "op": "hasAllKeys",
+      "value": [
+        "a"
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "field": "f",
+      "op": "hasAllKeys",
+      "value": [
+        "a"
+      ]
+    },
+    "json": "{\"field\":\"f\",\"op\":\"hasAllKeys\",\"value\":[\"a\"]}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "operator sizeLte",
+    "input": {
+      "field": "f",
+      "op": "sizeLte",
+      "value": [
+        "a"
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "field": "f",
+      "op": "sizeLte",
+      "value": [
+        "a"
+      ]
+    },
+    "json": "{\"field\":\"f\",\"op\":\"sizeLte\",\"value\":[\"a\"]}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "operator in",
+    "input": {
+      "field": "f",
+      "op": "in",
+      "value": [
+        "a"
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "field": "f",
+      "op": "in",
+      "value": [
+        "a"
+      ]
+    },
+    "json": "{\"field\":\"f\",\"op\":\"in\",\"value\":[\"a\"]}"
+  },
+  {
+    "model": "FilterCondition",
+    "name": "unknown operator",
+    "input": {
+      "field": "f",
+      "op": "regex",
+      "value": "a"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "op"
+        ],
+        "type": "enum",
+        "msg": "Input should be 'eq', 'ne', 'exists', 'gt', 'gte', 'lt', 'lte', 'between', 'in', 'nin', 'contains', 'notContains', 'startsWith', 'endsWith', 'eqCs', 'neCs', 'inCs', 'ninCs', 'containsCs', 'notContainsCs', 'startsWithCs', 'endsWithCs', 'anyOf', 'allOf', 'noneOf', 'size', 'sizeGt', 'sizeGte', 'sizeLt', 'sizeLte', 'hasKey', 'hasNoKey', 'hasAnyKey' or 'hasAllKeys'"
+      }
+    ]
+  },
+  {
+    "model": "FilterCondition",
+    "name": "operator is case sensitive",
+    "input": {
+      "field": "f",
+      "op": "EQ",
+      "value": "a"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "op"
+        ],
+        "type": "enum",
+        "msg": "Input should be 'eq', 'ne', 'exists', 'gt', 'gte', 'lt', 'lte', 'between', 'in', 'nin', 'contains', 'notContains', 'startsWith', 'endsWith', 'eqCs', 'neCs', 'inCs', 'ninCs', 'containsCs', 'notContainsCs', 'startsWithCs', 'endsWithCs', 'anyOf', 'allOf', 'noneOf', 'size', 'sizeGt', 'sizeGte', 'sizeLt', 'sizeLte', 'hasKey', 'hasNoKey', 'hasAnyKey' or 'hasAllKeys'"
+      }
+    ]
+  },
+  {
+    "model": "FilterCondition",
+    "name": "missing field and op",
+    "input": {
+      "value": 1
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "field"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "op"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "FilterCondition",
+    "name": "field must be string",
+    "input": {
+      "field": 1,
+      "op": "eq"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "field"
+        ],
+        "type": "string_type",
+        "msg": "Input should be a valid string"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryFilter",
+    "name": "empty filter gets default logic",
+    "input": {},
+    "ok": true,
+    "dump": {
+      "logic": "and"
+    },
+    "json": "{\"logic\":\"and\"}"
+  },
+  {
+    "model": "DiscoveryFilter",
+    "name": "explicit null logic is dropped",
+    "input": {
+      "logic": null
+    },
+    "ok": true,
+    "dump": {},
+    "json": "{}"
+  },
+  {
+    "model": "DiscoveryFilter",
+    "name": "null conditions and groups",
+    "input": {
+      "conditions": null,
+      "groups": null,
+      "logic": "or"
+    },
+    "ok": true,
+    "dump": {
+      "logic": "or"
+    },
+    "json": "{\"logic\":\"or\"}"
+  },
+  {
+    "model": "DiscoveryFilter",
+    "name": "nested groups",
+    "input": {
+      "conditions": [
+        {
+          "field": "active",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "groups": [
+        {
+          "logic": "or",
+          "conditions": [
+            {
+              "field": "provider.countryCode",
+              "op": "in",
+              "value": [
+                "CN",
+                "US"
+              ]
+            }
+          ]
+        },
+        {
+          "logic": "not",
+          "groups": [
+            {
+              "conditions": [
+                {
+                  "field": "skills.tags",
+                  "op": "anyOf",
+                  "value": [
+                    "x"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "conditions": [
+        {
+          "field": "active",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "groups": [
+        {
+          "conditions": [
+            {
+              "field": "provider.countryCode",
+              "op": "in",
+              "value": [
+                "CN",
+                "US"
+              ]
+            }
+          ],
+          "logic": "or"
+        },
+        {
+          "groups": [
+            {
+              "conditions": [
+                {
+                  "field": "skills.tags",
+                  "op": "anyOf",
+                  "value": [
+                    "x"
+                  ]
+                }
+              ],
+              "logic": "and"
+            }
+          ],
+          "logic": "not"
+        }
+      ],
+      "logic": "and"
+    },
+    "json": "{\"conditions\":[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}],\"groups\":[{\"conditions\":[{\"field\":\"provider.countryCode\",\"op\":\"in\",\"value\":[\"CN\",\"US\"]}],\"logic\":\"or\"},{\"groups\":[{\"conditions\":[{\"field\":\"skills.tags\",\"op\":\"anyOf\",\"value\":[\"x\"]}],\"logic\":\"and\"}],\"logic\":\"not\"}],\"logic\":\"and\"}"
+  },
+  {
+    "model": "DiscoveryFilter",
+    "name": "invalid logic",
+    "input": {
+      "logic": "xor"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "logic"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'and', 'or' or 'not'"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryFilter",
+    "name": "logic is case sensitive",
+    "input": {
+      "logic": "AND"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "logic"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'and', 'or' or 'not'"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryFilter",
+    "name": "invalid nested condition",
+    "input": {
+      "groups": [
+        {
+          "groups": [
+            {
+              "conditions": [
+                {
+                  "field": "a",
+                  "op": "bad"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "groups",
+          0,
+          "groups",
+          0,
+          "conditions",
+          0,
+          "op"
+        ],
+        "type": "enum",
+        "msg": "Input should be 'eq', 'ne', 'exists', 'gt', 'gte', 'lt', 'lte', 'between', 'in', 'nin', 'contains', 'notContains', 'startsWith', 'endsWith', 'eqCs', 'neCs', 'inCs', 'ninCs', 'containsCs', 'notContainsCs', 'startsWithCs', 'endsWithCs', 'anyOf', 'allOf', 'noneOf', 'size', 'sizeGt', 'sizeGte', 'sizeLt', 'sizeLte', 'hasKey', 'hasNoKey', 'hasAnyKey' or 'hasAllKeys'"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryFilter",
+    "name": "groups must be a list",
+    "input": {
+      "groups": {
+        "logic": "and"
+      }
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "groups"
+        ],
+        "type": "list_type",
+        "msg": "Input should be a valid list"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryContext",
+    "name": "full context",
+    "input": {
+      "conversationId": "conv-123",
+      "recentTurns": [
+        "上一轮询问了北京菜系",
+        "用户偏好健康饮食"
+      ],
+      "userProfile": {
+        "city": "北京",
+        "budget": "medium",
+        "age": null
+      },
+      "metadata": {
+        "nested": {
+          "k": null
+        }
+      }
+    },
+    "ok": true,
+    "dump": {
+      "conversationId": "conv-123",
+      "recentTurns": [
+        "上一轮询问了北京菜系",
+        "用户偏好健康饮食"
+      ],
+      "userProfile": {
+        "city": "北京",
+        "budget": "medium",
+        "age": null
+      },
+      "metadata": {
+        "nested": {
+          "k": null
+        }
+      }
+    },
+    "json": "{\"conversationId\":\"conv-123\",\"recentTurns\":[\"上一轮询问了北京菜系\",\"用户偏好健康饮食\"],\"userProfile\":{\"city\":\"北京\",\"budget\":\"medium\",\"age\":null},\"metadata\":{\"nested\":{\"k\":null}}}"
+  },
+  {
+    "model": "DiscoveryContext",
+    "name": "all null",
+    "input": {
+      "conversationId": null,
+      "recentTurns": null,
+      "userProfile": null,
+      "metadata": null
+    },
+    "ok": true,
+    "dump": {},
+    "json": "{}"
+  },
+  {
+    "model": "DiscoveryContext",
+    "name": "recentTurns must be strings",
+    "input": {
+      "recentTurns": [
+        "a",
+        1
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "recentTurns",
+          1
+        ],
+        "type": "string_type",
+        "msg": "Input should be a valid string"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryContext",
+    "name": "userProfile must be a dict",
+    "input": {
+      "userProfile": [
+        "a"
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "userProfile"
+        ],
+        "type": "dict_type",
+        "msg": "Input should be a valid dictionary"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "minimal explicit",
+    "input": {
+      "query": "我需要一个可以做北京美食推荐的智能体"
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "我需要一个可以做北京美食推荐的智能体"
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"我需要一个可以做北京美食推荐的智能体\"}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "full request",
+    "input": {
+      "type": "explicit",
+      "query": "翻译智能体",
+      "context": {
+        "conversationId": "c1",
+        "recentTurns": [
+          "t1"
+        ],
+        "userProfile": {
+          "city": "北京"
+        }
+      },
+      "limit": 5,
+      "filter": {
+        "conditions": [
+          {
+            "field": "active",
+            "op": "eq",
+            "value": true
+          }
+        ],
+        "logic": "and"
+      },
+      "forwardDepthLimit": 3,
+      "forwardFanoutLimit": 4,
+      "forwardFanoutRemaining": 0,
+      "forwardChain": [
+        "AIC-DS-A"
+      ],
+      "forwardTrustedServers": [
+        "AIC-DS-B",
+        "AIC-DS-C"
+      ],
+      "forwardSignatures": [
+        "sig-a"
+      ],
+      "forwardEachTimeoutMs": 5000,
+      "forwardTotalTimeoutMs": 30000
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "翻译智能体",
+      "context": {
+        "conversationId": "c1",
+        "recentTurns": [
+          "t1"
+        ],
+        "userProfile": {
+          "city": "北京"
+        }
+      },
+      "limit": 5,
+      "filter": {
+        "conditions": [
+          {
+            "field": "active",
+            "op": "eq",
+            "value": true
+          }
+        ],
+        "logic": "and"
+      },
+      "forwardDepthLimit": 3,
+      "forwardFanoutLimit": 4,
+      "forwardFanoutRemaining": 0,
+      "forwardChain": [
+        "AIC-DS-A"
+      ],
+      "forwardTrustedServers": [
+        "AIC-DS-B",
+        "AIC-DS-C"
+      ],
+      "forwardSignatures": [
+        "sig-a"
+      ],
+      "forwardEachTimeoutMs": 5000,
+      "forwardTotalTimeoutMs": 30000
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"翻译智能体\",\"context\":{\"conversationId\":\"c1\",\"recentTurns\":[\"t1\"],\"userProfile\":{\"city\":\"北京\"}},\"limit\":5,\"filter\":{\"conditions\":[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}],\"logic\":\"and\"},\"forwardDepthLimit\":3,\"forwardFanoutLimit\":4,\"forwardFanoutRemaining\":0,\"forwardChain\":[\"AIC-DS-A\"],\"forwardTrustedServers\":[\"AIC-DS-B\",\"AIC-DS-C\"],\"forwardSignatures\":[\"sig-a\"],\"forwardEachTimeoutMs\":5000,\"forwardTotalTimeoutMs\":30000}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "keys out of order are emitted in field order",
+    "input": {
+      "forwardTotalTimeoutMs": 1,
+      "forwardChain": [],
+      "query": "q",
+      "type": "exploratory",
+      "limit": 1
+    },
+    "ok": true,
+    "dump": {
+      "type": "exploratory",
+      "query": "q",
+      "limit": 1,
+      "forwardChain": [],
+      "forwardTotalTimeoutMs": 1
+    },
+    "json": "{\"type\":\"exploratory\",\"query\":\"q\",\"limit\":1,\"forwardChain\":[],\"forwardTotalTimeoutMs\":1}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "unknown keys are ignored",
+    "input": {
+      "query": "q",
+      "unknownKey": 1,
+      "extra": {
+        "a": 1
+      }
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "q"
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"q\"}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "all optional fields null",
+    "input": {
+      "query": "q",
+      "context": null,
+      "limit": null,
+      "filter": null,
+      "forwardDepthLimit": null,
+      "forwardFanoutLimit": null,
+      "forwardFanoutRemaining": null,
+      "forwardChain": null,
+      "forwardTrustedServers": null,
+      "forwardSignatures": null,
+      "forwardEachTimeoutMs": null,
+      "forwardTotalTimeoutMs": null
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "q"
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"q\"}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "exploratory without query",
+    "input": {
+      "type": "exploratory"
+    },
+    "ok": true,
+    "dump": {
+      "type": "exploratory"
+    },
+    "json": "{\"type\":\"exploratory\"}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "trending without query",
+    "input": {
+      "type": "trending"
+    },
+    "ok": true,
+    "dump": {
+      "type": "trending"
+    },
+    "json": "{\"type\":\"trending\"}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "filtered without query",
+    "input": {
+      "type": "filtered"
+    },
+    "ok": true,
+    "dump": {
+      "type": "filtered"
+    },
+    "json": "{\"type\":\"filtered\"}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "null type disables the query check",
+    "input": {
+      "type": null
+    },
+    "ok": true,
+    "dump": {},
+    "json": "{}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "null type keeps query",
+    "input": {
+      "type": null,
+      "query": "q"
+    },
+    "ok": true,
+    "dump": {
+      "query": "q"
+    },
+    "json": "{\"query\":\"q\"}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "missing query defaults to explicit",
+    "input": {},
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "value_error",
+        "msg": "Value error, type='explicit' 时 query 字段必填且不能为空字符串"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "explicit without query",
+    "input": {
+      "type": "explicit"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "value_error",
+        "msg": "Value error, type='explicit' 时 query 字段必填且不能为空字符串"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "explicit with null query",
+    "input": {
+      "type": "explicit",
+      "query": null
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "value_error",
+        "msg": "Value error, type='explicit' 时 query 字段必填且不能为空字符串"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "explicit with empty query",
+    "input": {
+      "query": ""
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "value_error",
+        "msg": "Value error, type='explicit' 时 query 字段必填且不能为空字符串"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "explicit with whitespace query",
+    "input": {
+      "query": " \t\n　"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "value_error",
+        "msg": "Value error, type='explicit' 时 query 字段必填且不能为空字符串"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "python whitespace U+001C/U+0085 is blank",
+    "input": {
+      "query": "\u001c\u001f"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "value_error",
+        "msg": "Value error, type='explicit' 时 query 字段必填且不能为空字符串"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "BOM is not python whitespace",
+    "input": {
+      "query": "﻿"
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "﻿"
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"﻿\"}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "control character round-trips through json",
+    "input": {
+      "query": "a\u001cb c"
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "a\u001cb c"
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"a\\u001cb c\"}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "invalid type",
+    "input": {
+      "type": "foo",
+      "query": "q"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "type"
+        ],
+        "type": "value_error",
+        "msg": "Value error, 无效的查询类型: 'foo'，允许的类型: ('explicit', 'exploratory', 'trending', 'filtered')"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "empty type string",
+    "input": {
+      "type": ""
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "type"
+        ],
+        "type": "value_error",
+        "msg": "Value error, 无效的查询类型: ''，允许的类型: ('explicit', 'exploratory', 'trending', 'filtered')"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "type is case sensitive",
+    "input": {
+      "type": "Explicit",
+      "query": "q"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "type"
+        ],
+        "type": "value_error",
+        "msg": "Value error, 无效的查询类型: 'Explicit'，允许的类型: ('explicit', 'exploratory', 'trending', 'filtered')"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "invalid type with quote",
+    "input": {
+      "type": "it's",
+      "query": "q"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "type"
+        ],
+        "type": "value_error",
+        "msg": "Value error, 无效的查询类型: \"it's\"，允许的类型: ('explicit', 'exploratory', 'trending', 'filtered')"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "type must be string",
+    "input": {
+      "type": 5,
+      "query": "q"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "type"
+        ],
+        "type": "string_type",
+        "msg": "Input should be a valid string"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "invalid type skips query check",
+    "input": {
+      "type": "foo"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "type"
+        ],
+        "type": "value_error",
+        "msg": "Value error, 无效的查询类型: 'foo'，允许的类型: ('explicit', 'exploratory', 'trending', 'filtered')"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "query must be string",
+    "input": {
+      "query": 5
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "query"
+        ],
+        "type": "string_type",
+        "msg": "Input should be a valid string"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "limit lower bound",
+    "input": {
+      "query": "q",
+      "limit": 1
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "q",
+      "limit": 1
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"q\",\"limit\":1}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "limit below 1",
+    "input": {
+      "query": "q",
+      "limit": 0
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "limit"
+        ],
+        "type": "greater_than_equal",
+        "msg": "Input should be greater than or equal to 1"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "limit fractional",
+    "input": {
+      "query": "q",
+      "limit": 1.5
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "limit"
+        ],
+        "type": "int_from_float",
+        "msg": "Input should be a valid integer, got a number with a fractional part"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "depth and fanout bounds",
+    "input": {
+      "query": "q",
+      "forwardDepthLimit": 5,
+      "forwardFanoutLimit": 1
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "q",
+      "forwardDepthLimit": 5,
+      "forwardFanoutLimit": 1
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"q\",\"forwardDepthLimit\":5,\"forwardFanoutLimit\":1}"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "depth and fanout out of range",
+    "input": {
+      "query": "q",
+      "forwardDepthLimit": 6,
+      "forwardFanoutLimit": 0
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "forwardDepthLimit"
+        ],
+        "type": "less_than_equal",
+        "msg": "Input should be less than or equal to 5"
+      },
+      {
+        "loc": [
+          "forwardFanoutLimit"
+        ],
+        "type": "greater_than_equal",
+        "msg": "Input should be greater than or equal to 1"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "depth below minimum",
+    "input": {
+      "query": "q",
+      "forwardDepthLimit": 0,
+      "forwardFanoutLimit": 6
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "forwardDepthLimit"
+        ],
+        "type": "greater_than_equal",
+        "msg": "Input should be greater than or equal to 1"
+      },
+      {
+        "loc": [
+          "forwardFanoutLimit"
+        ],
+        "type": "less_than_equal",
+        "msg": "Input should be less than or equal to 5"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "negative fanout remaining",
+    "input": {
+      "query": "q",
+      "forwardFanoutRemaining": -1
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "forwardFanoutRemaining"
+        ],
+        "type": "greater_than_equal",
+        "msg": "Input should be greater than or equal to 0"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "zero timeouts",
+    "input": {
+      "query": "q",
+      "forwardEachTimeoutMs": 0,
+      "forwardTotalTimeoutMs": 0
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "forwardEachTimeoutMs"
+        ],
+        "type": "greater_than",
+        "msg": "Input should be greater than 0"
+      },
+      {
+        "loc": [
+          "forwardTotalTimeoutMs"
+        ],
+        "type": "greater_than",
+        "msg": "Input should be greater than 0"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "field errors suppress the query check",
+    "input": {
+      "query": "",
+      "limit": 0
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "limit"
+        ],
+        "type": "greater_than_equal",
+        "msg": "Input should be greater than or equal to 1"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "field errors suppress the query check (missing)",
+    "input": {
+      "forwardDepthLimit": 9
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "forwardDepthLimit"
+        ],
+        "type": "less_than_equal",
+        "msg": "Input should be less than or equal to 5"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "forwardChain must be strings",
+    "input": {
+      "query": "q",
+      "forwardChain": [
+        "a",
+        1
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "forwardChain",
+          1
+        ],
+        "type": "string_type",
+        "msg": "Input should be a valid string"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "invalid nested filter",
+    "input": {
+      "query": "q",
+      "filter": {
+        "logic": "xor",
+        "conditions": [
+          {
+            "field": "a",
+            "op": "bad"
+          }
+        ]
+      }
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "filter",
+          "conditions",
+          0,
+          "op"
+        ],
+        "type": "enum",
+        "msg": "Input should be 'eq', 'ne', 'exists', 'gt', 'gte', 'lt', 'lte', 'between', 'in', 'nin', 'contains', 'notContains', 'startsWith', 'endsWith', 'eqCs', 'neCs', 'inCs', 'ninCs', 'containsCs', 'notContainsCs', 'startsWithCs', 'endsWithCs', 'anyOf', 'allOf', 'noneOf', 'size', 'sizeGt', 'sizeGte', 'sizeLt', 'sizeLte', 'hasKey', 'hasNoKey', 'hasAnyKey' or 'hasAllKeys'"
+      },
+      {
+        "loc": [
+          "filter",
+          "logic"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'and', 'or' or 'not'"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "invalid context",
+    "input": {
+      "query": "q",
+      "context": {
+        "recentTurns": "x"
+      }
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "context",
+          "recentTurns"
+        ],
+        "type": "list_type",
+        "msg": "Input should be a valid list"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "filter must be object",
+    "input": {
+      "query": "q",
+      "filter": "active=true"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "filter"
+        ],
+        "type": "model_type",
+        "msg": "Input should be a valid dictionary or instance of DiscoveryFilter"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "not an object",
+    "input": [
+      "query"
+    ],
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "model_type",
+        "msg": "Input should be a valid dictionary or instance of DiscoveryRequest"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryAgentSkill",
+    "name": "skill",
+    "input": {
+      "aic": "AIC-001",
+      "skillId": "food-rec",
+      "ranking": 1,
+      "memo": "score=0.9"
+    },
+    "ok": true,
+    "dump": {
+      "aic": "AIC-001",
+      "skillId": "food-rec",
+      "ranking": 1,
+      "memo": "score=0.9"
+    },
+    "json": "{\"aic\":\"AIC-001\",\"skillId\":\"food-rec\",\"ranking\":1,\"memo\":\"score=0.9\"}"
+  },
+  {
+    "model": "DiscoveryAgentSkill",
+    "name": "missing skillId and ranking",
+    "input": {
+      "aic": "a"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "skillId"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "ranking"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryAgentSkill",
+    "name": "ranking must be integer",
+    "input": {
+      "aic": "AIC-001",
+      "skillId": "food-rec",
+      "ranking": 1.5
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "ranking"
+        ],
+        "type": "int_from_float",
+        "msg": "Input should be a valid integer, got a number with a fractional part"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryAgentGroup",
+    "name": "group default skills",
+    "input": {
+      "group": ""
+    },
+    "ok": true,
+    "dump": {
+      "group": "",
+      "agentSkills": []
+    },
+    "json": "{\"group\":\"\",\"agentSkills\":[]}"
+  },
+  {
+    "model": "DiscoveryAgentGroup",
+    "name": "group with skills",
+    "input": {
+      "group": "美食推荐",
+      "agentSkills": [
+        {
+          "aic": "AIC-001",
+          "skillId": "food-rec",
+          "ranking": 1
+        }
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "group": "美食推荐",
+      "agentSkills": [
+        {
+          "aic": "AIC-001",
+          "skillId": "food-rec",
+          "ranking": 1
+        }
+      ]
+    },
+    "json": "{\"group\":\"美食推荐\",\"agentSkills\":[{\"aic\":\"AIC-001\",\"skillId\":\"food-rec\",\"ranking\":1}]}"
+  },
+  {
+    "model": "DiscoveryAgentGroup",
+    "name": "missing group",
+    "input": {
+      "agentSkills": []
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "group"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRoute",
+    "name": "route",
+    "input": {
+      "forwardChain": [
+        "AIC-DS-A",
+        "AIC-DS-B"
+      ],
+      "agentGroups": [
+        {
+          "group": "美食推荐",
+          "agentSkills": [
+            {
+              "aic": "AIC-001",
+              "skillId": "food-rec",
+              "ranking": 1
+            }
+          ]
+        }
+      ],
+      "status": "ok",
+      "durationMs": 150,
+      "metadata": {
+        "server": "b",
+        "note": null
+      }
+    },
+    "ok": true,
+    "dump": {
+      "forwardChain": [
+        "AIC-DS-A",
+        "AIC-DS-B"
+      ],
+      "agentGroups": [
+        {
+          "group": "美食推荐",
+          "agentSkills": [
+            {
+              "aic": "AIC-001",
+              "skillId": "food-rec",
+              "ranking": 1
+            }
+          ]
+        }
+      ],
+      "status": "ok",
+      "durationMs": 150,
+      "metadata": {
+        "server": "b",
+        "note": null
+      }
+    },
+    "json": "{\"forwardChain\":[\"AIC-DS-A\",\"AIC-DS-B\"],\"agentGroups\":[{\"group\":\"美食推荐\",\"agentSkills\":[{\"aic\":\"AIC-001\",\"skillId\":\"food-rec\",\"ranking\":1}]}],\"status\":\"ok\",\"durationMs\":150,\"metadata\":{\"server\":\"b\",\"note\":null}}"
+  },
+  {
+    "model": "DiscoveryRoute",
+    "name": "route defaults",
+    "input": {
+      "forwardChain": []
+    },
+    "ok": true,
+    "dump": {
+      "forwardChain": [],
+      "agentGroups": []
+    },
+    "json": "{\"forwardChain\":[],\"agentGroups\":[]}"
+  },
+  {
+    "model": "DiscoveryRoute",
+    "name": "route status timeout",
+    "input": {
+      "forwardChain": [
+        "a"
+      ],
+      "status": "timeout"
+    },
+    "ok": true,
+    "dump": {
+      "forwardChain": [
+        "a"
+      ],
+      "agentGroups": [],
+      "status": "timeout"
+    },
+    "json": "{\"forwardChain\":[\"a\"],\"agentGroups\":[],\"status\":\"timeout\"}"
+  },
+  {
+    "model": "DiscoveryRoute",
+    "name": "route status error",
+    "input": {
+      "forwardChain": [
+        "a"
+      ],
+      "status": "error"
+    },
+    "ok": true,
+    "dump": {
+      "forwardChain": [
+        "a"
+      ],
+      "agentGroups": [],
+      "status": "error"
+    },
+    "json": "{\"forwardChain\":[\"a\"],\"agentGroups\":[],\"status\":\"error\"}"
+  },
+  {
+    "model": "DiscoveryRoute",
+    "name": "invalid route status",
+    "input": {
+      "forwardChain": [
+        "a"
+      ],
+      "status": "failed"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "status"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'ok', 'timeout' or 'error'"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRoute",
+    "name": "negative duration",
+    "input": {
+      "forwardChain": [
+        "a"
+      ],
+      "durationMs": -1
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "durationMs"
+        ],
+        "type": "greater_than_equal",
+        "msg": "Input should be greater than or equal to 0"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryRoute",
+    "name": "zero duration",
+    "input": {
+      "forwardChain": [
+        "a"
+      ],
+      "durationMs": 0
+    },
+    "ok": true,
+    "dump": {
+      "forwardChain": [
+        "a"
+      ],
+      "agentGroups": [],
+      "durationMs": 0
+    },
+    "json": "{\"forwardChain\":[\"a\"],\"agentGroups\":[],\"durationMs\":0}"
+  },
+  {
+    "model": "DiscoveryRoute",
+    "name": "missing forwardChain",
+    "input": {
+      "agentGroups": []
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "forwardChain"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryResult",
+    "name": "empty result",
+    "input": {},
+    "ok": true,
+    "dump": {
+      "acsMap": {},
+      "agents": []
+    },
+    "json": "{\"acsMap\":{},\"agents\":[]}"
+  },
+  {
+    "model": "DiscoveryResult",
+    "name": "full result",
+    "input": {
+      "acsMap": {
+        "AIC-001": {
+          "name": "FoodAgent",
+          "description": "美食推荐智能体",
+          "iconUrl": null
+        }
+      },
+      "agents": [
+        {
+          "group": "美食推荐",
+          "agentSkills": [
+            {
+              "aic": "AIC-001",
+              "skillId": "food-rec",
+              "ranking": 1
+            }
+          ]
+        }
+      ],
+      "routes": [
+        {
+          "forwardChain": [
+            "AIC-DS-A"
+          ],
+          "agentGroups": [
+            {
+              "group": "美食推荐",
+              "agentSkills": [
+                {
+                  "aic": "AIC-001",
+                  "skillId": "food-rec",
+                  "ranking": 1
+                }
+              ]
+            }
+          ],
+          "status": "ok",
+          "durationMs": 150
+        }
+      ],
+      "aliveMap": {
+        "AIC-001": {
+          "alive": true,
+          "aliveLastSeenAt": null
+        }
+      }
+    },
+    "ok": true,
+    "dump": {
+      "acsMap": {
+        "AIC-001": {
+          "name": "FoodAgent",
+          "description": "美食推荐智能体",
+          "iconUrl": null
+        }
+      },
+      "agents": [
+        {
+          "group": "美食推荐",
+          "agentSkills": [
+            {
+              "aic": "AIC-001",
+              "skillId": "food-rec",
+              "ranking": 1
+            }
+          ]
+        }
+      ],
+      "routes": [
+        {
+          "forwardChain": [
+            "AIC-DS-A"
+          ],
+          "agentGroups": [
+            {
+              "group": "美食推荐",
+              "agentSkills": [
+                {
+                  "aic": "AIC-001",
+                  "skillId": "food-rec",
+                  "ranking": 1
+                }
+              ]
+            }
+          ],
+          "status": "ok",
+          "durationMs": 150
+        }
+      ],
+      "aliveMap": {
+        "AIC-001": {
+          "alive": true,
+          "aliveLastSeenAt": null
+        }
+      }
+    },
+    "json": "{\"acsMap\":{\"AIC-001\":{\"name\":\"FoodAgent\",\"description\":\"美食推荐智能体\",\"iconUrl\":null}},\"agents\":[{\"group\":\"美食推荐\",\"agentSkills\":[{\"aic\":\"AIC-001\",\"skillId\":\"food-rec\",\"ranking\":1}]}],\"routes\":[{\"forwardChain\":[\"AIC-DS-A\"],\"agentGroups\":[{\"group\":\"美食推荐\",\"agentSkills\":[{\"aic\":\"AIC-001\",\"skillId\":\"food-rec\",\"ranking\":1}]}],\"status\":\"ok\",\"durationMs\":150}],\"aliveMap\":{\"AIC-001\":{\"alive\":true,\"aliveLastSeenAt\":null}}}"
+  },
+  {
+    "model": "DiscoveryResult",
+    "name": "aliveMap before routes in input",
+    "input": {
+      "aliveMap": {
+        "AIC-001": {
+          "alive": false
+        }
+      },
+      "routes": [],
+      "agents": [],
+      "acsMap": {}
+    },
+    "ok": true,
+    "dump": {
+      "acsMap": {},
+      "agents": [],
+      "routes": [],
+      "aliveMap": {
+        "AIC-001": {
+          "alive": false
+        }
+      }
+    },
+    "json": "{\"acsMap\":{},\"agents\":[],\"routes\":[],\"aliveMap\":{\"AIC-001\":{\"alive\":false}}}"
+  },
+  {
+    "model": "DiscoveryResult",
+    "name": "null aliveMap and routes",
+    "input": {
+      "aliveMap": null,
+      "routes": null
+    },
+    "ok": true,
+    "dump": {
+      "acsMap": {},
+      "agents": []
+    },
+    "json": "{\"acsMap\":{},\"agents\":[]}"
+  },
+  {
+    "model": "DiscoveryResult",
+    "name": "acsMap values must be dicts",
+    "input": {
+      "acsMap": {
+        "AIC-001": "x"
+      }
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "acsMap",
+          "AIC-001"
+        ],
+        "type": "dict_type",
+        "msg": "Input should be a valid dictionary"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryResult",
+    "name": "aliveMap values must be dicts",
+    "input": {
+      "aliveMap": {
+        "AIC-001": true
+      }
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "aliveMap",
+          "AIC-001"
+        ],
+        "type": "dict_type",
+        "msg": "Input should be a valid dictionary"
+      }
+    ]
+  },
+  {
+    "model": "ErrorDetail",
+    "name": "error with data",
+    "input": {
+      "code": 40001,
+      "message": "MissingQuery",
+      "data": {
+        "k": null
+      }
+    },
+    "ok": true,
+    "dump": {
+      "code": 40001,
+      "message": "MissingQuery",
+      "data": {
+        "k": null
+      }
+    },
+    "json": "{\"code\":40001,\"message\":\"MissingQuery\",\"data\":{\"k\":null}}"
+  },
+  {
+    "model": "ErrorDetail",
+    "name": "error with null data",
+    "input": {
+      "code": 50801,
+      "message": "ForwardLoopDetected",
+      "data": null
+    },
+    "ok": true,
+    "dump": {
+      "code": 50801,
+      "message": "ForwardLoopDetected"
+    },
+    "json": "{\"code\":50801,\"message\":\"ForwardLoopDetected\"}"
+  },
+  {
+    "model": "ErrorDetail",
+    "name": "error with string data",
+    "input": {
+      "code": 1,
+      "message": "m",
+      "data": "detail"
+    },
+    "ok": true,
+    "dump": {
+      "code": 1,
+      "message": "m",
+      "data": "detail"
+    },
+    "json": "{\"code\":1,\"message\":\"m\",\"data\":\"detail\"}"
+  },
+  {
+    "model": "ErrorDetail",
+    "name": "missing message",
+    "input": {
+      "code": 1
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "message"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryResponse",
+    "name": "success response",
+    "input": {
+      "result": {
+        "agents": [
+          {
+            "group": "美食推荐",
+            "agentSkills": [
+              {
+                "aic": "AIC-001",
+                "skillId": "food-rec",
+                "ranking": 1
+              }
+            ]
+          }
+        ],
+        "acsMap": {
+          "AIC-001": {
+            "name": "n"
+          }
+        }
+      }
+    },
+    "ok": true,
+    "dump": {
+      "result": {
+        "acsMap": {
+          "AIC-001": {
+            "name": "n"
+          }
+        },
+        "agents": [
+          {
+            "group": "美食推荐",
+            "agentSkills": [
+              {
+                "aic": "AIC-001",
+                "skillId": "food-rec",
+                "ranking": 1
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "json": "{\"result\":{\"acsMap\":{\"AIC-001\":{\"name\":\"n\"}},\"agents\":[{\"group\":\"美食推荐\",\"agentSkills\":[{\"aic\":\"AIC-001\",\"skillId\":\"food-rec\",\"ranking\":1}]}]}}"
+  },
+  {
+    "model": "DiscoveryResponse",
+    "name": "empty result is success",
+    "input": {
+      "result": {}
+    },
+    "ok": true,
+    "dump": {
+      "result": {
+        "acsMap": {},
+        "agents": []
+      }
+    },
+    "json": "{\"result\":{\"acsMap\":{},\"agents\":[]}}"
+  },
+  {
+    "model": "DiscoveryResponse",
+    "name": "error response",
+    "input": {
+      "error": {
+        "code": 40001,
+        "message": "MissingQuery"
+      }
+    },
+    "ok": true,
+    "dump": {
+      "error": {
+        "code": 40001,
+        "message": "MissingQuery"
+      }
+    },
+    "json": "{\"error\":{\"code\":40001,\"message\":\"MissingQuery\"}}"
+  },
+  {
+    "model": "DiscoveryResponse",
+    "name": "null result with error",
+    "input": {
+      "result": null,
+      "error": {
+        "code": 1,
+        "message": "m",
+        "data": [
+          1
+        ]
+      }
+    },
+    "ok": true,
+    "dump": {
+      "error": {
+        "code": 1,
+        "message": "m",
+        "data": [
+          1
+        ]
+      }
+    },
+    "json": "{\"error\":{\"code\":1,\"message\":\"m\",\"data\":[1]}}"
+  },
+  {
+    "model": "DiscoveryResponse",
+    "name": "both result and error",
+    "input": {
+      "result": {},
+      "error": {
+        "code": 1,
+        "message": "m"
+      }
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "value_error",
+        "msg": "Value error, result 和 error 字段互斥，不能同时存在"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryResponse",
+    "name": "neither result nor error",
+    "input": {},
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "value_error",
+        "msg": "Value error, result 和 error 字段必须至少存在一个"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryResponse",
+    "name": "both null",
+    "input": {
+      "result": null,
+      "error": null
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [],
+        "type": "value_error",
+        "msg": "Value error, result 和 error 字段必须至少存在一个"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryResponse",
+    "name": "field errors suppress the exclusivity check",
+    "input": {
+      "result": {},
+      "error": {
+        "code": "x"
+      }
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "error",
+          "code"
+        ],
+        "type": "int_parsing",
+        "msg": "Input should be a valid integer, unable to parse string as an integer"
+      },
+      {
+        "loc": [
+          "error",
+          "message"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "DiscoveryResponse",
+    "name": "invalid nested skill",
+    "input": {
+      "result": {
+        "agents": [
+          {
+            "group": "g",
+            "agentSkills": [
+              {
+                "aic": "a"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "result",
+          "agents",
+          0,
+          "agentSkills",
+          0,
+          "skillId"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "result",
+          "agents",
+          0,
+          "agentSkills",
+          0,
+          "ranking"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  }
+]

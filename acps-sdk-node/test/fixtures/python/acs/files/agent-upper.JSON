@@ -1,0 +1,99 @@
+{
+  "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+  "active": true,
+  "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+  "protocolVersion": "02.02",
+  "name": "北京城区旅游规划助手",
+  "description": "专门负责北京城六区（东城/西城/朝阳/海淀/丰台/石景山）的旅游景点推荐和行程规划。提供个性化旅游建议，支持亲子游、文化深度游、商务游等多种场景。拒绝超出城区范围的请求，如八达岭长城、古北水镇等郊区景点。",
+  "version": "1.2.0",
+  "iconUrl": "https://cdn.example.com/icons/urban-tour-planner.png",
+  "documentationUrl": "https://docs.example.com/urban-tour-planner",
+  "webAppUrl": "https://demo.example.com/urban-tour-planner",
+  "provider": {
+    "organization": "ACPs工作组",
+    "department": "",
+    "url": "https://ioa.pub",
+    "license": "京ICP备2025124884号-4"
+  },
+  "securitySchemes": {
+    "mtls": {
+      "type": "mutualTLS",
+      "description": "智能体间mTLS双向认证，确保高安全级别通信"
+    },
+    "oidc": {
+      "type": "openIdConnect",
+      "description": "基于OpenID Connect的用户身份认证",
+      "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+    }
+  },
+  "endPoints": [
+    {
+      "url": "https://api.example.com/urban-tour-planner/rpc",
+      "transport": "JSONRPC",
+      "security": [
+        {
+          "mtls": []
+        }
+      ]
+    }
+  ],
+  "capabilities": {
+    "streaming": true,
+    "notification": true,
+    "messageQueue": [
+      "rabbitmq:3.11",
+      "mqtt:5.0"
+    ]
+  },
+  "defaultInputModes": [
+    "text/plain",
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json",
+    "text/markdown"
+  ],
+  "skills": [
+    {
+      "id": "beijing-urban-tour.sight-recommender",
+      "name": "景点推荐",
+      "description": "根据用户需求推荐北京城六区内的旅游景点，提供详细的景点信息、开放时间、门票价格和文化背景介绍。",
+      "version": "1.2.0",
+      "tags": [
+        "旅游",
+        "景点推荐",
+        "北京",
+        "城区",
+        "文化体验",
+        "历史古迹"
+      ],
+      "examples": [
+        "推荐几个适合带小孩的北京城区景点",
+        "我想了解故宫周边有什么文化景点"
+      ],
+      "inputModes": [
+        "text/plain",
+        "application/json"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json",
+        "text/markdown"
+      ]
+    },
+    {
+      "id": "beijing-urban-tour.transport-advisor",
+      "name": "交通指南",
+      "description": "提供北京城区内景点间的最优交通路线建议。",
+      "version": "1.0.0",
+      "tags": [
+        "交通导航",
+        "路线规划"
+      ],
+      "examples": [
+        "从故宫到颐和园怎么走最方便"
+      ]
+    }
+  ]
+}

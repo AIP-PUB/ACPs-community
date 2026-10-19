@@ -1,0 +1,2329 @@
+[
+  {
+    "model": "AgentProvider",
+    "name": "empty provider defaults countryCode",
+    "input": {},
+    "ok": true,
+    "dump": {
+      "countryCode": "CN"
+    },
+    "json": "{\"countryCode\":\"CN\"}"
+  },
+  {
+    "model": "AgentProvider",
+    "name": "explicit null countryCode is dropped",
+    "input": {
+      "countryCode": null
+    },
+    "ok": true,
+    "dump": {},
+    "json": "{}"
+  },
+  {
+    "model": "AgentProvider",
+    "name": "full provider",
+    "input": {
+      "countryCode": "US",
+      "organization": "ACPs工作组",
+      "department": "",
+      "url": "https://ioa.pub",
+      "license": "京ICP备2025124884号-4",
+      "name": "张三",
+      "email": "zhangsan@example.com"
+    },
+    "ok": true,
+    "dump": {
+      "countryCode": "US",
+      "organization": "ACPs工作组",
+      "department": "",
+      "url": "https://ioa.pub",
+      "license": "京ICP备2025124884号-4",
+      "name": "张三",
+      "email": "zhangsan@example.com"
+    },
+    "json": "{\"countryCode\":\"US\",\"organization\":\"ACPs工作组\",\"department\":\"\",\"url\":\"https://ioa.pub\",\"license\":\"京ICP备2025124884号-4\",\"name\":\"张三\",\"email\":\"zhangsan@example.com\"}"
+  },
+  {
+    "model": "AgentProvider",
+    "name": "unknown keys are ignored",
+    "input": {
+      "organization": "o",
+      "phone": "123"
+    },
+    "ok": true,
+    "dump": {
+      "countryCode": "CN",
+      "organization": "o"
+    },
+    "json": "{\"countryCode\":\"CN\",\"organization\":\"o\"}"
+  },
+  {
+    "model": "AgentProvider",
+    "name": "email must be string",
+    "input": {
+      "email": 1
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "email"
+        ],
+        "type": "string_type",
+        "msg": "Input should be a valid string"
+      }
+    ]
+  },
+  {
+    "model": "AgentCapabilities",
+    "name": "defaults messageQueue",
+    "input": {
+      "streaming": true,
+      "notification": false
+    },
+    "ok": true,
+    "dump": {
+      "streaming": true,
+      "notification": false,
+      "messageQueue": []
+    },
+    "json": "{\"streaming\":true,\"notification\":false,\"messageQueue\":[]}"
+  },
+  {
+    "model": "AgentCapabilities",
+    "name": "all protocol versions",
+    "input": {
+      "streaming": false,
+      "notification": true,
+      "messageQueue": [
+        "mqtt:3.1.1",
+        "mqtt:5.0",
+        "amqp:0.9.1",
+        "amqp:1.0",
+        "kafka:2.8",
+        "kafka:3.0",
+        "kafka:3.1",
+        "redis:6.0",
+        "redis:7.0",
+        "redis:7.2",
+        "rabbitmq:3.9",
+        "rabbitmq:3.10",
+        "rabbitmq:3.11"
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "streaming": false,
+      "notification": true,
+      "messageQueue": [
+        "mqtt:3.1.1",
+        "mqtt:5.0",
+        "amqp:0.9.1",
+        "amqp:1.0",
+        "kafka:2.8",
+        "kafka:3.0",
+        "kafka:3.1",
+        "redis:6.0",
+        "redis:7.0",
+        "redis:7.2",
+        "rabbitmq:3.9",
+        "rabbitmq:3.10",
+        "rabbitmq:3.11"
+      ]
+    },
+    "json": "{\"streaming\":false,\"notification\":true,\"messageQueue\":[\"mqtt:3.1.1\",\"mqtt:5.0\",\"amqp:0.9.1\",\"amqp:1.0\",\"kafka:2.8\",\"kafka:3.0\",\"kafka:3.1\",\"redis:6.0\",\"redis:7.0\",\"redis:7.2\",\"rabbitmq:3.9\",\"rabbitmq:3.10\",\"rabbitmq:3.11\"]}"
+  },
+  {
+    "model": "AgentCapabilities",
+    "name": "wildcard version is not in the enum",
+    "input": {
+      "streaming": true,
+      "notification": true,
+      "messageQueue": [
+        "rabbitmq:3.*"
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "messageQueue",
+          0
+        ],
+        "type": "enum",
+        "msg": "Input should be 'mqtt:3.1.1', 'mqtt:5.0', 'amqp:0.9.1', 'amqp:1.0', 'kafka:2.8', 'kafka:3.0', 'kafka:3.1', 'redis:6.0', 'redis:7.0', 'redis:7.2', 'rabbitmq:3.9', 'rabbitmq:3.10' or 'rabbitmq:3.11'"
+      }
+    ]
+  },
+  {
+    "model": "AgentCapabilities",
+    "name": "null messageQueue",
+    "input": {
+      "streaming": true,
+      "notification": true,
+      "messageQueue": null
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "messageQueue"
+        ],
+        "type": "list_type",
+        "msg": "Input should be a valid list"
+      }
+    ]
+  },
+  {
+    "model": "AgentCapabilities",
+    "name": "missing flags",
+    "input": {
+      "messageQueue": []
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "streaming"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "notification"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "MutualTLSSecurityScheme",
+    "name": "type only",
+    "input": {
+      "type": "mutualTLS"
+    },
+    "ok": true,
+    "dump": {
+      "type": "mutualTLS"
+    },
+    "json": "{\"type\":\"mutualTLS\"}"
+  },
+  {
+    "model": "MutualTLSSecurityScheme",
+    "name": "with legacy challenge url",
+    "input": {
+      "type": "mutualTLS",
+      "description": "双向TLS认证",
+      "x-caChallengeBaseUrl": "https://ca.example.com/challenge/v1"
+    },
+    "ok": true,
+    "dump": {
+      "type": "mutualTLS",
+      "description": "双向TLS认证",
+      "x-caChallengeBaseUrl": "https://ca.example.com/challenge/v1"
+    },
+    "json": "{\"type\":\"mutualTLS\",\"description\":\"双向TLS认证\",\"x-caChallengeBaseUrl\":\"https://ca.example.com/challenge/v1\"}"
+  },
+  {
+    "model": "MutualTLSSecurityScheme",
+    "name": "missing type",
+    "input": {
+      "description": "d"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "type"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "MutualTLSSecurityScheme",
+    "name": "wrong type",
+    "input": {
+      "type": "mtls"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'mutualTLS'"
+      }
+    ]
+  },
+  {
+    "model": "OpenIdConnectSecurityScheme",
+    "name": "oidc",
+    "input": {
+      "type": "openIdConnect",
+      "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+    },
+    "ok": true,
+    "dump": {
+      "type": "openIdConnect",
+      "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+    },
+    "json": "{\"type\":\"openIdConnect\",\"openIdConnectUrl\":\"https://auth.example.com/.well-known/openid-configuration\"}"
+  },
+  {
+    "model": "OpenIdConnectSecurityScheme",
+    "name": "missing url",
+    "input": {
+      "type": "openIdConnect"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "openIdConnectUrl"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "APIKeySecurityScheme",
+    "name": "api key",
+    "input": {
+      "type": "apiKey",
+      "name": "X-API-Key",
+      "in": "header"
+    },
+    "ok": true,
+    "dump": {
+      "type": "apiKey",
+      "name": "X-API-Key",
+      "in": "header"
+    },
+    "json": "{\"type\":\"apiKey\",\"name\":\"X-API-Key\",\"in\":\"header\"}"
+  },
+  {
+    "model": "APIKeySecurityScheme",
+    "name": "invalid location",
+    "input": {
+      "type": "apiKey",
+      "name": "k",
+      "in": "body"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "in"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'query', 'header' or 'cookie'"
+      }
+    ]
+  },
+  {
+    "model": "HTTPAuthSecurityScheme",
+    "name": "bearer",
+    "input": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    },
+    "ok": true,
+    "dump": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    },
+    "json": "{\"type\":\"http\",\"scheme\":\"bearer\",\"bearerFormat\":\"JWT\"}"
+  },
+  {
+    "model": "HTTPAuthSecurityScheme",
+    "name": "missing scheme",
+    "input": {
+      "type": "http"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "scheme"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "OAuth2Flow",
+    "name": "flow defaults scopes",
+    "input": {
+      "tokenUrl": "https://auth.example.com/token"
+    },
+    "ok": true,
+    "dump": {
+      "tokenUrl": "https://auth.example.com/token",
+      "scopes": {}
+    },
+    "json": "{\"tokenUrl\":\"https://auth.example.com/token\",\"scopes\":{}}"
+  },
+  {
+    "model": "OAuth2Flow",
+    "name": "scope descriptions must be strings",
+    "input": {
+      "scopes": {
+        "read": 1
+      }
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "scopes",
+          "read"
+        ],
+        "type": "string_type",
+        "msg": "Input should be a valid string"
+      }
+    ]
+  },
+  {
+    "model": "OAuth2Flows",
+    "name": "flows",
+    "input": {
+      "implicit": {
+        "authorizationUrl": "https://auth.example.com/authorize",
+        "scopes": {
+          "read": "读取"
+        }
+      },
+      "password": null,
+      "clientCredentials": {
+        "tokenUrl": "https://auth.example.com/token"
+      },
+      "authorizationCode": {
+        "authorizationUrl": "a",
+        "tokenUrl": "t",
+        "refreshUrl": "r",
+        "scopes": {}
+      }
+    },
+    "ok": true,
+    "dump": {
+      "implicit": {
+        "authorizationUrl": "https://auth.example.com/authorize",
+        "scopes": {
+          "read": "读取"
+        }
+      },
+      "clientCredentials": {
+        "tokenUrl": "https://auth.example.com/token",
+        "scopes": {}
+      },
+      "authorizationCode": {
+        "authorizationUrl": "a",
+        "tokenUrl": "t",
+        "refreshUrl": "r",
+        "scopes": {}
+      }
+    },
+    "json": "{\"implicit\":{\"authorizationUrl\":\"https://auth.example.com/authorize\",\"scopes\":{\"read\":\"读取\"}},\"clientCredentials\":{\"tokenUrl\":\"https://auth.example.com/token\",\"scopes\":{}},\"authorizationCode\":{\"authorizationUrl\":\"a\",\"tokenUrl\":\"t\",\"refreshUrl\":\"r\",\"scopes\":{}}}"
+  },
+  {
+    "model": "OAuth2SecurityScheme",
+    "name": "oauth2",
+    "input": {
+      "type": "oauth2",
+      "flows": {}
+    },
+    "ok": true,
+    "dump": {
+      "type": "oauth2",
+      "flows": {}
+    },
+    "json": "{\"type\":\"oauth2\",\"flows\":{}}"
+  },
+  {
+    "model": "OAuth2SecurityScheme",
+    "name": "missing flows",
+    "input": {
+      "type": "oauth2"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "flows"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union member mutualTLS",
+    "input": {
+      "type": "mutualTLS"
+    },
+    "ok": true,
+    "dump": {
+      "type": "mutualTLS"
+    },
+    "json": "{\"type\":\"mutualTLS\"}"
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union member openIdConnect",
+    "input": {
+      "type": "openIdConnect",
+      "openIdConnectUrl": "u",
+      "description": "d"
+    },
+    "ok": true,
+    "dump": {
+      "type": "openIdConnect",
+      "description": "d",
+      "openIdConnectUrl": "u"
+    },
+    "json": "{\"type\":\"openIdConnect\",\"description\":\"d\",\"openIdConnectUrl\":\"u\"}"
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union member apiKey",
+    "input": {
+      "type": "apiKey",
+      "name": "k",
+      "in": "query"
+    },
+    "ok": true,
+    "dump": {
+      "type": "apiKey",
+      "name": "k",
+      "in": "query"
+    },
+    "json": "{\"type\":\"apiKey\",\"name\":\"k\",\"in\":\"query\"}"
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union member http",
+    "input": {
+      "type": "http",
+      "scheme": "basic"
+    },
+    "ok": true,
+    "dump": {
+      "type": "http",
+      "scheme": "basic"
+    },
+    "json": "{\"type\":\"http\",\"scheme\":\"basic\"}"
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union member oauth2",
+    "input": {
+      "type": "oauth2",
+      "flows": {
+        "password": {
+          "tokenUrl": "t"
+        }
+      }
+    },
+    "ok": true,
+    "dump": {
+      "type": "oauth2",
+      "flows": {
+        "password": {
+          "tokenUrl": "t",
+          "scopes": {}
+        }
+      }
+    },
+    "json": "{\"type\":\"oauth2\",\"flows\":{\"password\":{\"tokenUrl\":\"t\",\"scopes\":{}}}}"
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union member mutualTLS",
+    "input": {
+      "type": "mutualTLS",
+      "openIdConnectUrl": "ignored",
+      "name": "ignored"
+    },
+    "ok": true,
+    "dump": {
+      "type": "mutualTLS"
+    },
+    "json": "{\"type\":\"mutualTLS\"}"
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union rejects unknown type",
+    "input": {
+      "type": "saml"
+    },
+    "ok": false,
+    "compareLocs": false,
+    "errors": [
+      {
+        "loc": [
+          "MutualTLSSecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'mutualTLS'"
+      },
+      {
+        "loc": [
+          "OpenIdConnectSecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'openIdConnect'"
+      },
+      {
+        "loc": [
+          "OpenIdConnectSecurityScheme",
+          "openIdConnectUrl"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "APIKeySecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'apiKey'"
+      },
+      {
+        "loc": [
+          "APIKeySecurityScheme",
+          "name"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "APIKeySecurityScheme",
+          "in"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "HTTPAuthSecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'http'"
+      },
+      {
+        "loc": [
+          "HTTPAuthSecurityScheme",
+          "scheme"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "OAuth2SecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'oauth2'"
+      },
+      {
+        "loc": [
+          "OAuth2SecurityScheme",
+          "flows"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union rejects missing type",
+    "input": {
+      "openIdConnectUrl": "u"
+    },
+    "ok": false,
+    "compareLocs": false,
+    "errors": [
+      {
+        "loc": [
+          "MutualTLSSecurityScheme",
+          "type"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "OpenIdConnectSecurityScheme",
+          "type"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "APIKeySecurityScheme",
+          "type"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "APIKeySecurityScheme",
+          "name"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "APIKeySecurityScheme",
+          "in"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "HTTPAuthSecurityScheme",
+          "type"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "HTTPAuthSecurityScheme",
+          "scheme"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "OAuth2SecurityScheme",
+          "type"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "OAuth2SecurityScheme",
+          "flows"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union rejects member validation fails",
+    "input": {
+      "type": "apiKey",
+      "name": "k"
+    },
+    "ok": false,
+    "compareLocs": false,
+    "errors": [
+      {
+        "loc": [
+          "MutualTLSSecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'mutualTLS'"
+      },
+      {
+        "loc": [
+          "OpenIdConnectSecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'openIdConnect'"
+      },
+      {
+        "loc": [
+          "OpenIdConnectSecurityScheme",
+          "openIdConnectUrl"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "APIKeySecurityScheme",
+          "in"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "HTTPAuthSecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'http'"
+      },
+      {
+        "loc": [
+          "HTTPAuthSecurityScheme",
+          "scheme"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "OAuth2SecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'oauth2'"
+      },
+      {
+        "loc": [
+          "OAuth2SecurityScheme",
+          "flows"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "SecurityScheme",
+    "name": "union rejects not an object",
+    "input": "mutualTLS",
+    "ok": false,
+    "compareLocs": false,
+    "errors": [
+      {
+        "loc": [
+          "MutualTLSSecurityScheme"
+        ],
+        "type": "model_type",
+        "msg": "Input should be a valid dictionary or instance of MutualTLSSecurityScheme"
+      },
+      {
+        "loc": [
+          "OpenIdConnectSecurityScheme"
+        ],
+        "type": "model_type",
+        "msg": "Input should be a valid dictionary or instance of OpenIdConnectSecurityScheme"
+      },
+      {
+        "loc": [
+          "APIKeySecurityScheme"
+        ],
+        "type": "model_type",
+        "msg": "Input should be a valid dictionary or instance of APIKeySecurityScheme"
+      },
+      {
+        "loc": [
+          "HTTPAuthSecurityScheme"
+        ],
+        "type": "model_type",
+        "msg": "Input should be a valid dictionary or instance of HTTPAuthSecurityScheme"
+      },
+      {
+        "loc": [
+          "OAuth2SecurityScheme"
+        ],
+        "type": "model_type",
+        "msg": "Input should be a valid dictionary or instance of OAuth2SecurityScheme"
+      }
+    ]
+  },
+  {
+    "model": "AgentEndPoint",
+    "name": "endpoint with OR/AND security",
+    "input": {
+      "url": "https://api.example.com/rpc",
+      "transport": "JSONRPC",
+      "security": [
+        {
+          "mtls": []
+        },
+        {
+          "oidc": [
+            "openid",
+            "profile"
+          ],
+          "mtls": []
+        }
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "url": "https://api.example.com/rpc",
+      "transport": "JSONRPC",
+      "security": [
+        {
+          "mtls": []
+        },
+        {
+          "oidc": [
+            "openid",
+            "profile"
+          ],
+          "mtls": []
+        }
+      ]
+    },
+    "json": "{\"url\":\"https://api.example.com/rpc\",\"transport\":\"JSONRPC\",\"security\":[{\"mtls\":[]},{\"oidc\":[\"openid\",\"profile\"],\"mtls\":[]}]}"
+  },
+  {
+    "model": "AgentEndPoint",
+    "name": "endpoint without security",
+    "input": {
+      "url": "u",
+      "transport": "HTTP_JSON"
+    },
+    "ok": true,
+    "dump": {
+      "url": "u",
+      "transport": "HTTP_JSON"
+    },
+    "json": "{\"url\":\"u\",\"transport\":\"HTTP_JSON\"}"
+  },
+  {
+    "model": "AgentEndPoint",
+    "name": "security scopes must be lists",
+    "input": {
+      "url": "u",
+      "transport": "t",
+      "security": [
+        {
+          "mtls": "x"
+        }
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "security",
+          0,
+          "mtls"
+        ],
+        "type": "list_type",
+        "msg": "Input should be a valid list"
+      }
+    ]
+  },
+  {
+    "model": "AgentEndPoint",
+    "name": "missing transport",
+    "input": {
+      "url": "u"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "transport"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "AgentSkill",
+    "name": "minimal skill defaults tags",
+    "input": {
+      "id": "s",
+      "name": "n",
+      "description": "d",
+      "version": "1"
+    },
+    "ok": true,
+    "dump": {
+      "id": "s",
+      "name": "n",
+      "description": "d",
+      "version": "1",
+      "tags": []
+    },
+    "json": "{\"id\":\"s\",\"name\":\"n\",\"description\":\"d\",\"version\":\"1\",\"tags\":[]}"
+  },
+  {
+    "model": "AgentSkill",
+    "name": "skill with null optionals",
+    "input": {
+      "id": "s",
+      "name": "n",
+      "description": "d",
+      "version": "1",
+      "examples": null,
+      "inputModes": null,
+      "outputModes": null
+    },
+    "ok": true,
+    "dump": {
+      "id": "s",
+      "name": "n",
+      "description": "d",
+      "version": "1",
+      "tags": []
+    },
+    "json": "{\"id\":\"s\",\"name\":\"n\",\"description\":\"d\",\"version\":\"1\",\"tags\":[]}"
+  },
+  {
+    "model": "AgentSkill",
+    "name": "spec skill",
+    "input": {
+      "id": "beijing-urban-tour.sight-recommender",
+      "name": "景点推荐",
+      "description": "根据用户需求推荐北京城六区内的旅游景点，提供详细的景点信息、开放时间、门票价格和文化背景介绍。",
+      "version": "1.2.0",
+      "tags": [
+        "旅游",
+        "景点推荐",
+        "北京",
+        "城区",
+        "文化体验",
+        "历史古迹"
+      ],
+      "examples": [
+        "推荐几个适合带小孩的北京城区景点",
+        "我想了解故宫周边有什么文化景点"
+      ],
+      "inputModes": [
+        "text/plain",
+        "application/json"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json",
+        "text/markdown"
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "id": "beijing-urban-tour.sight-recommender",
+      "name": "景点推荐",
+      "description": "根据用户需求推荐北京城六区内的旅游景点，提供详细的景点信息、开放时间、门票价格和文化背景介绍。",
+      "version": "1.2.0",
+      "tags": [
+        "旅游",
+        "景点推荐",
+        "北京",
+        "城区",
+        "文化体验",
+        "历史古迹"
+      ],
+      "examples": [
+        "推荐几个适合带小孩的北京城区景点",
+        "我想了解故宫周边有什么文化景点"
+      ],
+      "inputModes": [
+        "text/plain",
+        "application/json"
+      ],
+      "outputModes": [
+        "text/plain",
+        "application/json",
+        "text/markdown"
+      ]
+    },
+    "json": "{\"id\":\"beijing-urban-tour.sight-recommender\",\"name\":\"景点推荐\",\"description\":\"根据用户需求推荐北京城六区内的旅游景点，提供详细的景点信息、开放时间、门票价格和文化背景介绍。\",\"version\":\"1.2.0\",\"tags\":[\"旅游\",\"景点推荐\",\"北京\",\"城区\",\"文化体验\",\"历史古迹\"],\"examples\":[\"推荐几个适合带小孩的北京城区景点\",\"我想了解故宫周边有什么文化景点\"],\"inputModes\":[\"text/plain\",\"application/json\"],\"outputModes\":[\"text/plain\",\"application/json\",\"text/markdown\"]}"
+  },
+  {
+    "model": "AgentSkill",
+    "name": "missing id and version",
+    "input": {
+      "name": "n",
+      "description": "d"
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "id"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "version"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "AgentSkill",
+    "name": "tags must be strings",
+    "input": {
+      "id": "s",
+      "name": "n",
+      "description": "d",
+      "version": "1",
+      "tags": [
+        "a",
+        2
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "tags",
+          1
+        ],
+        "type": "string_type",
+        "msg": "Input should be a valid string"
+      }
+    ]
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "spec example 4.1 as published (wildcard messageQueue)",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": true,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "北京城区旅游规划助手",
+      "description": "专门负责北京城六区（东城/西城/朝阳/海淀/丰台/石景山）的旅游景点推荐和行程规划。提供个性化旅游建议，支持亲子游、文化深度游、商务游等多种场景。拒绝超出城区范围的请求，如八达岭长城、古北水镇等郊区景点。",
+      "version": "1.2.0",
+      "iconUrl": "https://cdn.example.com/icons/urban-tour-planner.png",
+      "documentationUrl": "https://docs.example.com/urban-tour-planner",
+      "webAppUrl": "https://demo.example.com/urban-tour-planner",
+      "provider": {
+        "organization": "ACPs工作组",
+        "department": "",
+        "url": "https://ioa.pub",
+        "license": "京ICP备2025124884号-4"
+      },
+      "securitySchemes": {
+        "mtls": {
+          "type": "mutualTLS",
+          "description": "智能体间mTLS双向认证，确保高安全级别通信"
+        },
+        "oidc": {
+          "type": "openIdConnect",
+          "description": "基于OpenID Connect的用户身份认证",
+          "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+        }
+      },
+      "endPoints": [
+        {
+          "url": "https://api.example.com/urban-tour-planner/rpc",
+          "transport": "JSONRPC",
+          "security": [
+            {
+              "mtls": []
+            }
+          ]
+        }
+      ],
+      "capabilities": {
+        "streaming": true,
+        "notification": true,
+        "messageQueue": [
+          "rabbitmq:3.*"
+        ]
+      },
+      "defaultInputModes": [
+        "text/plain",
+        "application/json"
+      ],
+      "defaultOutputModes": [
+        "text/plain",
+        "application/json",
+        "text/markdown"
+      ],
+      "skills": [
+        {
+          "id": "beijing-urban-tour.sight-recommender",
+          "name": "景点推荐",
+          "description": "根据用户需求推荐北京城六区内的旅游景点，提供详细的景点信息、开放时间、门票价格和文化背景介绍。",
+          "version": "1.2.0",
+          "tags": [
+            "旅游",
+            "景点推荐",
+            "北京",
+            "城区",
+            "文化体验",
+            "历史古迹"
+          ],
+          "examples": [
+            "推荐几个适合带小孩的北京城区景点",
+            "我想了解故宫周边有什么文化景点"
+          ],
+          "inputModes": [
+            "text/plain",
+            "application/json"
+          ],
+          "outputModes": [
+            "text/plain",
+            "application/json",
+            "text/markdown"
+          ]
+        },
+        {
+          "id": "beijing-urban-tour.transport-advisor",
+          "name": "交通指南",
+          "description": "提供北京城区内景点间的最优交通路线建议。",
+          "version": "1.0.0",
+          "tags": [
+            "交通导航",
+            "路线规划"
+          ],
+          "examples": [
+            "从故宫到颐和园怎么走最方便"
+          ]
+        }
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "capabilities",
+          "messageQueue",
+          0
+        ],
+        "type": "enum",
+        "msg": "Input should be 'mqtt:3.1.1', 'mqtt:5.0', 'amqp:0.9.1', 'amqp:1.0', 'kafka:2.8', 'kafka:3.0', 'kafka:3.1', 'redis:6.0', 'redis:7.0', 'redis:7.2', 'rabbitmq:3.9', 'rabbitmq:3.10' or 'rabbitmq:3.11'"
+      }
+    ]
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "spec example 4.1 with enum messageQueue",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": true,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "北京城区旅游规划助手",
+      "description": "专门负责北京城六区（东城/西城/朝阳/海淀/丰台/石景山）的旅游景点推荐和行程规划。提供个性化旅游建议，支持亲子游、文化深度游、商务游等多种场景。拒绝超出城区范围的请求，如八达岭长城、古北水镇等郊区景点。",
+      "version": "1.2.0",
+      "iconUrl": "https://cdn.example.com/icons/urban-tour-planner.png",
+      "documentationUrl": "https://docs.example.com/urban-tour-planner",
+      "webAppUrl": "https://demo.example.com/urban-tour-planner",
+      "provider": {
+        "organization": "ACPs工作组",
+        "department": "",
+        "url": "https://ioa.pub",
+        "license": "京ICP备2025124884号-4"
+      },
+      "securitySchemes": {
+        "mtls": {
+          "type": "mutualTLS",
+          "description": "智能体间mTLS双向认证，确保高安全级别通信"
+        },
+        "oidc": {
+          "type": "openIdConnect",
+          "description": "基于OpenID Connect的用户身份认证",
+          "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+        }
+      },
+      "endPoints": [
+        {
+          "url": "https://api.example.com/urban-tour-planner/rpc",
+          "transport": "JSONRPC",
+          "security": [
+            {
+              "mtls": []
+            }
+          ]
+        }
+      ],
+      "capabilities": {
+        "streaming": true,
+        "notification": true,
+        "messageQueue": [
+          "rabbitmq:3.11"
+        ]
+      },
+      "defaultInputModes": [
+        "text/plain",
+        "application/json"
+      ],
+      "defaultOutputModes": [
+        "text/plain",
+        "application/json",
+        "text/markdown"
+      ],
+      "skills": [
+        {
+          "id": "beijing-urban-tour.sight-recommender",
+          "name": "景点推荐",
+          "description": "根据用户需求推荐北京城六区内的旅游景点，提供详细的景点信息、开放时间、门票价格和文化背景介绍。",
+          "version": "1.2.0",
+          "tags": [
+            "旅游",
+            "景点推荐",
+            "北京",
+            "城区",
+            "文化体验",
+            "历史古迹"
+          ],
+          "examples": [
+            "推荐几个适合带小孩的北京城区景点",
+            "我想了解故宫周边有什么文化景点"
+          ],
+          "inputModes": [
+            "text/plain",
+            "application/json"
+          ],
+          "outputModes": [
+            "text/plain",
+            "application/json",
+            "text/markdown"
+          ]
+        },
+        {
+          "id": "beijing-urban-tour.transport-advisor",
+          "name": "交通指南",
+          "description": "提供北京城区内景点间的最优交通路线建议。",
+          "version": "1.0.0",
+          "tags": [
+            "交通导航",
+            "路线规划"
+          ],
+          "examples": [
+            "从故宫到颐和园怎么走最方便"
+          ]
+        }
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": true,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "北京城区旅游规划助手",
+      "description": "专门负责北京城六区（东城/西城/朝阳/海淀/丰台/石景山）的旅游景点推荐和行程规划。提供个性化旅游建议，支持亲子游、文化深度游、商务游等多种场景。拒绝超出城区范围的请求，如八达岭长城、古北水镇等郊区景点。",
+      "version": "1.2.0",
+      "iconUrl": "https://cdn.example.com/icons/urban-tour-planner.png",
+      "documentationUrl": "https://docs.example.com/urban-tour-planner",
+      "webAppUrl": "https://demo.example.com/urban-tour-planner",
+      "provider": {
+        "countryCode": "CN",
+        "organization": "ACPs工作组",
+        "department": "",
+        "url": "https://ioa.pub",
+        "license": "京ICP备2025124884号-4"
+      },
+      "securitySchemes": {
+        "mtls": {
+          "type": "mutualTLS",
+          "description": "智能体间mTLS双向认证，确保高安全级别通信"
+        },
+        "oidc": {
+          "type": "openIdConnect",
+          "description": "基于OpenID Connect的用户身份认证",
+          "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+        }
+      },
+      "endPoints": [
+        {
+          "url": "https://api.example.com/urban-tour-planner/rpc",
+          "transport": "JSONRPC",
+          "security": [
+            {
+              "mtls": []
+            }
+          ]
+        }
+      ],
+      "capabilities": {
+        "streaming": true,
+        "notification": true,
+        "messageQueue": [
+          "rabbitmq:3.11"
+        ]
+      },
+      "defaultInputModes": [
+        "text/plain",
+        "application/json"
+      ],
+      "defaultOutputModes": [
+        "text/plain",
+        "application/json",
+        "text/markdown"
+      ],
+      "skills": [
+        {
+          "id": "beijing-urban-tour.sight-recommender",
+          "name": "景点推荐",
+          "description": "根据用户需求推荐北京城六区内的旅游景点，提供详细的景点信息、开放时间、门票价格和文化背景介绍。",
+          "version": "1.2.0",
+          "tags": [
+            "旅游",
+            "景点推荐",
+            "北京",
+            "城区",
+            "文化体验",
+            "历史古迹"
+          ],
+          "examples": [
+            "推荐几个适合带小孩的北京城区景点",
+            "我想了解故宫周边有什么文化景点"
+          ],
+          "inputModes": [
+            "text/plain",
+            "application/json"
+          ],
+          "outputModes": [
+            "text/plain",
+            "application/json",
+            "text/markdown"
+          ]
+        },
+        {
+          "id": "beijing-urban-tour.transport-advisor",
+          "name": "交通指南",
+          "description": "提供北京城区内景点间的最优交通路线建议。",
+          "version": "1.0.0",
+          "tags": [
+            "交通导航",
+            "路线规划"
+          ],
+          "examples": [
+            "从故宫到颐和园怎么走最方便"
+          ]
+        }
+      ]
+    },
+    "json": "{\"aic\":\"1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN\",\"active\":true,\"lastModifiedTime\":\"2025-03-15T16:30:00+08:00\",\"protocolVersion\":\"02.02\",\"name\":\"北京城区旅游规划助手\",\"description\":\"专门负责北京城六区（东城/西城/朝阳/海淀/丰台/石景山）的旅游景点推荐和行程规划。提供个性化旅游建议，支持亲子游、文化深度游、商务游等多种场景。拒绝超出城区范围的请求，如八达岭长城、古北水镇等郊区景点。\",\"version\":\"1.2.0\",\"iconUrl\":\"https://cdn.example.com/icons/urban-tour-planner.png\",\"documentationUrl\":\"https://docs.example.com/urban-tour-planner\",\"webAppUrl\":\"https://demo.example.com/urban-tour-planner\",\"provider\":{\"countryCode\":\"CN\",\"organization\":\"ACPs工作组\",\"department\":\"\",\"url\":\"https://ioa.pub\",\"license\":\"京ICP备2025124884号-4\"},\"securitySchemes\":{\"mtls\":{\"type\":\"mutualTLS\",\"description\":\"智能体间mTLS双向认证，确保高安全级别通信\"},\"oidc\":{\"type\":\"openIdConnect\",\"description\":\"基于OpenID Connect的用户身份认证\",\"openIdConnectUrl\":\"https://auth.example.com/.well-known/openid-configuration\"}},\"endPoints\":[{\"url\":\"https://api.example.com/urban-tour-planner/rpc\",\"transport\":\"JSONRPC\",\"security\":[{\"mtls\":[]}]}],\"capabilities\":{\"streaming\":true,\"notification\":true,\"messageQueue\":[\"rabbitmq:3.11\"]},\"defaultInputModes\":[\"text/plain\",\"application/json\"],\"defaultOutputModes\":[\"text/plain\",\"application/json\",\"text/markdown\"],\"skills\":[{\"id\":\"beijing-urban-tour.sight-recommender\",\"name\":\"景点推荐\",\"description\":\"根据用户需求推荐北京城六区内的旅游景点，提供详细的景点信息、开放时间、门票价格和文化背景介绍。\",\"version\":\"1.2.0\",\"tags\":[\"旅游\",\"景点推荐\",\"北京\",\"城区\",\"文化体验\",\"历史古迹\"],\"examples\":[\"推荐几个适合带小孩的北京城区景点\",\"我想了解故宫周边有什么文化景点\"],\"inputModes\":[\"text/plain\",\"application/json\"],\"outputModes\":[\"text/plain\",\"application/json\",\"text/markdown\"]},{\"id\":\"beijing-urban-tour.transport-advisor\",\"name\":\"交通指南\",\"description\":\"提供北京城区内景点间的最优交通路线建议。\",\"version\":\"1.0.0\",\"tags\":[\"交通导航\",\"路线规划\"],\"examples\":[\"从故宫到颐和园怎么走最方便\"]}]}"
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "spec example 4.2 as published (range messageQueue)",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDE.3GF546.1.0RBK",
+      "active": true,
+      "lastModifiedTime": "2025-04-10T09:45:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "全国范围旅游助手",
+      "description": "提供中国全国范围内的旅游信息服务和行程规划。",
+      "version": "2.2.0",
+      "iconUrl": "https://cdn.example.com/icons/national-tour-guide.png",
+      "provider": {
+        "organization": "ACPs工作组",
+        "department": "",
+        "url": "https://ioa.pub",
+        "license": "京ICP备2025124884号-4"
+      },
+      "securitySchemes": {
+        "mtls": {
+          "type": "mutualTLS",
+          "description": "智能体间高安全级别通信认证"
+        },
+        "oidc": {
+          "type": "openIdConnect",
+          "description": "用户身份认证和授权管理",
+          "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+        }
+      },
+      "endPoints": [
+        {
+          "url": "https://api.example.com/national-tour-guide/v2",
+          "transport": "HTTP_JSON",
+          "security": [
+            {
+              "oidc": [
+                "openid",
+                "profile",
+                "tour:coordinate"
+              ]
+            }
+          ]
+        },
+        {
+          "url": "https://api.example.com/national-tour-guide/rpc",
+          "transport": "JSONRPC",
+          "security": [
+            {
+              "mtls": []
+            }
+          ]
+        }
+      ],
+      "capabilities": {
+        "streaming": true,
+        "notification": true,
+        "messageQueue": [
+          "kafka:>=2.8 <4.0",
+          "mqtt:5.*"
+        ]
+      },
+      "defaultInputModes": [
+        "text/plain",
+        "application/json",
+        "image/jpeg"
+      ],
+      "defaultOutputModes": [
+        "text/plain",
+        "application/json",
+        "text/markdown",
+        "application/xml"
+      ],
+      "skills": [
+        {
+          "id": "national-tour:agent-coordination",
+          "name": "智能体协调",
+          "description": "作为Leader角色，协调和调度其他地区专业旅游智能体。",
+          "version": "1.5.0",
+          "tags": [
+            "智能体协调",
+            "任务调度"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/json",
+            "application/xml"
+          ]
+        }
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "capabilities",
+          "messageQueue",
+          0
+        ],
+        "type": "enum",
+        "msg": "Input should be 'mqtt:3.1.1', 'mqtt:5.0', 'amqp:0.9.1', 'amqp:1.0', 'kafka:2.8', 'kafka:3.0', 'kafka:3.1', 'redis:6.0', 'redis:7.0', 'redis:7.2', 'rabbitmq:3.9', 'rabbitmq:3.10' or 'rabbitmq:3.11'"
+      },
+      {
+        "loc": [
+          "capabilities",
+          "messageQueue",
+          1
+        ],
+        "type": "enum",
+        "msg": "Input should be 'mqtt:3.1.1', 'mqtt:5.0', 'amqp:0.9.1', 'amqp:1.0', 'kafka:2.8', 'kafka:3.0', 'kafka:3.1', 'redis:6.0', 'redis:7.0', 'redis:7.2', 'rabbitmq:3.9', 'rabbitmq:3.10' or 'rabbitmq:3.11'"
+      }
+    ]
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "spec example 4.2 with enum messageQueue",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDE.3GF546.1.0RBK",
+      "active": true,
+      "lastModifiedTime": "2025-04-10T09:45:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "全国范围旅游助手",
+      "description": "提供中国全国范围内的旅游信息服务和行程规划。",
+      "version": "2.2.0",
+      "iconUrl": "https://cdn.example.com/icons/national-tour-guide.png",
+      "provider": {
+        "organization": "ACPs工作组",
+        "department": "",
+        "url": "https://ioa.pub",
+        "license": "京ICP备2025124884号-4"
+      },
+      "securitySchemes": {
+        "mtls": {
+          "type": "mutualTLS",
+          "description": "智能体间高安全级别通信认证"
+        },
+        "oidc": {
+          "type": "openIdConnect",
+          "description": "用户身份认证和授权管理",
+          "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+        }
+      },
+      "endPoints": [
+        {
+          "url": "https://api.example.com/national-tour-guide/v2",
+          "transport": "HTTP_JSON",
+          "security": [
+            {
+              "oidc": [
+                "openid",
+                "profile",
+                "tour:coordinate"
+              ]
+            }
+          ]
+        },
+        {
+          "url": "https://api.example.com/national-tour-guide/rpc",
+          "transport": "JSONRPC",
+          "security": [
+            {
+              "mtls": []
+            }
+          ]
+        }
+      ],
+      "capabilities": {
+        "streaming": true,
+        "notification": true,
+        "messageQueue": [
+          "kafka:3.1",
+          "mqtt:5.0"
+        ]
+      },
+      "defaultInputModes": [
+        "text/plain",
+        "application/json",
+        "image/jpeg"
+      ],
+      "defaultOutputModes": [
+        "text/plain",
+        "application/json",
+        "text/markdown",
+        "application/xml"
+      ],
+      "skills": [
+        {
+          "id": "national-tour:agent-coordination",
+          "name": "智能体协调",
+          "description": "作为Leader角色，协调和调度其他地区专业旅游智能体。",
+          "version": "1.5.0",
+          "tags": [
+            "智能体协调",
+            "任务调度"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/json",
+            "application/xml"
+          ]
+        }
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "aic": "1.2.156.3088.1.34C2.478BDE.3GF546.1.0RBK",
+      "active": true,
+      "lastModifiedTime": "2025-04-10T09:45:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "全国范围旅游助手",
+      "description": "提供中国全国范围内的旅游信息服务和行程规划。",
+      "version": "2.2.0",
+      "iconUrl": "https://cdn.example.com/icons/national-tour-guide.png",
+      "provider": {
+        "countryCode": "CN",
+        "organization": "ACPs工作组",
+        "department": "",
+        "url": "https://ioa.pub",
+        "license": "京ICP备2025124884号-4"
+      },
+      "securitySchemes": {
+        "mtls": {
+          "type": "mutualTLS",
+          "description": "智能体间高安全级别通信认证"
+        },
+        "oidc": {
+          "type": "openIdConnect",
+          "description": "用户身份认证和授权管理",
+          "openIdConnectUrl": "https://auth.example.com/.well-known/openid-configuration"
+        }
+      },
+      "endPoints": [
+        {
+          "url": "https://api.example.com/national-tour-guide/v2",
+          "transport": "HTTP_JSON",
+          "security": [
+            {
+              "oidc": [
+                "openid",
+                "profile",
+                "tour:coordinate"
+              ]
+            }
+          ]
+        },
+        {
+          "url": "https://api.example.com/national-tour-guide/rpc",
+          "transport": "JSONRPC",
+          "security": [
+            {
+              "mtls": []
+            }
+          ]
+        }
+      ],
+      "capabilities": {
+        "streaming": true,
+        "notification": true,
+        "messageQueue": [
+          "kafka:3.1",
+          "mqtt:5.0"
+        ]
+      },
+      "defaultInputModes": [
+        "text/plain",
+        "application/json",
+        "image/jpeg"
+      ],
+      "defaultOutputModes": [
+        "text/plain",
+        "application/json",
+        "text/markdown",
+        "application/xml"
+      ],
+      "skills": [
+        {
+          "id": "national-tour:agent-coordination",
+          "name": "智能体协调",
+          "description": "作为Leader角色，协调和调度其他地区专业旅游智能体。",
+          "version": "1.5.0",
+          "tags": [
+            "智能体协调",
+            "任务调度"
+          ],
+          "inputModes": [
+            "application/json"
+          ],
+          "outputModes": [
+            "application/json",
+            "application/xml"
+          ]
+        }
+      ]
+    },
+    "json": "{\"aic\":\"1.2.156.3088.1.34C2.478BDE.3GF546.1.0RBK\",\"active\":true,\"lastModifiedTime\":\"2025-04-10T09:45:00+08:00\",\"protocolVersion\":\"02.02\",\"name\":\"全国范围旅游助手\",\"description\":\"提供中国全国范围内的旅游信息服务和行程规划。\",\"version\":\"2.2.0\",\"iconUrl\":\"https://cdn.example.com/icons/national-tour-guide.png\",\"provider\":{\"countryCode\":\"CN\",\"organization\":\"ACPs工作组\",\"department\":\"\",\"url\":\"https://ioa.pub\",\"license\":\"京ICP备2025124884号-4\"},\"securitySchemes\":{\"mtls\":{\"type\":\"mutualTLS\",\"description\":\"智能体间高安全级别通信认证\"},\"oidc\":{\"type\":\"openIdConnect\",\"description\":\"用户身份认证和授权管理\",\"openIdConnectUrl\":\"https://auth.example.com/.well-known/openid-configuration\"}},\"endPoints\":[{\"url\":\"https://api.example.com/national-tour-guide/v2\",\"transport\":\"HTTP_JSON\",\"security\":[{\"oidc\":[\"openid\",\"profile\",\"tour:coordinate\"]}]},{\"url\":\"https://api.example.com/national-tour-guide/rpc\",\"transport\":\"JSONRPC\",\"security\":[{\"mtls\":[]}]}],\"capabilities\":{\"streaming\":true,\"notification\":true,\"messageQueue\":[\"kafka:3.1\",\"mqtt:5.0\"]},\"defaultInputModes\":[\"text/plain\",\"application/json\",\"image/jpeg\"],\"defaultOutputModes\":[\"text/plain\",\"application/json\",\"text/markdown\",\"application/xml\"],\"skills\":[{\"id\":\"national-tour:agent-coordination\",\"name\":\"智能体协调\",\"description\":\"作为Leader角色，协调和调度其他地区专业旅游智能体。\",\"version\":\"1.5.0\",\"tags\":[\"智能体协调\",\"任务调度\"],\"inputModes\":[\"application/json\"],\"outputModes\":[\"application/json\",\"application/xml\"]}]}"
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "minimal spec gets defaults",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {},
+      "securitySchemes": {},
+      "capabilities": {
+        "streaming": false,
+        "notification": false
+      }
+    },
+    "ok": true,
+    "dump": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {
+        "countryCode": "CN"
+      },
+      "securitySchemes": {},
+      "endPoints": [],
+      "capabilities": {
+        "streaming": false,
+        "notification": false,
+        "messageQueue": []
+      },
+      "defaultInputModes": [],
+      "defaultOutputModes": [],
+      "skills": []
+    },
+    "json": "{\"aic\":\"1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN\",\"active\":false,\"lastModifiedTime\":\"2025-03-15T16:30:00+08:00\",\"protocolVersion\":\"02.02\",\"name\":\"n\",\"description\":\"d\",\"version\":\"1.0.0\",\"provider\":{\"countryCode\":\"CN\"},\"securitySchemes\":{},\"endPoints\":[],\"capabilities\":{\"streaming\":false,\"notification\":false,\"messageQueue\":[]},\"defaultInputModes\":[],\"defaultOutputModes\":[],\"skills\":[]}"
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "entity fields keep nested null",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {},
+      "securitySchemes": {},
+      "capabilities": {
+        "streaming": false,
+        "notification": false
+      },
+      "entityUserId": "user-1",
+      "entityMeta": {
+        "location": "Beijing",
+        "tags": null
+      }
+    },
+    "ok": true,
+    "dump": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {
+        "countryCode": "CN"
+      },
+      "securitySchemes": {},
+      "endPoints": [],
+      "capabilities": {
+        "streaming": false,
+        "notification": false,
+        "messageQueue": []
+      },
+      "defaultInputModes": [],
+      "defaultOutputModes": [],
+      "skills": [],
+      "entityUserId": "user-1",
+      "entityMeta": {
+        "location": "Beijing",
+        "tags": null
+      }
+    },
+    "json": "{\"aic\":\"1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN\",\"active\":false,\"lastModifiedTime\":\"2025-03-15T16:30:00+08:00\",\"protocolVersion\":\"02.02\",\"name\":\"n\",\"description\":\"d\",\"version\":\"1.0.0\",\"provider\":{\"countryCode\":\"CN\"},\"securitySchemes\":{},\"endPoints\":[],\"capabilities\":{\"streaming\":false,\"notification\":false,\"messageQueue\":[]},\"defaultInputModes\":[],\"defaultOutputModes\":[],\"skills\":[],\"entityUserId\":\"user-1\",\"entityMeta\":{\"location\":\"Beijing\",\"tags\":null}}"
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "all security scheme types",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {},
+      "securitySchemes": {
+        "mtls": {
+          "type": "mutualTLS",
+          "x-caChallengeBaseUrl": "https://ca.example.com/c"
+        },
+        "oidc": {
+          "type": "openIdConnect",
+          "openIdConnectUrl": "u"
+        },
+        "key": {
+          "type": "apiKey",
+          "name": "k",
+          "in": "cookie"
+        },
+        "basic": {
+          "type": "http",
+          "scheme": "basic"
+        },
+        "oauth": {
+          "type": "oauth2",
+          "flows": {
+            "clientCredentials": {
+              "tokenUrl": "t",
+              "scopes": {
+                "a": "b"
+              }
+            }
+          }
+        }
+      },
+      "capabilities": {
+        "streaming": false,
+        "notification": false
+      }
+    },
+    "ok": true,
+    "dump": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {
+        "countryCode": "CN"
+      },
+      "securitySchemes": {
+        "mtls": {
+          "type": "mutualTLS",
+          "x-caChallengeBaseUrl": "https://ca.example.com/c"
+        },
+        "oidc": {
+          "type": "openIdConnect",
+          "openIdConnectUrl": "u"
+        },
+        "key": {
+          "type": "apiKey",
+          "name": "k",
+          "in": "cookie"
+        },
+        "basic": {
+          "type": "http",
+          "scheme": "basic"
+        },
+        "oauth": {
+          "type": "oauth2",
+          "flows": {
+            "clientCredentials": {
+              "tokenUrl": "t",
+              "scopes": {
+                "a": "b"
+              }
+            }
+          }
+        }
+      },
+      "endPoints": [],
+      "capabilities": {
+        "streaming": false,
+        "notification": false,
+        "messageQueue": []
+      },
+      "defaultInputModes": [],
+      "defaultOutputModes": [],
+      "skills": []
+    },
+    "json": "{\"aic\":\"1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN\",\"active\":false,\"lastModifiedTime\":\"2025-03-15T16:30:00+08:00\",\"protocolVersion\":\"02.02\",\"name\":\"n\",\"description\":\"d\",\"version\":\"1.0.0\",\"provider\":{\"countryCode\":\"CN\"},\"securitySchemes\":{\"mtls\":{\"type\":\"mutualTLS\",\"x-caChallengeBaseUrl\":\"https://ca.example.com/c\"},\"oidc\":{\"type\":\"openIdConnect\",\"openIdConnectUrl\":\"u\"},\"key\":{\"type\":\"apiKey\",\"name\":\"k\",\"in\":\"cookie\"},\"basic\":{\"type\":\"http\",\"scheme\":\"basic\"},\"oauth\":{\"type\":\"oauth2\",\"flows\":{\"clientCredentials\":{\"tokenUrl\":\"t\",\"scopes\":{\"a\":\"b\"}}}}},\"endPoints\":[],\"capabilities\":{\"streaming\":false,\"notification\":false,\"messageQueue\":[]},\"defaultInputModes\":[],\"defaultOutputModes\":[],\"skills\":[]}"
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "unknown keys are ignored",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {},
+      "securitySchemes": {},
+      "capabilities": {
+        "streaming": false,
+        "notification": false
+      },
+      "extensions": {
+        "x": 1
+      },
+      "registry": "r"
+    },
+    "ok": true,
+    "dump": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {
+        "countryCode": "CN"
+      },
+      "securitySchemes": {},
+      "endPoints": [],
+      "capabilities": {
+        "streaming": false,
+        "notification": false,
+        "messageQueue": []
+      },
+      "defaultInputModes": [],
+      "defaultOutputModes": [],
+      "skills": []
+    },
+    "json": "{\"aic\":\"1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN\",\"active\":false,\"lastModifiedTime\":\"2025-03-15T16:30:00+08:00\",\"protocolVersion\":\"02.02\",\"name\":\"n\",\"description\":\"d\",\"version\":\"1.0.0\",\"provider\":{\"countryCode\":\"CN\"},\"securitySchemes\":{},\"endPoints\":[],\"capabilities\":{\"streaming\":false,\"notification\":false,\"messageQueue\":[]},\"defaultInputModes\":[],\"defaultOutputModes\":[],\"skills\":[]}"
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "explicit null optionals",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {
+        "countryCode": null
+      },
+      "securitySchemes": {},
+      "capabilities": {
+        "streaming": false,
+        "notification": false
+      },
+      "iconUrl": null,
+      "documentationUrl": null,
+      "webAppUrl": null,
+      "entityUserId": null,
+      "entityMeta": null
+    },
+    "ok": true,
+    "dump": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {},
+      "securitySchemes": {},
+      "endPoints": [],
+      "capabilities": {
+        "streaming": false,
+        "notification": false,
+        "messageQueue": []
+      },
+      "defaultInputModes": [],
+      "defaultOutputModes": [],
+      "skills": []
+    },
+    "json": "{\"aic\":\"1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN\",\"active\":false,\"lastModifiedTime\":\"2025-03-15T16:30:00+08:00\",\"protocolVersion\":\"02.02\",\"name\":\"n\",\"description\":\"d\",\"version\":\"1.0.0\",\"provider\":{},\"securitySchemes\":{},\"endPoints\":[],\"capabilities\":{\"streaming\":false,\"notification\":false,\"messageQueue\":[]},\"defaultInputModes\":[],\"defaultOutputModes\":[],\"skills\":[]}"
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "empty object",
+    "input": {},
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "aic"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "active"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "lastModifiedTime"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "protocolVersion"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "name"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "description"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "version"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "provider"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "securitySchemes"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "capabilities"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "null endPoints",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {},
+      "securitySchemes": {},
+      "capabilities": {
+        "streaming": false,
+        "notification": false
+      },
+      "endPoints": null
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "endPoints"
+        ],
+        "type": "list_type",
+        "msg": "Input should be a valid list"
+      }
+    ]
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "invalid nested provider and skill",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {
+        "url": 1
+      },
+      "securitySchemes": {},
+      "capabilities": {
+        "streaming": false,
+        "notification": false
+      },
+      "skills": [
+        {
+          "id": "s"
+        }
+      ]
+    },
+    "ok": false,
+    "compareLocs": true,
+    "errors": [
+      {
+        "loc": [
+          "provider",
+          "url"
+        ],
+        "type": "string_type",
+        "msg": "Input should be a valid string"
+      },
+      {
+        "loc": [
+          "skills",
+          0,
+          "name"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "skills",
+          0,
+          "description"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "skills",
+          0,
+          "version"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "invalid security scheme member",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": false,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {},
+      "securitySchemes": {
+        "bad": {
+          "type": "saml"
+        }
+      },
+      "capabilities": {
+        "streaming": false,
+        "notification": false
+      }
+    },
+    "ok": false,
+    "compareLocs": false,
+    "errors": [
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "MutualTLSSecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'mutualTLS'"
+      },
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "OpenIdConnectSecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'openIdConnect'"
+      },
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "OpenIdConnectSecurityScheme",
+          "openIdConnectUrl"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "APIKeySecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'apiKey'"
+      },
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "APIKeySecurityScheme",
+          "name"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "APIKeySecurityScheme",
+          "in"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "HTTPAuthSecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'http'"
+      },
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "HTTPAuthSecurityScheme",
+          "scheme"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      },
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "OAuth2SecurityScheme",
+          "type"
+        ],
+        "type": "literal_error",
+        "msg": "Input should be 'oauth2'"
+      },
+      {
+        "loc": [
+          "securitySchemes",
+          "bad",
+          "OAuth2SecurityScheme",
+          "flows"
+        ],
+        "type": "missing",
+        "msg": "Field required"
+      }
+    ]
+  }
+]
