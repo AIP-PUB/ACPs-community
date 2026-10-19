@@ -1,0 +1,896 @@
+{
+  "configs": [
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": " https://idp.example/realms/a// ",
+        "audience": " api "
+      },
+      "expected": {
+        "value": {
+          "issuer": "https://idp.example/realms/a",
+          "audience": "api",
+          "allowed_azp": [],
+          "client_id": null,
+          "algorithms": [
+            "EdDSA"
+          ],
+          "jwks_cache_ttl_seconds": 300,
+          "discovery_cache_ttl_seconds": 300,
+          "leeway_seconds": 30,
+          "require_https": true,
+          "http_timeout_seconds": 5.0,
+          "claim_mapping": {
+            "resource_client_id": null,
+            "read_client_roles": true,
+            "read_realm_roles": false,
+            "read_groups": true,
+            "username_claims": [
+              "preferred_username",
+              "username"
+            ],
+            "name_claims": [
+              "name",
+              "preferred_username"
+            ],
+            "email_claim": "email",
+            "email_verified_claim": "email_verified",
+            "tenant_claim": "tenant_id",
+            "allowed_aics_claim": "allowed_aics"
+          }
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "allowed_azp": "web",
+        "algorithms": [
+          " ES256 ",
+          "ES256",
+          "",
+          "EdDSA"
+        ]
+      },
+      "expected": {
+        "value": {
+          "issuer": "x",
+          "audience": "a",
+          "allowed_azp": [
+            "web"
+          ],
+          "client_id": null,
+          "algorithms": [
+            "ES256",
+            "EdDSA"
+          ],
+          "jwks_cache_ttl_seconds": 300,
+          "discovery_cache_ttl_seconds": 300,
+          "leeway_seconds": 30,
+          "require_https": true,
+          "http_timeout_seconds": 5.0,
+          "claim_mapping": {
+            "resource_client_id": null,
+            "read_client_roles": true,
+            "read_realm_roles": false,
+            "read_groups": true,
+            "username_claims": [
+              "preferred_username",
+              "username"
+            ],
+            "name_claims": [
+              "name",
+              "preferred_username"
+            ],
+            "email_claim": "email",
+            "email_verified_claim": "email_verified",
+            "tenant_claim": "tenant_id",
+            "allowed_aics_claim": "allowed_aics"
+          }
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "allowed_azp": null,
+        "algorithms": null
+      },
+      "expected": {
+        "value": {
+          "issuer": "x",
+          "audience": "a",
+          "allowed_azp": [],
+          "client_id": null,
+          "algorithms": [],
+          "jwks_cache_ttl_seconds": 300,
+          "discovery_cache_ttl_seconds": 300,
+          "leeway_seconds": 30,
+          "require_https": true,
+          "http_timeout_seconds": 5.0,
+          "claim_mapping": {
+            "resource_client_id": null,
+            "read_client_roles": true,
+            "read_realm_roles": false,
+            "read_groups": true,
+            "username_claims": [
+              "preferred_username",
+              "username"
+            ],
+            "name_claims": [
+              "name",
+              "preferred_username"
+            ],
+            "email_claim": "email",
+            "email_verified_claim": "email_verified",
+            "tenant_claim": "tenant_id",
+            "allowed_aics_claim": "allowed_aics"
+          }
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "algorithms": [
+          1,
+          true,
+          null,
+          1.5,
+          2.5e-05
+        ]
+      },
+      "expected": {
+        "value": {
+          "issuer": "x",
+          "audience": "a",
+          "allowed_azp": [],
+          "client_id": null,
+          "algorithms": [
+            "1",
+            "True",
+            "None",
+            "1.5",
+            "2.5e-05"
+          ],
+          "jwks_cache_ttl_seconds": 300,
+          "discovery_cache_ttl_seconds": 300,
+          "leeway_seconds": 30,
+          "require_https": true,
+          "http_timeout_seconds": 5.0,
+          "claim_mapping": {
+            "resource_client_id": null,
+            "read_client_roles": true,
+            "read_realm_roles": false,
+            "read_groups": true,
+            "username_claims": [
+              "preferred_username",
+              "username"
+            ],
+            "name_claims": [
+              "name",
+              "preferred_username"
+            ],
+            "email_claim": "email",
+            "email_verified_claim": "email_verified",
+            "tenant_claim": "tenant_id",
+            "allowed_aics_claim": "allowed_aics"
+          }
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "allowed_azp": {
+          "web": 1,
+          "cli": 2
+        }
+      },
+      "expected": {
+        "value": {
+          "issuer": "x",
+          "audience": "a",
+          "allowed_azp": [
+            "web",
+            "cli"
+          ],
+          "client_id": null,
+          "algorithms": [
+            "EdDSA"
+          ],
+          "jwks_cache_ttl_seconds": 300,
+          "discovery_cache_ttl_seconds": 300,
+          "leeway_seconds": 30,
+          "require_https": true,
+          "http_timeout_seconds": 5.0,
+          "claim_mapping": {
+            "resource_client_id": null,
+            "read_client_roles": true,
+            "read_realm_roles": false,
+            "read_groups": true,
+            "username_claims": [
+              "preferred_username",
+              "username"
+            ],
+            "name_claims": [
+              "name",
+              "preferred_username"
+            ],
+            "email_claim": "email",
+            "email_verified_claim": "email_verified",
+            "tenant_claim": "tenant_id",
+            "allowed_aics_claim": "allowed_aics"
+          }
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "algorithms": 5
+      },
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "value must be a string or iterable of strings"
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": " / ",
+        "audience": "a"
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "issuer"
+              ],
+              "type": "value_error",
+              "msg": "issuer must not be empty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "　"
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "audience"
+              ],
+              "type": "value_error",
+              "msg": "audience must not be empty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "leeway_seconds": -1,
+        "http_timeout_seconds": 0
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "leeway_seconds"
+              ],
+              "type": "value_error",
+              "msg": "value must be >= 0"
+            },
+            {
+              "loc": [
+                "http_timeout_seconds"
+              ],
+              "type": "value_error",
+              "msg": "http_timeout_seconds must be > 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "jwks_cache_ttl_seconds": 0,
+        "discovery_cache_ttl_seconds": 0,
+        "require_https": false,
+        "client_id": "rs"
+      },
+      "expected": {
+        "value": {
+          "issuer": "x",
+          "audience": "a",
+          "allowed_azp": [],
+          "client_id": "rs",
+          "algorithms": [
+            "EdDSA"
+          ],
+          "jwks_cache_ttl_seconds": 0,
+          "discovery_cache_ttl_seconds": 0,
+          "leeway_seconds": 30,
+          "require_https": false,
+          "http_timeout_seconds": 5.0,
+          "claim_mapping": {
+            "resource_client_id": null,
+            "read_client_roles": true,
+            "read_realm_roles": false,
+            "read_groups": true,
+            "username_claims": [
+              "preferred_username",
+              "username"
+            ],
+            "name_claims": [
+              "name",
+              "preferred_username"
+            ],
+            "email_claim": "email",
+            "email_verified_claim": "email_verified",
+            "tenant_claim": "tenant_id",
+            "allowed_aics_claim": "allowed_aics"
+          }
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "unknown_field": 1
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "unknown_field"
+              ],
+              "type": "extra_forbidden",
+              "msg": "Extra inputs are not permitted"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "claim_mapping": {
+          "resource_client_id": "api",
+          "username_claims": "nick"
+        }
+      },
+      "expected": {
+        "value": {
+          "issuer": "x",
+          "audience": "a",
+          "allowed_azp": [],
+          "client_id": null,
+          "algorithms": [
+            "EdDSA"
+          ],
+          "jwks_cache_ttl_seconds": 300,
+          "discovery_cache_ttl_seconds": 300,
+          "leeway_seconds": 30,
+          "require_https": true,
+          "http_timeout_seconds": 5.0,
+          "claim_mapping": {
+            "resource_client_id": "api",
+            "read_client_roles": true,
+            "read_realm_roles": false,
+            "read_groups": true,
+            "username_claims": [
+              "nick"
+            ],
+            "name_claims": [
+              "name",
+              "preferred_username"
+            ],
+            "email_claim": "email",
+            "email_verified_claim": "email_verified",
+            "tenant_claim": "tenant_id",
+            "allowed_aics_claim": "allowed_aics"
+          }
+        }
+      }
+    },
+    {
+      "model": "OidcProviderConfig",
+      "input": {
+        "issuer": "x",
+        "audience": "a",
+        "claim_mapping": {
+          "bogus": true
+        }
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "claim_mapping",
+                "bogus"
+              ],
+              "type": "extra_forbidden",
+              "msg": "Extra inputs are not permitted"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "model": "KeycloakClaimMapping",
+      "input": {},
+      "expected": {
+        "value": {
+          "resource_client_id": null,
+          "read_client_roles": true,
+          "read_realm_roles": false,
+          "read_groups": true,
+          "username_claims": [
+            "preferred_username",
+            "username"
+          ],
+          "name_claims": [
+            "name",
+            "preferred_username"
+          ],
+          "email_claim": "email",
+          "email_verified_claim": "email_verified",
+          "tenant_claim": "tenant_id",
+          "allowed_aics_claim": "allowed_aics"
+        }
+      }
+    },
+    {
+      "model": "KeycloakClaimMapping",
+      "input": {
+        "username_claims": null,
+        "name_claims": [
+          " a ",
+          "a",
+          "b"
+        ]
+      },
+      "expected": {
+        "value": {
+          "resource_client_id": null,
+          "read_client_roles": true,
+          "read_realm_roles": false,
+          "read_groups": true,
+          "username_claims": [],
+          "name_claims": [
+            "a",
+            "b"
+          ],
+          "email_claim": "email",
+          "email_verified_claim": "email_verified",
+          "tenant_claim": "tenant_id",
+          "allowed_aics_claim": "allowed_aics"
+        }
+      }
+    },
+    {
+      "model": "KeycloakClaimMapping",
+      "input": {
+        "username_claims": 5
+      },
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "claim list must be a string or iterable of strings"
+        }
+      }
+    },
+    {
+      "model": "OidcDeviceClientConfig",
+      "input": {
+        "issuer": " https://idp.example/realms/a/ ",
+        "client_id": " cli "
+      },
+      "expected": {
+        "value": {
+          "issuer": "https://idp.example/realms/a",
+          "client_id": "cli",
+          "scopes": [],
+          "http_timeout_seconds": 5.0,
+          "require_https": true
+        }
+      }
+    },
+    {
+      "model": "OidcDeviceClientConfig",
+      "input": {
+        "issuer": "x",
+        "client_id": "c",
+        "scopes": "openid  profile openid\temail"
+      },
+      "expected": {
+        "value": {
+          "issuer": "x",
+          "client_id": "c",
+          "scopes": [
+            "openid",
+            "profile",
+            "email"
+          ],
+          "http_timeout_seconds": 5.0,
+          "require_https": true
+        }
+      }
+    },
+    {
+      "model": "OidcDeviceClientConfig",
+      "input": {
+        "issuer": "x",
+        "client_id": "c",
+        "scopes": [
+          "openid",
+          " profile ",
+          "",
+          "openid",
+          7
+        ]
+      },
+      "expected": {
+        "value": {
+          "issuer": "x",
+          "client_id": "c",
+          "scopes": [
+            "openid",
+            "profile",
+            "7"
+          ],
+          "http_timeout_seconds": 5.0,
+          "require_https": true
+        }
+      }
+    },
+    {
+      "model": "OidcDeviceClientConfig",
+      "input": {
+        "issuer": "x",
+        "client_id": "c",
+        "scopes": null
+      },
+      "expected": {
+        "value": {
+          "issuer": "x",
+          "client_id": "c",
+          "scopes": [],
+          "http_timeout_seconds": 5.0,
+          "require_https": true
+        }
+      }
+    },
+    {
+      "model": "OidcDeviceClientConfig",
+      "input": {
+        "issuer": "x",
+        "client_id": "c",
+        "scopes": 123
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "scopes"
+              ],
+              "type": "value_error",
+              "msg": "scopes must be a string or iterable of strings"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "model": "OidcDeviceClientConfig",
+      "input": {
+        "issuer": "x",
+        "client_id": " "
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "client_id"
+              ],
+              "type": "value_error",
+              "msg": "client_id must not be empty"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "model": "OidcDeviceClientConfig",
+      "input": {
+        "issuer": "x",
+        "client_id": "c",
+        "http_timeout_seconds": -1
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "http_timeout_seconds"
+              ],
+              "type": "value_error",
+              "msg": "http_timeout_seconds must be > 0"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "token_responses": [
+    {
+      "input": {
+        "access_token": "a"
+      },
+      "expected": {
+        "value": {
+          "access_token": "**********",
+          "token_type": "Bearer",
+          "expires_in": null,
+          "refresh_token": null,
+          "refresh_expires_in": null,
+          "scope": null,
+          "id_token": null
+        },
+        "access_token_value": "a",
+        "refresh_token_value": null,
+        "id_token_value": null
+      }
+    },
+    {
+      "input": {
+        "access_token": "a",
+        "token_type": null
+      },
+      "expected": {
+        "value": {
+          "access_token": "**********",
+          "token_type": "Bearer",
+          "expires_in": null,
+          "refresh_token": null,
+          "refresh_expires_in": null,
+          "scope": null,
+          "id_token": null
+        },
+        "access_token_value": "a",
+        "refresh_token_value": null,
+        "id_token_value": null
+      }
+    },
+    {
+      "input": {
+        "access_token": "a",
+        "token_type": ""
+      },
+      "expected": {
+        "value": {
+          "access_token": "**********",
+          "token_type": "Bearer",
+          "expires_in": null,
+          "refresh_token": null,
+          "refresh_expires_in": null,
+          "scope": null,
+          "id_token": null
+        },
+        "access_token_value": "a",
+        "refresh_token_value": null,
+        "id_token_value": null
+      }
+    },
+    {
+      "input": {
+        "access_token": "a",
+        "token_type": " BEARER "
+      },
+      "expected": {
+        "value": {
+          "access_token": "**********",
+          "token_type": "Bearer",
+          "expires_in": null,
+          "refresh_token": null,
+          "refresh_expires_in": null,
+          "scope": null,
+          "id_token": null
+        },
+        "access_token_value": "a",
+        "refresh_token_value": null,
+        "id_token_value": null
+      }
+    },
+    {
+      "input": {
+        "access_token": "a",
+        "token_type": "mac"
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "token_type"
+              ],
+              "type": "value_error",
+              "msg": "token_type must be Bearer"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "input": {
+        "access_token": "a",
+        "token_type": 5
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "token_type"
+              ],
+              "type": "value_error",
+              "msg": "token_type must be Bearer"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "input": {
+        "access_token": "a",
+        "expires_in": 300,
+        "refresh_token": "r",
+        "refresh_expires_in": 0,
+        "scope": "openid",
+        "id_token": "i",
+        "session_state": "s",
+        "not-before-policy": 0
+      },
+      "expected": {
+        "value": {
+          "access_token": "**********",
+          "token_type": "Bearer",
+          "expires_in": 300,
+          "refresh_token": "**********",
+          "refresh_expires_in": 0,
+          "scope": "openid",
+          "id_token": "**********",
+          "session_state": "s",
+          "not-before-policy": 0
+        },
+        "access_token_value": "a",
+        "refresh_token_value": "r",
+        "id_token_value": "i"
+      }
+    },
+    {
+      "input": {
+        "access_token": "a",
+        "expires_in": -1
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "expires_in"
+              ],
+              "type": "value_error",
+              "msg": "value must be >= 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "input": {
+        "access_token": "",
+        "refresh_token": ""
+      },
+      "expected": {
+        "value": {
+          "access_token": "",
+          "token_type": "Bearer",
+          "expires_in": null,
+          "refresh_token": "",
+          "refresh_expires_in": null,
+          "scope": null,
+          "id_token": null
+        },
+        "access_token_value": "",
+        "refresh_token_value": "",
+        "id_token_value": null
+      }
+    },
+    {
+      "input": {
+        "token_type": "Bearer"
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "access_token"
+              ],
+              "type": "missing",
+              "msg": "Field required"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "input": {
+        "access_token": 5
+      },
+      "expected": {
+        "error": {
+          "type": "ValidationError",
+          "issues": [
+            {
+              "loc": [
+                "access_token"
+              ],
+              "type": "string_type",
+              "msg": "Input should be a valid string"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

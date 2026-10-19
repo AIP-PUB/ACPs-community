@@ -1,0 +1,2623 @@
+{
+  "config": {
+    "issuer": "https://issuer.example/realms/acps-fixture",
+    "audience": "fixture-api",
+    "allowed_azp": [
+      "fixture-web"
+    ],
+    "algorithms": [
+      "EdDSA",
+      "RS256",
+      "ES256",
+      "ES384",
+      "HS256",
+      "none"
+    ],
+    "claim_mapping": {
+      "resource_client_id": "fixture-api",
+      "read_realm_roles": true
+    }
+  },
+  "discovery": {
+    "issuer": "https://issuer.example/realms/acps-fixture/",
+    "jwks_uri": "https://issuer.example/realms/acps-fixture/protocol/openid-connect/certs"
+  },
+  "jwks_uri": "https://issuer.example/realms/acps-fixture/protocol/openid-connect/certs",
+  "jwks": {
+    "keys": [
+      {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "kid": "fixture-kid",
+        "alg": "EdDSA",
+        "use": "sig",
+        "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      },
+      {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "kid": "noalg-kid",
+        "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      },
+      {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "kid": "enc-kid",
+        "use": "enc",
+        "x": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      },
+      {
+        "kty": "EC",
+        "crv": "P-256",
+        "kid": "ec-kid",
+        "alg": "ES256",
+        "use": "sig",
+        "x": "XNTOzEJInpjtP_cUmAUfeA82SG1NRNhn2ZgYV4Tn2lc",
+        "y": "7vcaQNamrRE9R7vzEQvxGFw65GMxerAGcwQ6vLzUBUs"
+      },
+      {
+        "kty": "OKP",
+        "crv": "Ed448",
+        "kid": "ed448-kid",
+        "x": "GNCnDkKnQt-1YSeYkzhQYde02tj2_u1HkeqrZrL0pPAvwJRiqL-xhC0LrGDoobPlW6JAfzMibzgA"
+      },
+      {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "kid": "badx-kid",
+        "alg": "EdDSA",
+        "x": "AAAA"
+      },
+      {
+        "kty": "RSA",
+        "kid": "rsa-kid",
+        "alg": "RS256",
+        "use": "sig",
+        "n": "vzDUKOcGqtyhEq2ZiACoQu6_Cd1rxL_mS1LYwLP4vk3MhdNu-vWkCRR5--XRmjYaIvnC5DGqkWVfpPh4pOo7IoX1hzpD-M75RShd-pVHmBR48PwDO2iCb4CNf-hPW_bFjhhd3Xns2_VsdtQQN_yorIkoVhdbO7ObsWjoVg0fDremnQQ_dUuC-JUAFjG562P2swBTBAv__LdOZZ4IV3KNwQYdwDZwulDhJwsnqDPvkg3GtwqlBQZHHRlUt1WDS2dB8_DNHBnOcSajHmos5CqmlWCNa0tIcp1HtDc6eFXmQTG3CHYtOL9JHcsTlYJWLDmeNIll_i5ssG-0vblNH6NyBw",
+        "e": "AQAB"
+      },
+      {
+        "kty": "RSA",
+        "kid": "rsa-noalg-kid",
+        "n": "vzDUKOcGqtyhEq2ZiACoQu6_Cd1rxL_mS1LYwLP4vk3MhdNu-vWkCRR5--XRmjYaIvnC5DGqkWVfpPh4pOo7IoX1hzpD-M75RShd-pVHmBR48PwDO2iCb4CNf-hPW_bFjhhd3Xns2_VsdtQQN_yorIkoVhdbO7ObsWjoVg0fDremnQQ_dUuC-JUAFjG562P2swBTBAv__LdOZZ4IV3KNwQYdwDZwulDhJwsnqDPvkg3GtwqlBQZHHRlUt1WDS2dB8_DNHBnOcSajHmos5CqmlWCNa0tIcp1HtDc6eFXmQTG3CHYtOL9JHcsTlYJWLDmeNIll_i5ssG-0vblNH6NyBw",
+        "e": "AQAB"
+      },
+      "not-a-jwk-object"
+    ]
+  },
+  "cases": [
+    {
+      "name": "valid_full",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_aud_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6ImZpeHR1cmUtYXBpIiwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.0pi6A0intbXJZlj9x9-l5iNtj4PtFD3bgKlvLpLFBjr8LgtoyiHbqEfRzYWY6s8q51-58S2mYFI7Wc9Mf8OzAQ",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": "fixture-api",
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_minimal_claims",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1LTEiLCJhdWQiOiJmaXh0dXJlLWFwaSIsImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwfQ.1_9ImQP44iiH6_RInn8tkxGg5sMVjAqNZ50Wg1_eaRfp_KSGm0a33c42zscMWfDsEY4PDMhJX5dDwd0MD0IADg",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "87900b252c3f22b44a6797a3e2fd9e8146f17ba097804b0da9b08b6dd54c6178",
+            "audiences": [
+              "fixture-api"
+            ],
+            "azp": "fixture-web",
+            "username": null,
+            "name": null,
+            "email": null,
+            "email_verified": null,
+            "tenant_id": null,
+            "allowed_aics": [],
+            "roles": [],
+            "scopes": [],
+            "groups": []
+          },
+          "subject": "u-1",
+          "principal_key": "https://issuer.example/realms/acps-fixture#u-1",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "u-1",
+            "aud": "fixture-api",
+            "azp": "fixture-web",
+            "exp": 4102444800
+          },
+          "audit_actor": {
+            "id": "87900b252c3f22b44a6797a3e2fd9e8146f17ba097804b0da9b08b6dd54c6178",
+            "type": "human"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_iat_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6IjE3MDAwMDAwMDAiLCJuYmYiOjE3MDAwMDAwMDAsImp0aSI6Imp0aS0xIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiIGFsaWNlICIsIm5hbWUiOiJBbGljZSBMaWRkZWxsIiwiZW1haWwiOiJhbGljZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJ0ZW5hbnRfaWQiOiIgdGVuYW50LTEgIiwiYWxsb3dlZF9haWNzIjoiYWljLTEsIGFpYy0yLCxhaWMtMSIsInNjb3BlIjoic2Vzc2lvbjpyZWFkICBzZXNzaW9uOndyaXRlXHRzZXNzaW9uOnJlYWQiLCJncm91cHMiOlsiL29wcyIsIiAvb3BzICIsIi9tb25pdG9yIl0sInJlc291cmNlX2FjY2VzcyI6eyJmaXh0dXJlLWFwaSI6eyJyb2xlcyI6WyJVU0VSIiwiQURNSU4iLCJVU0VSIl19LCJvdGhlciI6eyJyb2xlcyI6WyJYIl19fSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlJFQUxNX0FETUlOIiwiVVNFUiJdfX0.zhr41hanjqZKiI8XHAMDH2uPLc4JZrZw85BXTkwgWMJ1lUtIBBmZh35uHMYWWIlTSemgQnNXTw_eNUc97HVNAA",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": "1700000000",
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_iat_nbf_float",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMC45LCJuYmYiOjE3MDAwMDAwMDAuNSwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.YXkz0GbnxJSLDp2mfaqLHhg4R5_tweQlMAWIrI_nByJUhv6WZrlfXj_6GYOehxbMwgj57h5_tNztedaBam2ACg",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000.9,
+            "nbf": 1700000000.5,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_exp_string_whitespace",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOiIgNDEwMjQ0NDgwMCAiLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.Fw6DzPiDUTlHvcRB_Z4kWOK77LoKydqhpSkq7oEpID_uPPpdHMsnVje4O9SHbJxol3uOpceUOTHNAG9QzeBOBQ",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": " 4102444800 ",
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_exp_string_underscores",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOiI0XzEwMl80NDRfODAwIiwiaWF0IjoxNzAwMDAwMDAwLCJuYmYiOjE3MDAwMDAwMDAsImp0aSI6Imp0aS0xIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiIGFsaWNlICIsIm5hbWUiOiJBbGljZSBMaWRkZWxsIiwiZW1haWwiOiJhbGljZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJ0ZW5hbnRfaWQiOiIgdGVuYW50LTEgIiwiYWxsb3dlZF9haWNzIjoiYWljLTEsIGFpYy0yLCxhaWMtMSIsInNjb3BlIjoic2Vzc2lvbjpyZWFkICBzZXNzaW9uOndyaXRlXHRzZXNzaW9uOnJlYWQiLCJncm91cHMiOlsiL29wcyIsIiAvb3BzICIsIi9tb25pdG9yIl0sInJlc291cmNlX2FjY2VzcyI6eyJmaXh0dXJlLWFwaSI6eyJyb2xlcyI6WyJVU0VSIiwiQURNSU4iLCJVU0VSIl19LCJvdGhlciI6eyJyb2xlcyI6WyJYIl19fSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlJFQUxNX0FETUlOIiwiVVNFUiJdfX0.2xdukxoAx88QCpsKRPsxYpwNTLnIGTWnvVTPwQArtQqY8NAId51cKF-ygQx9y8w83xuNenpJC_sxLc7Prs9lDQ",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": "4_102_444_800",
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_iat_bool",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6dHJ1ZSwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.4xC9ScptOHwnEHdlhstTLPB9NmMqHrT5ySiCwm4Wd-dg2NuHmRflLjoSkiDEAGIW5mjTZJ-HbhI71L-q-vosBg",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": true,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_noalg_kid",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6Im5vYWxnLWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.N3c-Z6Khf6UZQBaZlqO8wDnXm7RiPJI5j1OevTpKMNtDCSQlLaJc9wfxYnURf_ZBgauxzUhe2LAMT8H5zELiDQ",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_crit_b64_true",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIiwiYjY0Ijp0cnVlLCJjcml0IjpbImI2NCJdfQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.Hck8uuw2MZ5hE8vVKV7k87KJsiLw-Z0-LbNd1QI0w_P2c_Wj9xOSY_nExZHpxzPt7oHdkts6es4ASwXLrovFCA",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_unicode_claims",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiXHU1ZjIwXHU0ZTA5IFx1ZDgzZFx1ZGUwMCIsImVtYWlsIjoiXHU1ZjIwXHU0ZTA5QGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.eDMtIkkwZCNvVGQ4f2xqF2OTRCwpNW71DMlbqp9KdrUPArfUiKGxVn2Mn873c13wxLdOCciXx7EnbXv3dztICw",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "张三 😀",
+            "email": "张三@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "张三 😀",
+            "email": "张三@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "张三 😀",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_email_verified_null",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjpudWxsLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOm51bGwsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.KWPd-dw9i0CtGTtItlicsLqj3wASnlnBVCET8XSTu64iZD-MOWZcYdLjwcHBqW60IxyATVoLlGVDjr9Dt2A1Cg",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "alice",
+            "email": "alice@example.com",
+            "email_verified": null,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": null,
+            "email": "alice@example.com",
+            "email_verified": null,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "alice",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_proto_like_claim_names",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsIm5hbWUiOiJBbGljZSBMaWRkZWxsIiwiZW1haWwiOiJhbGljZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJ0ZW5hbnRfaWQiOiIgdGVuYW50LTEgIiwiYWxsb3dlZF9haWNzIjoiYWljLTEsIGFpYy0yLCxhaWMtMSIsInNjb3BlIjoic2Vzc2lvbjpyZWFkICBzZXNzaW9uOndyaXRlXHRzZXNzaW9uOnJlYWQiLCJncm91cHMiOlsiL29wcyIsIiAvb3BzICIsIi9tb25pdG9yIl0sInJlc291cmNlX2FjY2VzcyI6eyJmaXh0dXJlLWFwaSI6eyJyb2xlcyI6WyJVU0VSIiwiQURNSU4iLCJVU0VSIl19LCJvdGhlciI6eyJyb2xlcyI6WyJYIl19fSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlJFQUxNX0FETUlOIiwiVVNFUiJdfSwiY29uc3RydWN0b3IiOiJ4IiwidG9TdHJpbmciOiJ5In0.ksE29b5_mWdYwOe_H4DKfTZ5KIsXnqNMpjW9skLkU0LifoaRJCK5JOfVBZkSc76nB-e4Yq96Vj2eNeB9KJp2Ag",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": null,
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            },
+            "constructor": "x",
+            "toString": "y"
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_dict_resource_access_roles_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOiJBLCBCICxBIn19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.3649TNp-IuD3vHnx9aGCQNPf1Y8-acTvgxbaOFg5SMMNojXyOYD7m-X-PM_kbzEWq6rvHtiNmeGkHWdKoHRHAA",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "A",
+              "B",
+              "REALM_ADMIN",
+              "USER"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": "A, B ,A"
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "A,B,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_rs256",
+      "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InJzYS1raWQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.lHS-e_ProPLrbNSIt_CjxqZViPpqwO-BRZce8Q-NnWtmdin3lKRPRhg7aDDyu3i8RxXOMFRh5k88x4Hf5xBbI0hbGG-sUzMLez3Yw2oidpc1uXzRJQeuRcKQ4xD__fl6xwi_oaZwLYLETpVwlIdwmpav1lXmuf1iHZRFpWcDaL7OV3ruMcA_qQoVgDqQ6OSr-1FWzQQu0RzshH3pVCg0JwVUi1heCyquNj2yzA5Gz8DgytN5N3-PPrIFotVkaex_HAqDesv5fmR_KLOmdLYm44oSVs1CfFFVkoIwPGrumt1BbSiNnfIDlw4K9yvyVSxDdOYKiSxOUvf1UhLFVpHcZg",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_rs256_noalg_jwk",
+      "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InJzYS1ub2FsZy1raWQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.DkuPigurqTJDtVp9dz3peChfopBTy-RehhHXqYuKy-ZEmNi-LKvM_6sHIYZ7X2SJJMpTLh1HpziruRJ_u-JNnjwv2WTnL7VPn7NzcTalmHU8IeFWGozvS5MFhUPYc4hkTWBxBQvQg0jEJui8SZUc8MbYVM_uH1zqTLzcmprD2SFxK-fRYgDKcZ5a_MggkfNTviNAaf8VMcdP_tBdbJr9EfTe7LZD0rAFlsYsvMlGQ_5L7zSa6o8AnUoV38Z4zQZk2JB_NR8Y10prrLiEhblxGo_rzhtG_45TbEjg5nfaXmwjKYuTRvA6R725v02fapzU325ebEp5LLiM8zRqNJZY7Q",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "valid_es256",
+      "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImVjLWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.6ao6CStykVLKL6di1kGk63RWeTm7jQnTYD7kDXLxVwytykjKL8bfem-lg86A8h1LuCp15Yc_6Yv7BNiPmfFtgw",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "rs256_signed_by_other_key",
+      "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InJzYS1raWQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.eSLSzvfE0MqaVR6IwyiDN_K1B7durbSJpgtHOdbjpR8AQwzy8HnCbZOSHLMBAHNnqCvTRnSiqhA63J8zXspQ_oFihRexWGj1jcD_hsJbIKQrmXhZ8vonPGB9s4KSej9oGPwHUPBnyuKpyZFsbSitb3j2hB5YMG4TtWBRYfoA1BVb1W6KjWYnSqelDUut5KlhZaEzQljAG_qpk9QLVRoInXv0P54F0mCDgXDINtQ_jQro4Y0BPlpkE2PxZjmMD-dyIf6wplEhHwrDeZRqM-P1AdL2j1tNss_q-6nLenq5Gebel6MsL76OgaPIlXAeKE5_JOZndTA2ZBziwC80--H2pg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Signature verification failed"
+        }
+      }
+    },
+    {
+      "name": "rs256_tampered_payload",
+      "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InJzYS1raWQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJtYWxsb3J5IiwiYXVkIjpbImZpeHR1cmUtYXBpIiwiYWNjb3VudCJdLCJhenAiOiJmaXh0dXJlLXdlYiIsImV4cCI6NDEwMjQ0NDgwMCwiaWF0IjoxNzAwMDAwMDAwLCJuYmYiOjE3MDAwMDAwMDAsImp0aSI6Imp0aS0xIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiIGFsaWNlICIsIm5hbWUiOiJBbGljZSBMaWRkZWxsIiwiZW1haWwiOiJhbGljZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJ0ZW5hbnRfaWQiOiIgdGVuYW50LTEgIiwiYWxsb3dlZF9haWNzIjoiYWljLTEsIGFpYy0yLCxhaWMtMSIsInNjb3BlIjoic2Vzc2lvbjpyZWFkICBzZXNzaW9uOndyaXRlXHRzZXNzaW9uOnJlYWQiLCJncm91cHMiOlsiL29wcyIsIiAvb3BzICIsIi9tb25pdG9yIl0sInJlc291cmNlX2FjY2VzcyI6eyJmaXh0dXJlLWFwaSI6eyJyb2xlcyI6WyJVU0VSIiwiQURNSU4iLCJVU0VSIl19LCJvdGhlciI6eyJyb2xlcyI6WyJYIl19fSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlJFQUxNX0FETUlOIiwiVVNFUiJdfX0.lHS-e_ProPLrbNSIt_CjxqZViPpqwO-BRZce8Q-NnWtmdin3lKRPRhg7aDDyu3i8RxXOMFRh5k88x4Hf5xBbI0hbGG-sUzMLez3Yw2oidpc1uXzRJQeuRcKQ4xD__fl6xwi_oaZwLYLETpVwlIdwmpav1lXmuf1iHZRFpWcDaL7OV3ruMcA_qQoVgDqQ6OSr-1FWzQQu0RzshH3pVCg0JwVUi1heCyquNj2yzA5Gz8DgytN5N3-PPrIFotVkaex_HAqDesv5fmR_KLOmdLYm44oSVs1CfFFVkoIwPGrumt1BbSiNnfIDlw4K9yvyVSxDdOYKiSxOUvf1UhLFVpHcZg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Signature verification failed"
+        }
+      }
+    },
+    {
+      "name": "es256_truncated_signature",
+      "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImVjLWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.6ao6CStykVLKL6di1kGk63RWeTm7jQnTYD7kDXLxVwytykjKL8bfem-lg86A8h1LuCp15Yc_6Yv7BNiPmf",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Signature verification failed"
+        }
+      }
+    },
+    {
+      "name": "es256_tampered_payload",
+      "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImVjLWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJtYWxsb3J5IiwiYXVkIjpbImZpeHR1cmUtYXBpIiwiYWNjb3VudCJdLCJhenAiOiJmaXh0dXJlLXdlYiIsImV4cCI6NDEwMjQ0NDgwMCwiaWF0IjoxNzAwMDAwMDAwLCJuYmYiOjE3MDAwMDAwMDAsImp0aSI6Imp0aS0xIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiIGFsaWNlICIsIm5hbWUiOiJBbGljZSBMaWRkZWxsIiwiZW1haWwiOiJhbGljZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJ0ZW5hbnRfaWQiOiIgdGVuYW50LTEgIiwiYWxsb3dlZF9haWNzIjoiYWljLTEsIGFpYy0yLCxhaWMtMSIsInNjb3BlIjoic2Vzc2lvbjpyZWFkICBzZXNzaW9uOndyaXRlXHRzZXNzaW9uOnJlYWQiLCJncm91cHMiOlsiL29wcyIsIiAvb3BzICIsIi9tb25pdG9yIl0sInJlc291cmNlX2FjY2VzcyI6eyJmaXh0dXJlLWFwaSI6eyJyb2xlcyI6WyJVU0VSIiwiQURNSU4iLCJVU0VSIl19LCJvdGhlciI6eyJyb2xlcyI6WyJYIl19fSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlJFQUxNX0FETUlOIiwiVVNFUiJdfX0.6ao6CStykVLKL6di1kGk63RWeTm7jQnTYD7kDXLxVwytykjKL8bfem-lg86A8h1LuCp15Yc_6Yv7BNiPmfFtgw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Signature verification failed"
+        }
+      }
+    },
+    {
+      "name": "rs256_with_okp_jwk",
+      "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Im5vYWxnLWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.CJcPLQljlsRMPu34Ir3n9D1WWGjdCJ7xXESkUysNl7hyYm4hUPPW22uU4dXaWOVyHRLkmA56cblE7t0SUNVBxp8OyyH1Athgwx_G3K8yT0y4RYINQ_xJP6wGRoO5E2LpUB8d9gtsvECuPFQ2gzC_aw2q55bP6KueUK9mbbUCbRUgJOIdwSdqnVJcSPvoF8xMfigKRQdnOBXRTcn-cCKvsHs6nLr3h3VcnzqUFB6l-AhaeR4cIMEInELwRkiayY8M7-ZP4HkoJczoI_FqmCyjhOnkyU3na6LefmOEJ02yl--M-kp_q7FwA_VDc2HLM8lshmDX8TiI2jq9T11hcxso0g",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "RS256 access tokens require RSA JWKs"
+        }
+      }
+    },
+    {
+      "name": "es256_with_rsa_jwk",
+      "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6InJzYS1ub2FsZy1raWQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.DdlPxz2BTr4t0Lv1gLqSyFtJpSmUfHLi8Lviig1YDAUMeTbquGylM4MykzaPLoF6RT6njsIS2e6LHZ7bGOC4WA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "ES256 access tokens require EC/P-256 JWKs"
+        }
+      }
+    },
+    {
+      "name": "es256_jwk_alg_mismatch",
+      "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6InJzYS1raWQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.aVEA7N9m8CIAtrkGTF0pAki2A-IGsOimoxr2-bay21xh1dyef1F6nnVgjJ9Yz9IaM1na3XTCo_SwnK-x87IAaw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWK alg mismatch for kid rsa-kid"
+        }
+      }
+    },
+    {
+      "name": "missing_exp",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.o4IrgS9mZJW50lwcub9n56Gr6IDR0iwpRipY1GNQOkCHIha63dOSEFqiLqBFryZOk5hgo5aVyGnKWyMEuNGAAg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Token is missing the \"exp\" claim"
+        }
+      }
+    },
+    {
+      "name": "null_exp",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOm51bGwsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.Enay7y8dq9VhqnJ__frYgJcJ7TZnLYDyqkUu9Vqn9BAtJZZDtoLe9EbU6Ya4ivTrRsOc3YKIYMKxnRNibauXBQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Token is missing the \"exp\" claim"
+        }
+      }
+    },
+    {
+      "name": "missing_iss",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.Wwe5UW6lB4c7ZaywfkmEpvVQ6b_kNVU-kjcS9xmRPC9I91g5FUGwfGMOiE0TWhx4_JcDi-pCw9DxYxy-ykqnBw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Token is missing the \"iss\" claim"
+        }
+      }
+    },
+    {
+      "name": "missing_aud",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.xfbPrwTzzfCUCRbCeqykN-edz22kvsHZMViJxpjdnSlrNMva-zAAMp6V2RfQzJA_5wZ4E223BRRGKE3p9gLRAw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Token is missing the \"aud\" claim"
+        }
+      }
+    },
+    {
+      "name": "expired",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjE3MDAwMDAxMDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.vuGGbXCI3Z6ruyNxDZ4i8BDzZFi2KV2-IWRXYhYXIzhPCMeu-i-o2NFcKMCDQ6l3-5kqWeF8iI1_L4yGkaNVDQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Signature has expired"
+        }
+      }
+    },
+    {
+      "name": "iat_in_future",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6NDAwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.Ju_qkzPjkiKwq3jncLmcnoFcN9zlxzKpUf_Tl5fRdJ6sFtKVWsFo9IAz7-194uacsrCGbysAh0bXmGLy8RqLCA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "The token is not yet valid (iat)"
+        }
+      }
+    },
+    {
+      "name": "nbf_in_future",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjo0MDAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.5U72inh8ydUkKs1XrmtaTO1v_vQxd_j0F-jhtaOMZUa7xIwBbuEEQLuLDOpLFKaDHDtbC2L1o9MFMKe6t6crAw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "The token is not yet valid (nbf)"
+        }
+      }
+    },
+    {
+      "name": "iat_not_integer",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6ImFiYyIsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.dnZbs-4QTag6N3WP-o0JUEF87G7lyLUEKQJo5JUcchBYWubhNsExyJ8w4mHezUERPEwKHlj5VkLCkAhJ6CkvDQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Issued At claim (iat) must be an integer."
+        }
+      }
+    },
+    {
+      "name": "iat_decimal_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6IjEuNSIsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.8mIh-MukU6WDCWgCwoUKcYnQ_BRejlZxa9SLeqLE0tGGSVg7aZfeJ4RGefw1F9z7sg0pq-pBid2gc8o4fp1cBg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Issued At claim (iat) must be an integer."
+        }
+      }
+    },
+    {
+      "name": "nbf_not_integer",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoiYWJjIiwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.IFLZ0zx4ERz3XWjrqTUVDCWkMk4e-zNr-rFn5WbB18HZeqU422oYr_mm9XITAl1HLu1C7KSot49VTYIZUmdEDg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Not Before claim (nbf) must be an integer."
+        }
+      }
+    },
+    {
+      "name": "exp_not_integer",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOiJhYmMiLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.nTPAjs3AnOBl50TlgqMzZNM9Q9smrPRPDM4bRsIpHSt5mPzvrlRgywDzmnnZtNOmK4hhTvux3LtUsOfWQ_I3Dw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Expiration Time claim (exp) must be an integer."
+        }
+      }
+    },
+    {
+      "name": "iat_null_raw_type_error",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6bnVsbCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.tunpVvJ3ohQrbMBfN16D7-nLbbqJ42reRKkbdEZONqF44HDjYlBWmxKjCcA4f2UHzD5-MJ5poDL3-R5waLglCQ",
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "int() argument must be a string, a bytes-like object or a real number, not 'NoneType'"
+        }
+      }
+    },
+    {
+      "name": "nbf_list_raw_type_error",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjpbXSwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.ja5sg3aEBFdf1J8azrxMkLRklhmTNh6O_c3xV_eS3L1cRBmFaYFipJveX58gPl4JEi0eamCIMpEP1wIYUR9iDw",
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "int() argument must be a string, a bytes-like object or a real number, not 'list'"
+        }
+      }
+    },
+    {
+      "name": "exp_object_raw_type_error",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOnt9LCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.j3TIDsWNlukcu3Z-WGebRom587RAfYFiPYlBybSpFJ_1F22n5nXTg0qCDbdrCE7PiI1z6clQ4Kaned1F_qa_BA",
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "int() argument must be a string, a bytes-like object or a real number, not 'dict'"
+        }
+      }
+    },
+    {
+      "name": "wrong_issuer",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL290aGVyLmV4YW1wbGUvcmVhbG1zL2FjcHMtZml4dHVyZSIsInN1YiI6InVzZXItMTIzIiwiYXVkIjpbImZpeHR1cmUtYXBpIiwiYWNjb3VudCJdLCJhenAiOiJmaXh0dXJlLXdlYiIsImV4cCI6NDEwMjQ0NDgwMCwiaWF0IjoxNzAwMDAwMDAwLCJuYmYiOjE3MDAwMDAwMDAsImp0aSI6Imp0aS0xIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiIGFsaWNlICIsIm5hbWUiOiJBbGljZSBMaWRkZWxsIiwiZW1haWwiOiJhbGljZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJ0ZW5hbnRfaWQiOiIgdGVuYW50LTEgIiwiYWxsb3dlZF9haWNzIjoiYWljLTEsIGFpYy0yLCxhaWMtMSIsInNjb3BlIjoic2Vzc2lvbjpyZWFkICBzZXNzaW9uOndyaXRlXHRzZXNzaW9uOnJlYWQiLCJncm91cHMiOlsiL29wcyIsIiAvb3BzICIsIi9tb25pdG9yIl0sInJlc291cmNlX2FjY2VzcyI6eyJmaXh0dXJlLWFwaSI6eyJyb2xlcyI6WyJVU0VSIiwiQURNSU4iLCJVU0VSIl19LCJvdGhlciI6eyJyb2xlcyI6WyJYIl19fSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlJFQUxNX0FETUlOIiwiVVNFUiJdfX0.DSGIlav2F0-T-5N3RhglCDSjtK5OT6ZWQtcHl4DT2phTOjO6gUn_7qTRmtHywSzAZCHYjOCaCacsqhAoeNQICQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Invalid issuer"
+        }
+      }
+    },
+    {
+      "name": "issuer_not_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOjEyMywic3ViIjoidXNlci0xMjMiLCJhdWQiOlsiZml4dHVyZS1hcGkiLCJhY2NvdW50Il0sImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ._uKwftcZ7l91ZeTebK6fTtNT23BaHp-9snbziDzVeuorVChKXNzyhaK8jv2VwBXo2tdEbjdw805cs6oCpi-HBQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Payload Issuer (iss) must be a string"
+        }
+      }
+    },
+    {
+      "name": "audience_mismatch",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6Im90aGVyLWFwaSIsImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.bT7xGGFnLNWKZ0PITKRY0s02MUgV1Fi90DrHF9tIdJnEQokHzQ53SZxNP6cv8gCSspuJECGouINA_kGMT_KrAg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Audience doesn't match"
+        }
+      }
+    },
+    {
+      "name": "audience_id_token_style",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6ImZpeHR1cmUtd2ViIiwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.F2e7P_1phMzltQZbUG0WjkY8Ohpp7D3s_Ct7f3_CnWHyqZopJQKtIQ-IgGr0Fn2R8vb7wPj2G-Lt-t3V0_F6DA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Audience doesn't match"
+        }
+      }
+    },
+    {
+      "name": "audience_empty_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6IiIsImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.haHEkliAomly5sTIlDQTZEHeHNM2PExRSF_tALcZfbc69gHeuAF6VrLx4s1w-4rar7FGpz44e6Wu9qgVyFeXBQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Token is missing the \"aud\" claim"
+        }
+      }
+    },
+    {
+      "name": "audience_empty_list",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6W10sImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.KNeMJSvruXbOfqO8wN29X94JwudiG6tYgiCNBYS0XrJFj_NWJgO5rrhmXrvJ_SU4JW6eaoQnuovYpDxUB0gFAQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Token is missing the \"aud\" claim"
+        }
+      }
+    },
+    {
+      "name": "audience_number",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6NSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.g0onyL00_eylVKWG0mkFFKMDW0ZmoNRNug-z_tKgijYVBrtYeYPXkFimSrl7dVZTjtYNLvWQgyR1juqjF6DhDw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Invalid claim format in token"
+        }
+      }
+    },
+    {
+      "name": "audience_list_with_number",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsMV0sImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.-axRzHg7pT1s2j_I-X-DlHIWmEOU-T3mbtUSt8Ytt8t42GAqTiUu7LCl2vwtuvsO3VIoVlmeQ8jOJzb7MeTqCA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Invalid claim format in token"
+        }
+      }
+    },
+    {
+      "name": "audience_object",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6eyJhIjoxfSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.JG0JWmZYZbVD2WG_G-WLO2cel04rc8pvulT644wt7lt_nlLvkd_uTEZQNWorakVbLTMmEsOcj4JCFEBdTjd-Dg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Invalid claim format in token"
+        }
+      }
+    },
+    {
+      "name": "audience_empty_object",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6e30sImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.ycc_zELr7taoNhLoXoNaav_elfkDLiMJg0AYDNunmcMxaWUMSREds9H6iH4KV8GZYh5CgulKy0riqdRXhBJVBA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Token is missing the \"aud\" claim"
+        }
+      }
+    },
+    {
+      "name": "subject_not_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOjEyMywiYXVkIjpbImZpeHR1cmUtYXBpIiwiYWNjb3VudCJdLCJhenAiOiJmaXh0dXJlLXdlYiIsImV4cCI6NDEwMjQ0NDgwMCwiaWF0IjoxNzAwMDAwMDAwLCJuYmYiOjE3MDAwMDAwMDAsImp0aSI6Imp0aS0xIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiIGFsaWNlICIsIm5hbWUiOiJBbGljZSBMaWRkZWxsIiwiZW1haWwiOiJhbGljZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJ0ZW5hbnRfaWQiOiIgdGVuYW50LTEgIiwiYWxsb3dlZF9haWNzIjoiYWljLTEsIGFpYy0yLCxhaWMtMSIsInNjb3BlIjoic2Vzc2lvbjpyZWFkICBzZXNzaW9uOndyaXRlXHRzZXNzaW9uOnJlYWQiLCJncm91cHMiOlsiL29wcyIsIiAvb3BzICIsIi9tb25pdG9yIl0sInJlc291cmNlX2FjY2VzcyI6eyJmaXh0dXJlLWFwaSI6eyJyb2xlcyI6WyJVU0VSIiwiQURNSU4iLCJVU0VSIl19LCJvdGhlciI6eyJyb2xlcyI6WyJYIl19fSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlJFQUxNX0FETUlOIiwiVVNFUiJdfX0.lfIZGKCDoqGPIjAFuawdTRMZIa1LWPiU3S9VLV3oDmhrYG7UtSaRmjG46Y6VD_QcA6SWUj9naSbtNypSmMHoAQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Subject must be a string"
+        }
+      }
+    },
+    {
+      "name": "jti_not_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOjUsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.4xoos65vU_c21IWtV62VBxGUwxAvjjucCgTh8N59JfVqlDPh8LF6CHoCQHAvcIQ_6fGCgBZmRVcEtTABl4ADBA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT ID must be a string"
+        }
+      }
+    },
+    {
+      "name": "azp_missing",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.hSD12GOmvqsjBrHIQR3vgMIEky9CGtOCzoNNT03LXBb5xvhHTharw44UKdzzqdwCkDAVkngBxSEl_Cs53XgpBA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "azp must be one of: fixture-web"
+        }
+      }
+    },
+    {
+      "name": "azp_not_allowed",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoib3RoZXItd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.69HOfAOVOmUQv_W4nGnEGLVk9jlTvE0_HRv_ukA6YTx8fsgsLY52BuNpoujyIA2ICx0T_N40AGxn8SLpS2mECA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "azp must be one of: fixture-web"
+        }
+      }
+    },
+    {
+      "name": "azp_not_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjo1LCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.SV8qSeu9nO5ExipcsqBmLSutCxgsLtixGFbT0p6IJREe3fN08AWbcsbY-qKKoj1G7ckNy2eJEZDaxpbFXKumAA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "azp must be one of: fixture-web"
+        }
+      }
+    },
+    {
+      "name": "subject_missing",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJhdWQiOlsiZml4dHVyZS1hcGkiLCJhY2NvdW50Il0sImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.1sGDMS_HV5e7jg2kZefx1UFtXb-_OISxvyTm0q_FORjPdy8V-6JlGQuRVzb1qD8SFIT539GQI8HSZbuLzuLSAw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "sub claim must be a non-empty string"
+        }
+      }
+    },
+    {
+      "name": "subject_blank",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiIgICAiLCJhdWQiOlsiZml4dHVyZS1hcGkiLCJhY2NvdW50Il0sImF6cCI6ImZpeHR1cmUtd2ViIiwiZXhwIjo0MTAyNDQ0ODAwLCJpYXQiOjE3MDAwMDAwMDAsIm5iZiI6MTcwMDAwMDAwMCwianRpIjoianRpLTEiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiIgYWxpY2UgIiwibmFtZSI6IkFsaWNlIExpZGRlbGwiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.iQy8294-hoQ-XXJabFCUvpLUaxC4r9WPyduF0OYqihP5kbpRLnWr0DylV8NreSDz6wHuzt7G7naoPB21Z0dxCA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "sub claim must be a non-empty string"
+        }
+      }
+    },
+    {
+      "name": "email_verified_not_bool",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6InllcyIsInRlbmFudF9pZCI6IiB0ZW5hbnQtMSAiLCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.6km7BUQPGpDnmOY70eKC9U_DrBEYtIC2vhHRf6t6nIgDMCAFsIY58nargSKHS1qZC08I7vWLnIpLL0b-JtIaCg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "email_verified claim must be a boolean"
+        }
+      }
+    },
+    {
+      "name": "email_not_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjo1LCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.8w8fFssbYwREWRWhGO4ZOsjgQoTx2gvkshkSrEB4YBMfNKJ6-hIDHM6tdvKo0xd3ISMznN99UGgeu3ScZoPiAA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "email claim must be a string"
+        }
+      }
+    },
+    {
+      "name": "tenant_not_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjo1LCJhbGxvd2VkX2FpY3MiOiJhaWMtMSwgYWljLTIsLGFpYy0xIiwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.ule-9xftBOr3DHJQku3GyHnNvB6XJyttyt8uzmRTP6n3bf9IltGy5GVOiAaHKrYnQaXmNEgrhEkBxJ1FBnM6BQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "tenant_id claim must be a string"
+        }
+      }
+    },
+    {
+      "name": "scope_not_string",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6WyJhIl0sImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.AEzicEa4_iut6XKd-wswerxkFQMUcu8YAeNWfd03I6d3jR1umnm4DjHhgkEDmVpDVoeoMsild8qiiEluvjq3Dw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "scope claim must be a string"
+        }
+      }
+    },
+    {
+      "name": "groups_number",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjo1LCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.hsXAakH0Qmg5g4DQULQ2-j5yJacOY8Qmm2Hhwln4is591cqRz3j1A6c_zbBw3ILwLU611qzTAQjk9n7TzzJMDA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "claim must be a string or iterable of strings"
+        }
+      }
+    },
+    {
+      "name": "groups_with_number",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbImEiLDFdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.8cYJX11Y09OFyhFy3cLByZs93XOn2MBeIDtGgQy5EDWHqhzZo4xGFMHPQ1JkxOAXramAzQ9aEZCM8IsLa_sGBQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "claim values must be strings"
+        }
+      }
+    },
+    {
+      "name": "client_roles_object",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOnsiYSI6MX19fSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlJFQUxNX0FETUlOIiwiVVNFUiJdfX0.rrx6HjMHe7MxXmJR9gMo5xH8Km-6k7MSnMtbS4k2EH-Gtp4vm4N-rBjjGUsi3xAKwecZRkmThDmOCQ8-8VTMCQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "claim must be a string or iterable of strings"
+        }
+      }
+    },
+    {
+      "name": "allowed_aics_bool",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6dHJ1ZSwic2NvcGUiOiJzZXNzaW9uOnJlYWQgIHNlc3Npb246d3JpdGVcdHNlc3Npb246cmVhZCIsImdyb3VwcyI6WyIvb3BzIiwiIC9vcHMgIiwiL21vbml0b3IiXSwicmVzb3VyY2VfYWNjZXNzIjp7ImZpeHR1cmUtYXBpIjp7InJvbGVzIjpbIlVTRVIiLCJBRE1JTiIsIlVTRVIiXX0sIm90aGVyIjp7InJvbGVzIjpbIlgiXX19LCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiUkVBTE1fQURNSU4iLCJVU0VSIl19fQ.1J2pFlp1olxRTNmM1_7c0Bg8OflL3kKHWZfr8kno63j4c71GwtD3mNYllersSWwrJZOlXWONY804BCPhOOVzBA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "claim must be a string or iterable of strings"
+        }
+      }
+    },
+    {
+      "name": "payload_json_array",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.WzEsMl0.2bhIVcCniZ0rBs4e7js_fWPa1Zv7eaqJdM75WN9gf5gFT5NsU5cBm4j1MymogRmA2-McWssQRr9bheHTJxXvAw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Invalid payload string: must be a json object"
+        }
+      }
+    },
+    {
+      "name": "payload_not_json",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.bm90IGpzb24.HHFXnhWwjqC-XEjUzZ7zwX6h-fPFwV8F4dAHUA_MYf3uIJxtq4LoZhZOH86Nkj6j_sa7R4mGaOMOOrxOtjBwAQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Invalid payload string: Expecting value: line 1 column 1 (char 0)"
+        }
+      }
+    },
+    {
+      "name": "payload_invalid_utf8",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiL_In0.wkyzhaS6HY9PC_DzGozSW5tBrexQ4nR4myYbrlmb47WfR1JPsQjBOjojQ4gvn-xexrt-H68FkJWFXS8eIFR7Cw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Invalid payload string: 'utf-8' codec can't decode byte 0xff in position 8: invalid start byte"
+        }
+      }
+    },
+    {
+      "name": "alg_missing",
+      "token": "eyJraWQiOiJmaXh0dXJlLWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.Ft6paK6T3DHiivv70-08-8NfX0YcbSdtreP6_kTAnvCpB5JAUWRP06DAaq05cjk8CtFdN5h2P6_nO4uwbyltCQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT header alg is required"
+        }
+      }
+    },
+    {
+      "name": "alg_empty",
+      "token": "eyJhbGciOiIiLCJraWQiOiJmaXh0dXJlLWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.kgxu4H8v4lrubKI2BEkWB7ClwNrMQpVTRHIrkH0iQlFndfzyUlBVSy-br3KugZZ9J6gxacqUQUaRp2iDEADoAw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT header alg is required"
+        }
+      }
+    },
+    {
+      "name": "alg_number",
+      "token": "eyJhbGciOjUsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.HLHx6SCLjXXrIYv89Yg1-1h3A8H2PWK_ulu9B3ZcbJ5sdpy1FRzpKwAKMtHiZtbQQTgvkRsVk0PMYgW8hcbYAQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT header alg is required"
+        }
+      }
+    },
+    {
+      "name": "alg_not_allowed",
+      "token": "eyJhbGciOiJQUzI1NiIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.ECf2ONnZsYxTqn7o51W6mpNWV91SoRhnQNx8W6IL3ZCrLUwUiTHTzAJOD4238CxayEFBA6Zob25Lh4zJFitUCQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT algorithm 'PS256' is not allowed"
+        }
+      }
+    },
+    {
+      "name": "alg_hs256_listed_but_rejected",
+      "token": "eyJhbGciOiJIUzI1NiIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.ilc4A2eXHNvojdBSHtg2EIzQo8TcafVQdb7dFgtoC85IHaxD5EHsSxxHTw3QG71wt9YYj0dGa6y8AKHUD0DABA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT algorithm 'HS256' is not allowed"
+        }
+      }
+    },
+    {
+      "name": "alg_none_listed_but_rejected",
+      "token": "eyJhbGciOiJub25lIiwia2lkIjoiZml4dHVyZS1raWQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.80tlP67Nsw_RH7a3S4P1mF1iUbefYYmTygpkpknyyBx53BQN-RTQ2GYImvj7Nsm6zv0ecS7m706bBATiL6cSCA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT algorithm 'none' is not allowed"
+        }
+      }
+    },
+    {
+      "name": "alg_repr_with_quote",
+      "token": "eyJhbGciOiJpdCdzIiwia2lkIjoiZml4dHVyZS1raWQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.iSIA9u6v3PVBpXSLDWTiWkXea9Eg321kZ5PL_PYbNN_ENhNh5ZGNMiAAHYIwomK5qLFa6lDIXPBDaxXpIWGLCw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT algorithm \"it's\" is not allowed"
+        }
+      }
+    },
+    {
+      "name": "alg_unsupported_es384",
+      "token": "eyJhbGciOiJFUzM4NCIsImtpZCI6Im5vYWxnLWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.yqd3pixVrHAywL0Fc1aJQWpR8yzGdCLFh3EaDjJct3HSPH27U9TzJnwHeBGbv1qpiGr0rzw3WeoYRuRv_cbKAw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "unsupported JWT algorithm 'ES384'"
+        }
+      }
+    },
+    {
+      "name": "alg_es384_jwk_alg_mismatch",
+      "token": "eyJhbGciOiJFUzM4NCIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.jK45HXSZLrjArxu5aiQnFkI_sfBjnXcfrMwNlfh_jwQgrNomBU3KwN_iJaGyUvAZGzO9ws4tDqtCZl-87QcoDg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWK alg mismatch for kid fixture-kid"
+        }
+      }
+    },
+    {
+      "name": "kid_missing",
+      "token": "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.EF9ic1NGtuQZFjGxBpCciV2hDMbh4mkf675xWr1ZtwoD5WPY3NqimLkCgNqP_zUepf1Xzk8PdfNK-W80jX3gBg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT header kid is required"
+        }
+      }
+    },
+    {
+      "name": "kid_empty",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6IiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.Jo7sB_nzLpY8ksEo2Pi-OnB2GgBrr6La5DfJa3x0qqVvGBNyRu2JDZFe8OVcRrmFhsoYCEI3CTAAqdqFn9owAA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWT header kid is required"
+        }
+      }
+    },
+    {
+      "name": "kid_number",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6NSwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.mBr8bIc7wyGeUL0pLsndQbMLoCHmPsMHCC8HeGcaHWw4yKkQpXLFwib8QnlEYyNdCz3T74krAR4F_S96DN1yCw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "kid_null",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6bnVsbCwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.Ln1_Bi6qLSA74zgNe-VwKZK256S0BV48iZnHuMjWsjfvTyY2IOnkXXnVoIf0L7qk910U9o9An4kaY9T2k1K6Cg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "kid_unknown",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6InVua25vd24ta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.p5_KwKh37IK4vGEFxSrEg9dGClN88ZMzGEVDPRDwHqeZ_b_AOcn3EYyNO-KF2_ksrtFj21XeoeysJUbrbbzVDA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "unknown JWK kid: unknown-kid"
+        }
+      }
+    },
+    {
+      "name": "jwk_use_enc",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImVuYy1raWQiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.bpWZiWoCfuKdcsm_2k-AmDAXW7a5IiAwMJzBOBvgBobZrnDgIQ6VVLJYmVyHVGDsYetG13a3zufHqxrpek8nCQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWK use mismatch for kid enc-kid"
+        }
+      }
+    },
+    {
+      "name": "jwk_ec_alg_mismatch",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImVjLWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.2nqEG3hOQ7ItRP64iEIPznbFJmw1MKNxzy03mNvm_IdMoXggnNlDVmprPa0jnPUv-FpWFJ0k-nAkKO_r5-saDw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "JWK alg mismatch for kid ec-kid"
+        }
+      }
+    },
+    {
+      "name": "jwk_ed448_curve",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImVkNDQ4LWtpZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.3dfaIdeoDtLgc9h_hOF4YCotR0gCjNWFRmMbuzGY66ZzxB43HOdTpgwWGigzlkSfj2raPplrvu8IMlBNRwqrDA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "EdDSA access tokens require OKP/Ed25519 JWKs"
+        }
+      }
+    },
+    {
+      "name": "jwk_bad_x",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImJhZHgta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.bij1Kii2zG60RVKuOOcK4UUq3wx9QiBdcIp-SmsUG34mtf30PYGDllhxzibf7W22xT4pffzAboEN9xFoFQBZAA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "failed to construct JWK for kid badx-kid"
+        }
+      }
+    },
+    {
+      "name": "crit_unsupported",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIiwiY3JpdCI6WyJleHAiXX0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.k3eJqkoyUDmnotHRAh4UUaLHdvKClpDpzDuTQcwVyJC6DNkTnB6m0js7Drv16eMLGsMBm1QKKg3rQtgb9taOAA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "crit_empty",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIiwiY3JpdCI6W119.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.uTSuRyMPzNm0SLrBsSMnlbLRTs8H7lyERUg3pcRY9H-7G7DXkTTuwWMis0QyTlYILi8mtPEl8GZt1FgC9Wb9Cw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "crit_not_list",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIiwiY3JpdCI6ImI2NCJ9.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.0RApSBRj9JuvV64IkvfuXZaF_flyRUzuYAR7SPScSvzUv0KIVOHvTMP4BF8aEpTOW2jPPCOUBQc0ZJ3eQJWZBw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "crit_b64_missing_param",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIiwiY3JpdCI6WyJiNjQiXX0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.jfY3uZD3Msy0TAS7kd-9TbZqlpXeC40pNmgTkDDDWsaRynkmGITni8O8ADavcNK3eQixPRiiMwBDH_GWqgf6AA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "b64_false_with_payload",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIiwiYjY0IjpmYWxzZX0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.gg0fx0E2dRkYFsPTpFgi6PyUzNcYzUuyWbWGbaqybweXeJHnZPO-9cs8EZzozbJ4dxFZ5cXZT3kTdVkBDiJYCw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "b64_false_without_crit",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIiwiYjY0IjpmYWxzZX0..mCL5coy0ME6L2u24tQ4PDqraBJZ9v7v9zbArywNt8Df8Po_4FUvO66UXFH5RIryB-Tu6wWTI8ffEejSKwhBFAg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "The 'b64' header parameter requires 'b64' to be listed in 'crit'."
+        }
+      }
+    },
+    {
+      "name": "b64_false_with_crit",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIiwiYjY0IjpmYWxzZSwiY3JpdCI6WyJiNjQiXX0..dp1cA53uklHvIQjD79UyH5_uwpchiWK5M8Q3R1V1Y2cTGlaIUreVzrZe3lecxOWSITpfweZhfcobnsfRppUNCw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "It is required that you pass in a value for the \"detached_payload\" argument to decode a message having the b64 header set to false."
+        }
+      }
+    },
+    {
+      "name": "header_json_array",
+      "token": "WyJFZERTQSJd.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.a2lVOhlUSI8okiSBKu9-gG0kAlFn51I79swqUw4APAZ17IF7S9KQtB6jPtmPYqWrzHlXtfzsbxRS0q67prfKCQ",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "header_not_json",
+      "token": "bm90IGpzb24.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.k2fl00ml2MnhNfo5lacwhD2EDZYym4xOJ5JAViJADmi8-QmCQjXuSRX5YulimeLgQJtsY6ROhKrDID40RvUnDw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "header_invalid_utf8",
+      "token": "eyJhbGciOiL_In0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.b3gDrMmEvkxRTWjkRngjw52TRjtA2bQQM236VIYKA30DMEnMOyPExrYoa3gQtzTVU74efR_n84lTQnRUgsX4Cg",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "token_empty",
+      "token": "",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "token_one_segment",
+      "token": "abc",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "token_two_segments",
+      "token": "abc.def",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "header_bad_padding",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0AA.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "signature_bad_padding",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBwAAA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "invalid JWT header"
+        }
+      }
+    },
+    {
+      "name": "signature_other_key",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.znqsv6El6lcqbLPx0Ca64q2tm9kXQhr0_ZBsB8PnpXvHCJtQCZWdzU6gwdMb1Y-xzOZ1uJvAGjuFpuuboBnfCA",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Signature verification failed"
+        }
+      }
+    },
+    {
+      "name": "signature_tampered_payload",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJtYWxsb3J5IiwiYXVkIjpbImZpeHR1cmUtYXBpIiwiYWNjb3VudCJdLCJhenAiOiJmaXh0dXJlLXdlYiIsImV4cCI6NDEwMjQ0NDgwMCwiaWF0IjoxNzAwMDAwMDAwLCJuYmYiOjE3MDAwMDAwMDAsImp0aSI6Imp0aS0xIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiIGFsaWNlICIsIm5hbWUiOiJBbGljZSBMaWRkZWxsIiwiZW1haWwiOiJhbGljZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJ0ZW5hbnRfaWQiOiIgdGVuYW50LTEgIiwiYWxsb3dlZF9haWNzIjoiYWljLTEsIGFpYy0yLCxhaWMtMSIsInNjb3BlIjoic2Vzc2lvbjpyZWFkICBzZXNzaW9uOndyaXRlXHRzZXNzaW9uOnJlYWQiLCJncm91cHMiOlsiL29wcyIsIiAvb3BzICIsIi9tb25pdG9yIl0sInJlc291cmNlX2FjY2VzcyI6eyJmaXh0dXJlLWFwaSI6eyJyb2xlcyI6WyJVU0VSIiwiQURNSU4iLCJVU0VSIl19LCJvdGhlciI6eyJyb2xlcyI6WyJYIl19fSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIlJFQUxNX0FETUlOIiwiVVNFUiJdfX0.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Signature verification failed"
+        }
+      }
+    },
+    {
+      "name": "signature_empty",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.",
+      "expected": {
+        "error": {
+          "type": "InvalidAccessTokenError",
+          "message": "Signature verification failed"
+        }
+      }
+    },
+    {
+      "name": "lenient_padded_header",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0=.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.vrWQ6e7c6h5cu5-T1aT1BKn-wYPmzWuDp217jJ9lEERa4ZKOxlPgg1OYsDqQqbDC0oGNYu02SJjl3ikP-1uWCw",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    },
+    {
+      "name": "lenient_dot_inside_payload",
+      "token": "eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3Mi.OiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.TCY5ITPakbbTmp7n8lzQjYcreC1uT62z7G9nmWr4Ztv1xjme6DYPq48Ji3hSMErvr1jh3ZgXaTEYPEAYvlAwDg",
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-fixture",
+            "principal_id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "audiences": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "username": "alice",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "USER",
+              "ADMIN",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "session:read",
+              "session:write"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-fixture#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-fixture",
+            "sub": "user-123",
+            "aud": [
+              "fixture-api",
+              "account"
+            ],
+            "azp": "fixture-web",
+            "exp": 4102444800,
+            "iat": 1700000000,
+            "nbf": 1700000000,
+            "jti": "jti-1",
+            "preferred_username": " alice ",
+            "name": "Alice Liddell",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": " tenant-1 ",
+            "allowed_aics": "aic-1, aic-2,,aic-1",
+            "scope": "session:read  session:write\tsession:read",
+            "groups": [
+              "/ops",
+              " /ops ",
+              "/monitor"
+            ],
+            "resource_access": {
+              "fixture-api": {
+                "roles": [
+                  "USER",
+                  "ADMIN",
+                  "USER"
+                ]
+              },
+              "other": {
+                "roles": [
+                  "X"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN",
+                "USER"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+            "type": "human",
+            "name": "Alice Liddell",
+            "role": "ADMIN,REALM_ADMIN,USER"
+          }
+        }
+      }
+    }
+  ]
+}

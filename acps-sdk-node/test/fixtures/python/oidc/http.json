@@ -1,0 +1,813 @@
+{
+  "required_roles": [
+    "ADMIN",
+    "",
+    "USER",
+    "ADMIN"
+  ],
+  "required_scopes": [
+    "session:write",
+    "session:read",
+    "session:admin"
+  ],
+  "cases": [
+    {
+      "name": "principal:no_header",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": null,
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "principal:empty_header",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "principal:bearer_admin",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 200,
+        "body": {
+          "principalId": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+          "roles": [
+            "USER",
+            "ADMIN",
+            "REALM_ADMIN"
+          ]
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "principal:bearer_lowercase",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 200,
+        "body": {
+          "principalId": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+          "roles": [
+            "USER",
+            "ADMIN",
+            "REALM_ADMIN"
+          ]
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "principal:bearer_uppercase_extra_spaces",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "BEARER   eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw  ",
+      "expected": {
+        "status": 200,
+        "body": {
+          "principalId": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+          "roles": [
+            "USER",
+            "ADMIN",
+            "REALM_ADMIN"
+          ]
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "principal:bearer_user",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiJdfX19.z3z4_cOXcKGi4f1DeBK_naqY08CjC1W6dBCT4aKdSzlq-WpiGA5NGg_ET9Gibvnj0u6CXnHPmHkW_6_jrGd2BA",
+      "expected": {
+        "status": 200,
+        "body": {
+          "principalId": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840",
+          "roles": [
+            "USER"
+          ]
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "principal:bearer_expired",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjE3MDAwMDAxMDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.vuGGbXCI3Z6ruyNxDZ4i8BDzZFi2KV2-IWRXYhYXIzhPCMeu-i-o2NFcKMCDQ6l3-5kqWeF8iI1_L4yGkaNVDQ",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Signature has expired"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "principal:bearer_invalid",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "Bearer invalid-token",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "invalid JWT header"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "principal:bearer_only",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "Bearer",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "principal:bearer_trailing_space_only",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "Bearer ",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "principal:bearer_tab_separator",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "Bearer\teyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "principal:basic_scheme",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "Basic YWxpY2U6c2VjcmV0",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "principal:token_scheme",
+      "provider": "ok",
+      "endpoint": "principal",
+      "authorization": "Token eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "principal:provider_down:bearer_admin",
+      "provider": "broken",
+      "endpoint": "principal",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 503,
+        "body": {
+          "detail": "failed to load OIDC discovery document from https://issuer.example/realms/acps-fixture/.well-known/openid-configuration"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "principal:provider_down:no_header",
+      "provider": "broken",
+      "endpoint": "principal",
+      "authorization": null,
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "optional:no_header",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": null,
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:empty_header",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:bearer_admin",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": true
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:bearer_lowercase",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": true
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:bearer_uppercase_extra_spaces",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "BEARER   eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw  ",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": true
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:bearer_user",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiJdfX19.z3z4_cOXcKGi4f1DeBK_naqY08CjC1W6dBCT4aKdSzlq-WpiGA5NGg_ET9Gibvnj0u6CXnHPmHkW_6_jrGd2BA",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": true
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:bearer_expired",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjE3MDAwMDAxMDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.vuGGbXCI3Z6ruyNxDZ4i8BDzZFi2KV2-IWRXYhYXIzhPCMeu-i-o2NFcKMCDQ6l3-5kqWeF8iI1_L4yGkaNVDQ",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:bearer_invalid",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "Bearer invalid-token",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:bearer_only",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "Bearer",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:bearer_trailing_space_only",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "Bearer ",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:bearer_tab_separator",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "Bearer\teyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:basic_scheme",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "Basic YWxpY2U6c2VjcmV0",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:token_scheme",
+      "provider": "ok",
+      "endpoint": "optional",
+      "authorization": "Token eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:provider_down:bearer_admin",
+      "provider": "broken",
+      "endpoint": "optional",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 503,
+        "body": {
+          "detail": "failed to load OIDC discovery document from https://issuer.example/realms/acps-fixture/.well-known/openid-configuration"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "optional:provider_down:no_header",
+      "provider": "broken",
+      "endpoint": "optional",
+      "authorization": null,
+      "expected": {
+        "status": 200,
+        "body": {
+          "authenticated": false
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "roles:no_header",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": null,
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "roles:empty_header",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "roles:bearer_admin",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 200,
+        "body": {
+          "principalId": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "roles:bearer_lowercase",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 200,
+        "body": {
+          "principalId": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "roles:bearer_uppercase_extra_spaces",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "BEARER   eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw  ",
+      "expected": {
+        "status": 200,
+        "body": {
+          "principalId": "48262544f253da72b80cb964da7ddf9f77b800719ce69ad311da87a5eb910840"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "roles:bearer_user",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiJdfX19.z3z4_cOXcKGi4f1DeBK_naqY08CjC1W6dBCT4aKdSzlq-WpiGA5NGg_ET9Gibvnj0u6CXnHPmHkW_6_jrGd2BA",
+      "expected": {
+        "status": 403,
+        "body": {
+          "detail": "Missing required roles: ADMIN"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "roles:bearer_expired",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjE3MDAwMDAxMDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.vuGGbXCI3Z6ruyNxDZ4i8BDzZFi2KV2-IWRXYhYXIzhPCMeu-i-o2NFcKMCDQ6l3-5kqWeF8iI1_L4yGkaNVDQ",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Signature has expired"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "roles:bearer_invalid",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "Bearer invalid-token",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "invalid JWT header"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "roles:bearer_only",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "Bearer",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "roles:bearer_trailing_space_only",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "Bearer ",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "roles:bearer_tab_separator",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "Bearer\teyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "roles:basic_scheme",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "Basic YWxpY2U6c2VjcmV0",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "roles:token_scheme",
+      "provider": "ok",
+      "endpoint": "roles",
+      "authorization": "Token eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "roles:provider_down:bearer_admin",
+      "provider": "broken",
+      "endpoint": "roles",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 503,
+        "body": {
+          "detail": "failed to load OIDC discovery document from https://issuer.example/realms/acps-fixture/.well-known/openid-configuration"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "roles:provider_down:no_header",
+      "provider": "broken",
+      "endpoint": "roles",
+      "authorization": null,
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:no_header",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": null,
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:empty_header",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:bearer_admin",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 403,
+        "body": {
+          "detail": "Missing required scopes: session:admin"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "scopes:bearer_lowercase",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 403,
+        "body": {
+          "detail": "Missing required scopes: session:admin"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "scopes:bearer_uppercase_extra_spaces",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "BEARER   eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw  ",
+      "expected": {
+        "status": 403,
+        "body": {
+          "detail": "Missing required scopes: session:admin"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "scopes:bearer_user",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiJdfX19.z3z4_cOXcKGi4f1DeBK_naqY08CjC1W6dBCT4aKdSzlq-WpiGA5NGg_ET9Gibvnj0u6CXnHPmHkW_6_jrGd2BA",
+      "expected": {
+        "status": 403,
+        "body": {
+          "detail": "Missing required scopes: session:admin"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "scopes:bearer_expired",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjE3MDAwMDAxMDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.vuGGbXCI3Z6ruyNxDZ4i8BDzZFi2KV2-IWRXYhYXIzhPCMeu-i-o2NFcKMCDQ6l3-5kqWeF8iI1_L4yGkaNVDQ",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Signature has expired"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:bearer_invalid",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "Bearer invalid-token",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "invalid JWT header"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:bearer_only",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "Bearer",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:bearer_trailing_space_only",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "Bearer ",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:bearer_tab_separator",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "Bearer\teyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:basic_scheme",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "Basic YWxpY2U6c2VjcmV0",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:token_scheme",
+      "provider": "ok",
+      "endpoint": "scopes",
+      "authorization": "Token eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    },
+    {
+      "name": "scopes:provider_down:bearer_admin",
+      "provider": "broken",
+      "endpoint": "scopes",
+      "authorization": "Bearer eyJhbGciOiJFZERTQSIsImtpZCI6ImZpeHR1cmUta2lkIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2lzc3Vlci5leGFtcGxlL3JlYWxtcy9hY3BzLWZpeHR1cmUiLCJzdWIiOiJ1c2VyLTEyMyIsImF1ZCI6WyJmaXh0dXJlLWFwaSIsImFjY291bnQiXSwiYXpwIjoiZml4dHVyZS13ZWIiLCJleHAiOjQxMDI0NDQ4MDAsImlhdCI6MTcwMDAwMDAwMCwibmJmIjoxNzAwMDAwMDAwLCJqdGkiOiJqdGktMSIsInByZWZlcnJlZF91c2VybmFtZSI6IiBhbGljZSAiLCJuYW1lIjoiQWxpY2UgTGlkZGVsbCIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwidGVuYW50X2lkIjoiIHRlbmFudC0xICIsImFsbG93ZWRfYWljcyI6ImFpYy0xLCBhaWMtMiwsYWljLTEiLCJzY29wZSI6InNlc3Npb246cmVhZCAgc2Vzc2lvbjp3cml0ZVx0c2Vzc2lvbjpyZWFkIiwiZ3JvdXBzIjpbIi9vcHMiLCIgL29wcyAiLCIvbW9uaXRvciJdLCJyZXNvdXJjZV9hY2Nlc3MiOnsiZml4dHVyZS1hcGkiOnsicm9sZXMiOlsiVVNFUiIsIkFETUlOIiwiVVNFUiJdfSwib3RoZXIiOnsicm9sZXMiOlsiWCJdfX0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJSRUFMTV9BRE1JTiIsIlVTRVIiXX19.RQRk9_8rzTgaLyp-AOzwIh9GoDw3_QKMFE0WtZW9IUR9_GaxV3PCpwG6SECrLGv6Y0MTKQU1ydaWSl-AQP-IBw",
+      "expected": {
+        "status": 503,
+        "body": {
+          "detail": "failed to load OIDC discovery document from https://issuer.example/realms/acps-fixture/.well-known/openid-configuration"
+        },
+        "www_authenticate": null
+      }
+    },
+    {
+      "name": "scopes:provider_down:no_header",
+      "provider": "broken",
+      "endpoint": "scopes",
+      "authorization": null,
+      "expected": {
+        "status": 401,
+        "body": {
+          "detail": "Missing bearer token"
+        },
+        "www_authenticate": "Bearer"
+      }
+    }
+  ]
+}
