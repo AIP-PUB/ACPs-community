@@ -9,6 +9,10 @@ the Python SDK**; the API mirrors the Python one while following Node convention
 keyword arguments → an options object). The mapping rules are documented in
 [docs/porting-notes.md](docs/porting-notes.md).
 
+Contributing organization: 北京智镜科技有限责任公司
+
+Contributor: Hongbo Xu
+
 | Module          | Description                                                                                                     | Python counterpart |
 | --------------- | --------------------------------------------------------------------------------------------------------------- | ------------------ |
 | `acps-sdk/aic`  | Agent Identity Code: format validation, parsing, CRC checksum                                                   | `acps_sdk.aic`     |

@@ -10,6 +10,12 @@ School of Artificial Intelligence, Beijing University of Posts and Telecommunica
 Document authors:
 Jun Liu (Beijing University of Posts and Telecommunications), Ge Gao (China Electronics Standardization Institute), Ke Li (Beijing University of Posts and Telecommunications), Keliang Chen (Beijing University of Posts and Telecommunications), Ke Yu (Beijing University of Posts and Telecommunications), Xiaofeng Hu (Beijing University of Posts and Telecommunications), Di Ma (Beijing University of Posts and Telecommunications).
 
+Node.js SDK contributing organization:
+北京智镜科技有限责任公司
+
+Node.js SDK contributor:
+Hongbo Xu
+
 ## 2. Protocol Overview
 With the rapid development of artificial intelligence, agents have become a key vehicle for transforming AI from a conceptual technology into practical productive capabilities. Their applications are expanding rapidly across various fields, playing an increasingly important role in enabling new industrialization and fostering new quality productive forces. However, the development of the agent industry currently faces numerous challenges. Different agents encounter difficulties in achieving interconnection, interoperability, and interoperation, while issues such as data silos, heterogeneous communication barriers, and the lack of collaboration standards constrain the realization of their full application potential and the improvement of industrial competitiveness.
 

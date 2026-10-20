@@ -8,6 +8,10 @@ Agent Collaboration Protocols（智能体协作协议体系）SDK 的 Node.js / 
 API 在符合 Node 习惯的前提下与 Python 版一一对应（`snake_case` → `camelCase`，关键字参数 → 选项对象）。
 两边的对应规则见 [docs/porting-notes.md](docs/porting-notes.md)。
 
+贡献单位：北京智镜科技有限责任公司
+
+贡献者：许红博
+
 | 模块            | 说明                                                                                          | 对应 Python     |
 | --------------- | --------------------------------------------------------------------------------------------- | --------------- |
 | `acps-sdk/aic`  | Agent Identity Code 智能体身份码：格式校验、解析、CRC 校验                                    | `acps_sdk.aic`  |
