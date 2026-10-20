@@ -1,7 +1,7 @@
 """AIC 跨语言对照样例：格式校验 / 解析 / 本体实体判断 / Base36 / CRC 校验。
 
 输出：test/fixtures/python/aic/*.json
-运行：npm run fixtures:python（或单独 `uv run --project ../acps-sdk --python 3.12 python -I scripts/fixtures/gen_aic.py`）
+运行：npm run fixtures:python（或单独 `uv run --project ../../acps-sdk --python 3.12 python -I scripts/fixtures/gen_aic.py`）
 """
 
 from __future__ import annotations

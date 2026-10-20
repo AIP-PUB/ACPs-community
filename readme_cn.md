@@ -37,7 +37,6 @@ ACPs-community/
 |-- README.md
 |-- acps-specs/             ............. ACPs 协议体系定义
 |-- acps-sdk/               ............. ACPs SDK, 为智能体开发者提供便捷的智能体互联协作能力支持
-|-- acps-sdk-node/          ............. ACPs SDK 的 Node.js / TypeScript 版本，接口与线上格式与 Python 版对齐
 |-- acps-cli/               ............. ACPs 统一命令行工具集
 |-- acps-docs/              ............. ACPs 参考文档
 |-- acps-infra/             ............. ACPs 基础设施与交付编排仓库
@@ -47,7 +46,9 @@ ACPs-community/
 |-- mq-auth-server/         ............. 面向群组交互模式的鉴权与群组 ACL 服务，负责为 MQ 提供 HTTP auth backend
 |-- monitor-server/         ............. ACPs AMP 监控服务，负责监控日志的收集、入库与查询
 |-- demo-leader/            ............. ACPs-leader智能体示例
-`-- demo-partner/           ............. ACPs-partner智能体示例
+|-- demo-partner/           ............. ACPs-partner智能体示例
+`-- contrib/                ............. 社区贡献
+    `-- acps-sdk-node/      ............. ACPs SDK 的 Node.js / TypeScript 版本，接口与线上格式与 Python 版对齐
 ```
 
 ## 5. 版本历史

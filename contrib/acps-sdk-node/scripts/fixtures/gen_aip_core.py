@@ -13,7 +13,7 @@
 
 UUID 与时间戳通过 patch 固定为递增序列（Node 测试用同样的序列 mock `randomUUID` / `utcNowIso`）。
 
-运行：`uv run --project ../acps-sdk --python 3.12 python -I scripts/fixtures/gen_aip_core.py`
+运行：`uv run --project ../../acps-sdk --python 3.12 python -I scripts/fixtures/gen_aip_core.py`
 """
 
 from __future__ import annotations

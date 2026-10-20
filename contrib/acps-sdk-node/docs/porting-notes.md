@@ -58,7 +58,7 @@ API 形状在不违背 Node 习惯的前提下与 Python 版一一对应，便�
 - 尽量逐条移植 Python 的 `tests/` 用例（同名 describe/it，便于对照）。
 - **跨语言对照样例**：用 Python 版 SDK 生成 JSON，Node 测试读取并比对。
   - 每个包一个生成脚本：`scripts/fixtures/gen_<pkg>.py`，输出到 `test/fixtures/python/<pkg>/*.json`。
-  - 统一入口：`npm run fixtures:python`（在 `../acps-sdk` 的 uv 环境里依次运行所有脚本）。
+  - 统一入口：`npm run fixtures:python`（在 `../../acps-sdk` 的 uv 环境里依次运行所有脚本）。
   - 生成脚本必须确定性（固定时间、ID、随机种子），生成结果提交进仓库。
 - 测试证书：用 devDependency `@peculiar/x509` 在测试里现场生成（CA + 带 `CN=<AIC>`、`URI:acps://<AIC>` 的叶子证书），不要把私钥提交进仓库。
 

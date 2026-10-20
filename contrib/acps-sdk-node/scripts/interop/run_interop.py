@@ -1,4 +1,4 @@
-"""ACPs SDK 跨语言互通测试：官方 Python SDK（../acps-sdk）↔ Node SDK（本包 dist/）。
+"""ACPs SDK 跨语言互通测试：官方 Python SDK（../../acps-sdk）↔ Node SDK（本包 dist/）。
 
 两边互为对端跑同一套场景（真实 mTLS、真实 RabbitMQ），逐项断言线上数据与身份绑定行为，
 最后打印「场景 × 方向」矩阵；有任何 FAIL 时退出码为 1。用法见同目录 README.md。

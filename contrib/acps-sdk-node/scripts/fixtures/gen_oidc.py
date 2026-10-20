@@ -1,7 +1,7 @@
 """用 Python 版 acps_sdk.oidc 生成跨语言对照样例 → test/fixtures/python/oidc/*.json。
 
-运行（在 acps-sdk-node 目录下）：
-    uv run --project ../acps-sdk --python 3.12 python -I scripts/fixtures/gen_oidc.py
+运行（在 contrib/acps-sdk-node 目录下）：
+    uv run --project ../../acps-sdk --python 3.12 python -I scripts/fixtures/gen_oidc.py
 
 确定性：
 - 签名密钥由固定 seed 派生（Ed25519 签名本身是确定性的；ES256/PS256 带随机数，不放进样例）；

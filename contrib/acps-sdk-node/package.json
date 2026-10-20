@@ -7,9 +7,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AIP-PUB/ACPs-community.git",
-    "directory": "acps-sdk-node"
+    "directory": "contrib/acps-sdk-node"
   },
-  "homepage": "https://github.com/AIP-PUB/ACPs-community/tree/main/acps-sdk-node#readme",
+  "homepage": "https://github.com/AIP-PUB/ACPs-community/tree/main/contrib/acps-sdk-node#readme",
   "bugs": {
     "url": "https://github.com/AIP-PUB/ACPs-community/issues"
   },
@@ -110,8 +110,8 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:coverage": "vitest run --coverage",
-    "fixtures:python": "uv run --project ../acps-sdk --python 3.12 python -I scripts/gen_python_fixtures.py",
-    "interop": "npm run build && uv run --project ../acps-sdk --python 3.12 python -I scripts/interop/run_interop.py",
+    "fixtures:python": "uv run --project ../../acps-sdk --python 3.12 python -I scripts/gen_python_fixtures.py",
+    "interop": "npm run build && uv run --project ../../acps-sdk --python 3.12 python -I scripts/interop/run_interop.py",
     "qa": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build && npm run check:package",
     "check:package": "attw --pack . --profile node16"
   },

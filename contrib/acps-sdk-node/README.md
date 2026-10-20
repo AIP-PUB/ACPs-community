@@ -4,7 +4,7 @@
 
 Agent Collaboration Protocols（智能体协作协议体系）SDK 的 Node.js / TypeScript 实现。
 
-本包是 [`acps-sdk`](../acps-sdk/README.md)（Python，v2.2.0）的移植：**线上格式与行为与 Python 版一致**，
+本包是 [`acps-sdk`](../../acps-sdk/README.md)（Python，v2.2.0）的移植：**线上格式与行为与 Python 版一致**，
 API 在符合 Node 习惯的前提下与 Python 版一一对应（`snake_case` → `camelCase`，关键字参数 → 选项对象）。
 两边的对应规则见 [docs/porting-notes.md](docs/porting-notes.md)。
 
@@ -28,11 +28,11 @@ API 在符合 Node 习惯的前提下与 Python 版一一对应（`snake_case` �
 目前尚未发布到 npm，可从源码构建：
 
 ```bash
-cd acps-sdk-node
+cd contrib/acps-sdk-node
 npm ci
 npm run build
 # 在目标项目中
-npm install /path/to/ACPs-community/acps-sdk-node
+npm install /path/to/ACPs-community/contrib/acps-sdk-node
 ```
 
 ## 快速开始
@@ -142,7 +142,7 @@ if (task.status.state === TaskState.AwaitingCompletion) {
 npm ci
 npm test              # 单元测试 + 集成测试（集成测试会现场生成测试证书并启动本地 mTLS 服务）
 npm run qa            # 格式、lint、类型检查、测试、构建
-npm run fixtures:python   # 用 ../acps-sdk 的 Python 版重新生成跨语言对照样例（需要 uv）
+npm run fixtures:python   # 用 ../../acps-sdk 的 Python 版重新生成跨语言对照样例（需要 uv）
 ```
 
 测试中的跨语言对照样例由 Python 版 SDK 生成（`scripts/fixtures/gen_*.py` → `test/fixtures/python/`），

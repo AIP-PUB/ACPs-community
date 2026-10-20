@@ -1,6 +1,6 @@
 """生成 AMP 跨语言对照样例：test/fixtures/python/amp/*.json
 
-运行：uv run --project ../acps-sdk --python 3.12 python -I scripts/fixtures/gen_amp.py
+运行：uv run --project ../../acps-sdk --python 3.12 python -I scripts/fixtures/gen_amp.py
 
 全部输出确定性：固定 log_id / timestamp、固定随机种子。样例中不含任何私钥：
 Ed25519 使用 RFC 8032 §7.1 的公开测试向量；RSA / EC 私钥是由公开种子确定性派生的一次性测试密钥，

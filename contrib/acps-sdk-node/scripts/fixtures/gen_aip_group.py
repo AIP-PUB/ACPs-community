@@ -3,7 +3,7 @@
 确定性：uuid4 / datetime.now / secrets.token_urlsafe / os.getpid / trace id 全部替换为常量，
 AMQP 与 HTTP 交互由内存假对象记录。Node 测试以同样的常量重放并逐项比对。
 
-运行：cd acps-sdk-node && uv run --project ../acps-sdk --python 3.12 python -I scripts/fixtures/gen_aip_group.py
+运行：cd contrib/acps-sdk-node && uv run --project ../../acps-sdk --python 3.12 python -I scripts/fixtures/gen_aip_group.py
 """
 
 from __future__ import annotations

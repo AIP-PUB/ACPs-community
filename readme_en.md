@@ -45,8 +45,6 @@ ACPs-community/
 |-- acps-specs/             ............. ACPs protocol specifications
 |-- acps-sdk/               ............. ACPs SDK, providing agent developers with convenient
 |                                      support for agent interconnection and collaboration
-|-- acps-sdk-node/          ............. ACPs SDK for Node.js / TypeScript, API and wire format
-|                                      aligned with the Python SDK
 |-- acps-cli/               ............. ACPs unified command-line toolset
 |-- acps-docs/              ............. ACPs reference documentation
 |-- acps-infra/             ............. ACPs infrastructure and deployment orchestration repository
@@ -56,7 +54,10 @@ ACPs-community/
 |-- mq-auth-server/         ............. Authentication and group ACL service for group-based
 |                                      interaction, providing an HTTP auth backend for MQ
 |-- demo-leader/            ............. ACPs-leader agent example
-`-- demo-partner/           ............. ACPs-partner agent example
+|-- demo-partner/           ............. ACPs-partner agent example
+`-- contrib/                ............. Community contributions
+    `-- acps-sdk-node/      ............. ACPs SDK for Node.js / TypeScript, API and wire format
+                                       aligned with the Python SDK
 ```
 
 ## 5. Version History

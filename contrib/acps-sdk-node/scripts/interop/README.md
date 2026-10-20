@@ -1,12 +1,12 @@
 # Python ↔ Node 互通测试
 
-让官方 Python SDK（`../acps-sdk`）与本包（Node SDK）**互为对端**，在真实 mTLS 与真实 RabbitMQ 上跑同一套场景，
+让官方 Python SDK（`../../acps-sdk`）与本包（Node SDK）**互为对端**，在真实 mTLS 与真实 RabbitMQ 上跑同一套场景，
 逐项断言线上数据与身份绑定行为。需要 uv/Python 和 Node 两套环境，所以不在 `npm test` 里，按需手动运行。
 
 ## 运行
 
 ```bash
-cd acps-sdk-node
+cd contrib/acps-sdk-node
 # 只跑 HTTP 场景（RPC / 流式 / 通知）
 npm run interop
 # 加上群组模式：指向一个 RabbitMQ（AMQP 端口），并让脚本在容器里建好以 AIC 命名的用户

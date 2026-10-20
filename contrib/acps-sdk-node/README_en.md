@@ -4,7 +4,7 @@
 
 Node.js / TypeScript implementation of the Agent Collaboration Protocols (ACPs) SDK.
 
-This package is a port of [`acps-sdk`](../acps-sdk/README.md) (Python, v2.2.0). **Wire format and behavior match
+This package is a port of [`acps-sdk`](../../acps-sdk/README.md) (Python, v2.2.0). **Wire format and behavior match
 the Python SDK**; the API mirrors the Python one while following Node conventions (`snake_case` → `camelCase`,
 keyword arguments → an options object). The mapping rules are documented in
 [docs/porting-notes.md](docs/porting-notes.md).
@@ -29,11 +29,11 @@ keyword arguments → an options object). The mapping rules are documented in
 Not yet published to npm. Build from source:
 
 ```bash
-cd acps-sdk-node
+cd contrib/acps-sdk-node
 npm ci
 npm run build
 # in your project
-npm install /path/to/ACPs-community/acps-sdk-node
+npm install /path/to/ACPs-community/contrib/acps-sdk-node
 ```
 
 ## Quick start
@@ -145,7 +145,7 @@ The development toolchain (vitest, tsup) requires Node.js >= 22.18.
 npm ci
 npm test              # unit + integration tests (integration tests generate throwaway certs and start local mTLS servers)
 npm run qa            # format, lint, typecheck, test, build
-npm run fixtures:python   # regenerate cross-language fixtures from ../acps-sdk (requires uv)
+npm run fixtures:python   # regenerate cross-language fixtures from ../../acps-sdk (requires uv)
 ```
 
 Cross-language fixtures are produced by the Python SDK (`scripts/fixtures/gen_*.py` → `test/fixtures/python/`) and
