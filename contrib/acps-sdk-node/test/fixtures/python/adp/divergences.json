@@ -1,0 +1,105 @@
+[
+  {
+    "model": "DiscoveryRequest",
+    "name": "lax: numeric string to int",
+    "input": {
+      "query": "q",
+      "limit": "5"
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "q",
+      "limit": 5
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"q\",\"limit\":5}",
+    "kind": "lax"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "lax: bool to int",
+    "input": {
+      "query": "q",
+      "limit": true
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "q",
+      "limit": 1
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"q\",\"limit\":1}",
+    "kind": "lax"
+  },
+  {
+    "model": "DiscoveryAgentSkill",
+    "name": "lax: bool ranking",
+    "input": {
+      "aic": "a",
+      "skillId": "s",
+      "ranking": true
+    },
+    "ok": true,
+    "dump": {
+      "aic": "a",
+      "skillId": "s",
+      "ranking": 1
+    },
+    "json": "{\"aic\":\"a\",\"skillId\":\"s\",\"ranking\":1}",
+    "kind": "lax"
+  },
+  {
+    "model": "ErrorDetail",
+    "name": "lax: numeric string code",
+    "input": {
+      "code": "40001",
+      "message": "m"
+    },
+    "ok": true,
+    "dump": {
+      "code": 40001,
+      "message": "m"
+    },
+    "json": "{\"code\":40001,\"message\":\"m\"}",
+    "kind": "lax"
+  },
+  {
+    "model": "DiscoveryRequest",
+    "name": "populate_by_name: snake_case keys",
+    "input": {
+      "query": "q",
+      "forward_chain": [
+        "AIC-A"
+      ],
+      "forward_depth_limit": 2
+    },
+    "ok": true,
+    "dump": {
+      "type": "explicit",
+      "query": "q",
+      "forwardDepthLimit": 2,
+      "forwardChain": [
+        "AIC-A"
+      ]
+    },
+    "json": "{\"type\":\"explicit\",\"query\":\"q\",\"forwardDepthLimit\":2,\"forwardChain\":[\"AIC-A\"]}",
+    "kind": "populateByName"
+  },
+  {
+    "model": "DiscoveryAgentSkill",
+    "name": "populate_by_name: skill_id",
+    "input": {
+      "aic": "a",
+      "skill_id": "s",
+      "ranking": 1
+    },
+    "ok": true,
+    "dump": {
+      "aic": "a",
+      "skillId": "s",
+      "ranking": 1
+    },
+    "json": "{\"aic\":\"a\",\"skillId\":\"s\",\"ranking\":1}",
+    "kind": "populateByName"
+  }
+]

@@ -1,0 +1,75 @@
+{
+  "rpc": {
+    "ok": {
+      "request": {
+        "method": "POST",
+        "url": "https://partner.example.com/group/rpc",
+        "content_type": "application/json",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"group\",\"id\":\"12345678-1234-4678-9234-567812345678\",\"params\":{\"protocol\":\"rabbitmq:4.0\",\"group\":{\"groupId\":\"group-session-1\",\"leader\":{\"aic\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\"},\"partners\":[{\"aic\":\"1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6\"},{\"aic\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\"}]},\"server\":{\"host\":\"mq.acps.example.com\",\"port\":5672,\"vhost\":\"acps\",\"accessToken\":\"guest:guest\"},\"amqp\":{\"exchange\":\"group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1\",\"exchangeType\":\"fanout\",\"routingKey\":\"\"}}}"
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": "12345678-1234-4678-9234-567812345678",
+        "result": {
+          "connectionName": "agent-1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "vhost": "acps",
+          "nodeName": "unknown",
+          "queueName": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "processId": "pid-1"
+        }
+      },
+      "partner": {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "connection_name": "agent-1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "vhost": "acps",
+        "node_name": "unknown",
+        "queue_name": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "process_id": "pid-1",
+        "connected": true,
+        "muted": false
+      }
+    },
+    "refused": "Partner refused: nope",
+    "empty": "Empty result in response",
+    "not_found": "Network error: Client error '404 Not Found' for url 'https://partner.example.com/group/rpc'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404",
+    "not_json_prefix": "Unexpected error",
+    "captured_count": 5
+  },
+  "acl": {
+    "base_url": "https://auth.example.com/api",
+    "requests": [
+      {
+        "method": "PUT",
+        "url": "https://auth.example.com/api/groups/1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4/group-1/members/1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      },
+      {
+        "method": "DELETE",
+        "url": "https://auth.example.com/api/groups/1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4/group-1/members/1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      },
+      {
+        "method": "DELETE",
+        "url": "https://auth.example.com/api/groups/1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4/group-1"
+      },
+      {
+        "method": "DELETE",
+        "url": "https://auth.example.com/api/groups/1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4/group-1/members/1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5/connection"
+      },
+      {
+        "method": "PUT",
+        "url": "https://auth.example.com/api/groups/a%20b%2Fc%21%2A%27%28%29~/%E4%B8%AD/members/x"
+      },
+      {
+        "method": "DELETE",
+        "url": "https://auth.example.com/api/groups/1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4/group-1"
+      },
+      {
+        "method": "DELETE",
+        "url": "https://auth.example.com/api/groups/1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4/group-1/members/1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      }
+    ],
+    "errors": {
+      "with_body": "DELETE /groups/1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4/group-1 failed: 404 group not found",
+      "without_body": "DELETE /groups/1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4/group-1/members/1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5 failed: 503 Service Unavailable"
+    }
+  }
+}

@@ -1,0 +1,2400 @@
+[
+  {
+    "model": "TextDataItem",
+    "input": {
+      "text": "hi"
+    },
+    "dump": "{\"type\":\"text\",\"text\":\"hi\"}"
+  },
+  {
+    "model": "TextDataItem",
+    "input": {
+      "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n",
+      "metadata": {
+        "a": null,
+        "b": [
+          1,
+          {
+            "c": null
+          }
+        ]
+      },
+      "type": "text"
+    },
+    "dump": "{\"metadata\":{\"a\":null,\"b\":[1,{\"c\":null}]},\"type\":\"text\",\"text\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"}"
+  },
+  {
+    "model": "TextDataItem",
+    "input": {
+      "text": "hi",
+      "metadata": null,
+      "extra": 1
+    },
+    "dump": "{\"type\":\"text\",\"text\":\"hi\"}"
+  },
+  {
+    "model": "TextDataItem",
+    "input": {
+      "type": "file",
+      "text": "hi"
+    },
+    "error": true
+  },
+  {
+    "model": "TextDataItem",
+    "input": {},
+    "error": true
+  },
+  {
+    "model": "TextDataItem",
+    "input": {
+      "text": null
+    },
+    "error": true
+  },
+  {
+    "model": "FileDataItem",
+    "input": {},
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "model": "FileDataItem",
+    "input": {
+      "bytes": "YQ==",
+      "uri": "u",
+      "mimeType": "m",
+      "name": "n",
+      "metadata": {}
+    },
+    "dump": "{\"metadata\":{},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"YQ==\"}"
+  },
+  {
+    "model": "FileDataItem",
+    "input": {
+      "name": null,
+      "uri": null
+    },
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "model": "FileDataItem",
+    "input": {
+      "type": "text"
+    },
+    "error": true
+  },
+  {
+    "model": "StructuredDataItem",
+    "input": {
+      "data": {}
+    },
+    "dump": "{\"type\":\"data\",\"data\":{}}"
+  },
+  {
+    "model": "StructuredDataItem",
+    "input": {
+      "data": {
+        "x": null,
+        "y": {
+          "z": null
+        }
+      },
+      "metadata": {
+        "m": 1
+      }
+    },
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"data\",\"data\":{\"x\":null,\"y\":{\"z\":null}}}"
+  },
+  {
+    "model": "StructuredDataItem",
+    "input": {
+      "data": null
+    },
+    "error": true
+  },
+  {
+    "model": "StructuredDataItem",
+    "input": {
+      "data": [
+        1,
+        2
+      ]
+    },
+    "error": true
+  },
+  {
+    "model": "StructuredDataItem",
+    "input": {},
+    "error": true
+  },
+  {
+    "model": "DataItem",
+    "input": {
+      "type": "text",
+      "text": "t"
+    },
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "model": "DataItem",
+    "input": {
+      "type": "file"
+    },
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "model": "DataItem",
+    "input": {
+      "type": "data",
+      "data": {}
+    },
+    "dump": "{\"type\":\"data\",\"data\":{}}"
+  },
+  {
+    "model": "DataItem",
+    "input": {
+      "type": "unknown",
+      "text": "t"
+    },
+    "error": true
+  },
+  {
+    "model": "DataItem",
+    "input": {
+      "type": null,
+      "text": "t"
+    },
+    "error": true
+  },
+  {
+    "model": "DataItem",
+    "input": {
+      "type": "text"
+    },
+    "error": true
+  },
+  {
+    "model": "DataItem",
+    "input": "not-an-object",
+    "error": true
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "state": "working",
+      "stateChangedAt": "2026-06-24T00:00:00Z"
+    },
+    "dump": "{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "dataItems": [
+        {
+          "type": "text",
+          "text": "progress",
+          "metadata": {
+            "k": null
+          }
+        }
+      ],
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "state": "awaiting-input"
+    },
+    "dump": "{\"state\":\"awaiting-input\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\",\"dataItems\":[{\"metadata\":{\"k\":null},\"type\":\"text\",\"text\":\"progress\"}]}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "state": "bogus",
+      "stateChangedAt": "2026-06-24T00:00:00Z"
+    },
+    "error": true
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "state": "working"
+    },
+    "error": true
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "state": "working",
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "dataItems": null
+    },
+    "dump": "{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "state": "accepted"
+    },
+    "dump": "{\"state\":\"accepted\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "state": "working"
+    },
+    "dump": "{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "state": "awaiting-input"
+    },
+    "dump": "{\"state\":\"awaiting-input\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "state": "awaiting-completion"
+    },
+    "dump": "{\"state\":\"awaiting-completion\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "state": "completed"
+    },
+    "dump": "{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "state": "canceled"
+    },
+    "dump": "{\"state\":\"canceled\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "state": "failed"
+    },
+    "dump": "{\"state\":\"failed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "TaskStatus",
+    "input": {
+      "stateChangedAt": "2026-06-24T00:00:00Z",
+      "state": "rejected"
+    },
+    "dump": "{\"state\":\"rejected\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "Product",
+    "input": {
+      "dataItems": [
+        {
+          "type": "text",
+          "text": "answer"
+        },
+        {
+          "data": {
+            "score": 3
+          }
+        }
+      ],
+      "description": "desc",
+      "name": "Result",
+      "id": "prod-1"
+    },
+    "dump": "{\"id\":\"prod-1\",\"name\":\"Result\",\"description\":\"desc\",\"dataItems\":[{\"type\":\"text\",\"text\":\"answer\"},{\"type\":\"data\",\"data\":{\"score\":3}}]}"
+  },
+  {
+    "model": "Product",
+    "input": {
+      "id": "p"
+    },
+    "error": true
+  },
+  {
+    "model": "Product",
+    "input": {
+      "id": "p",
+      "dataItems": [
+        {}
+      ],
+      "name": null
+    },
+    "dump": "{\"id\":\"p\",\"dataItems\":[{\"type\":\"file\"}]}"
+  },
+  {
+    "model": "GetCommandParams",
+    "input": {},
+    "dump": "{}"
+  },
+  {
+    "model": "GetCommandParams",
+    "input": {
+      "lastStateChangedAt": "2026-06-24T00:00:00Z",
+      "lastCommandSentAt": "2026-06-24T00:00:05Z"
+    },
+    "dump": "{\"lastCommandSentAt\":\"2026-06-24T00:00:05Z\",\"lastStateChangedAt\":\"2026-06-24T00:00:00Z\"}"
+  },
+  {
+    "model": "GetCommandParams",
+    "input": {
+      "lastMessageSentAt": "2026-06-24T00:00:00Z"
+    },
+    "dump": "{}"
+  },
+  {
+    "model": "StartCommandParams",
+    "input": {},
+    "dump": "{}"
+  },
+  {
+    "model": "StartCommandParams",
+    "input": {
+      "maxProductsBytes": 1024,
+      "timeout": 30
+    },
+    "dump": "{\"timeout\":30,\"maxProductsBytes\":1024}"
+  },
+  {
+    "model": "StartCommandParams",
+    "input": {
+      "timeout": 1.5
+    },
+    "error": true
+  },
+  {
+    "model": "StartCommandParams",
+    "input": {
+      "timeout": null
+    },
+    "dump": "{}"
+  },
+  {
+    "model": "Message",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\"}"
+  },
+  {
+    "model": "Message",
+    "input": {
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "mentions": "all"
+    },
+    "dump": "{\"type\":\"message\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":\"all\"}"
+  },
+  {
+    "model": "Message",
+    "input": {
+      "type": "custom-type",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "extra": "ignored"
+    },
+    "dump": "{\"type\":\"custom-type\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\"}"
+  },
+  {
+    "model": "Message",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "observer",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    "error": true
+  },
+  {
+    "model": "Message",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "mentions": "some"
+    },
+    "error": true
+  },
+  {
+    "model": "Message",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "mentions": []
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":[]}"
+  },
+  {
+    "model": "Message",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "mentions": [
+        1
+      ]
+    },
+    "error": true
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "start"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "taskId": "task-1",
+      "commandParams": {
+        "a": null,
+        "nested": {
+          "b": [
+            1,
+            null,
+            "x"
+          ]
+        },
+        "lastCommandSentAt": "2026-06-24T00:00:00Z"
+      },
+      "command": "continue",
+      "sessionId": "sess-1",
+      "groupId": "group-1",
+      "dataItems": [
+        {
+          "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n"
+        },
+        {
+          "type": "file",
+          "name": "a.txt",
+          "mimeType": "text/plain",
+          "uri": "https://x/a.txt",
+          "bytes": "YWJj"
+        },
+        {
+          "type": "data",
+          "data": {
+            "k": null,
+            "list": [
+              true,
+              false,
+              null
+            ]
+          },
+          "metadata": {}
+        }
+      ],
+      "mentions": [
+        "p1",
+        "p2"
+      ],
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "senderRole": "leader",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "id": "cmd-2",
+      "type": "task-command"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":[\"p1\",\"p2\"],\"dataItems\":[{\"type\":\"text\",\"text\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"},{\"type\":\"file\",\"name\":\"a.txt\",\"mimeType\":\"text/plain\",\"uri\":\"https://x/a.txt\",\"bytes\":\"YWJj\"},{\"metadata\":{},\"type\":\"data\",\"data\":{\"k\":null,\"list\":[true,false,null]}}],\"groupId\":\"group-1\",\"sessionId\":\"sess-1\",\"command\":\"continue\",\"commandParams\":{\"a\":null,\"nested\":{\"b\":[1,null,\"x\"]},\"lastCommandSentAt\":\"2026-06-24T00:00:00Z\"},\"taskId\":\"task-1\"}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "start"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-result",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "start"
+    },
+    "error": true
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "bogus"
+    },
+    "error": true
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    "error": true
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "command": "start"
+    },
+    "error": true
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "re-stream",
+      "commandParams": {
+        "lastEventSeq": 3
+      }
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"re-stream\",\"commandParams\":{\"lastEventSeq\":3}}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "start",
+      "commandParams": null,
+      "taskId": null,
+      "sessionId": null,
+      "mentions": null
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "start",
+      "commandParams": [
+        1
+      ]
+    },
+    "error": true
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "get"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"get\"}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "start"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "continue"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"continue\"}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "cancel"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"cancel\"}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "complete"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"complete\"}"
+  },
+  {
+    "model": "TaskCommand",
+    "input": {
+      "type": "task-command",
+      "id": "cmd-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "command": "re-stream"
+    },
+    "dump": "{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"re-stream\"}"
+  },
+  {
+    "model": "TaskResult",
+    "input": {
+      "type": "task-result",
+      "id": "res-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1",
+      "status": {
+        "state": "working",
+        "stateChangedAt": "2026-06-24T00:00:00Z"
+      }
+    },
+    "dump": "{\"type\":\"task-result\",\"id\":\"res-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}"
+  },
+  {
+    "model": "TaskResult",
+    "input": {
+      "statusHistory": [
+        {
+          "state": "working",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        },
+        {
+          "dataItems": [
+            {
+              "type": "text",
+              "text": "progress",
+              "metadata": {
+                "k": null
+              }
+            }
+          ],
+          "stateChangedAt": "2026-06-24T00:00:00Z",
+          "state": "awaiting-input"
+        }
+      ],
+      "commandHistory": [
+        {
+          "type": "task-command",
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start"
+        },
+        {
+          "taskId": "task-1",
+          "commandParams": {
+            "a": null,
+            "nested": {
+              "b": [
+                1,
+                null,
+                "x"
+              ]
+            },
+            "lastCommandSentAt": "2026-06-24T00:00:00Z"
+          },
+          "command": "continue",
+          "sessionId": "sess-1",
+          "groupId": "group-1",
+          "dataItems": [
+            {
+              "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n"
+            },
+            {
+              "type": "file",
+              "name": "a.txt",
+              "mimeType": "text/plain",
+              "uri": "https://x/a.txt",
+              "bytes": "YWJj"
+            },
+            {
+              "type": "data",
+              "data": {
+                "k": null,
+                "list": [
+                  true,
+                  false,
+                  null
+                ]
+              },
+              "metadata": {}
+            }
+          ],
+          "mentions": [
+            "p1",
+            "p2"
+          ],
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "senderRole": "leader",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "id": "cmd-2",
+          "type": "task-command"
+        }
+      ],
+      "products": [
+        {
+          "dataItems": [
+            {
+              "type": "text",
+              "text": "answer"
+            },
+            {
+              "data": {
+                "score": 3
+              }
+            }
+          ],
+          "description": "desc",
+          "name": "Result",
+          "id": "prod-1"
+        },
+        {
+          "id": "prod-2",
+          "dataItems": []
+        }
+      ],
+      "status": {
+        "dataItems": [
+          {
+            "type": "text",
+            "text": "progress",
+            "metadata": {
+              "k": null
+            }
+          }
+        ],
+        "stateChangedAt": "2026-06-24T00:00:00Z",
+        "state": "awaiting-input"
+      },
+      "taskId": "task-1",
+      "sessionId": "sess-1",
+      "groupId": null,
+      "dataItems": null,
+      "mentions": "all",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "senderRole": "partner",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "id": "res-2"
+    },
+    "dump": "{\"type\":\"task-result\",\"id\":\"res-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"mentions\":\"all\",\"sessionId\":\"sess-1\",\"taskId\":\"task-1\",\"status\":{\"state\":\"awaiting-input\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\",\"dataItems\":[{\"metadata\":{\"k\":null},\"type\":\"text\",\"text\":\"progress\"}]},\"products\":[{\"id\":\"prod-1\",\"name\":\"Result\",\"description\":\"desc\",\"dataItems\":[{\"type\":\"text\",\"text\":\"answer\"},{\"type\":\"data\",\"data\":{\"score\":3}}]},{\"id\":\"prod-2\",\"dataItems\":[]}],\"commandHistory\":[{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"},{\"type\":\"task-command\",\"id\":\"cmd-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":[\"p1\",\"p2\"],\"dataItems\":[{\"type\":\"text\",\"text\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"},{\"type\":\"file\",\"name\":\"a.txt\",\"mimeType\":\"text/plain\",\"uri\":\"https://x/a.txt\",\"bytes\":\"YWJj\"},{\"metadata\":{},\"type\":\"data\",\"data\":{\"k\":null,\"list\":[true,false,null]}}],\"groupId\":\"group-1\",\"sessionId\":\"sess-1\",\"command\":\"continue\",\"commandParams\":{\"a\":null,\"nested\":{\"b\":[1,null,\"x\"]},\"lastCommandSentAt\":\"2026-06-24T00:00:00Z\"},\"taskId\":\"task-1\"}],\"statusHistory\":[{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"},{\"state\":\"awaiting-input\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\",\"dataItems\":[{\"metadata\":{\"k\":null},\"type\":\"text\",\"text\":\"progress\"}]}]}"
+  },
+  {
+    "model": "TaskResult",
+    "input": {
+      "id": "res-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1",
+      "status": {
+        "state": "working",
+        "stateChangedAt": "2026-06-24T00:00:00Z"
+      }
+    },
+    "dump": "{\"type\":\"task-result\",\"id\":\"res-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}"
+  },
+  {
+    "model": "TaskResult",
+    "input": {
+      "type": "task-result",
+      "id": "res-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "status": {
+        "state": "working",
+        "stateChangedAt": "2026-06-24T00:00:00Z"
+      }
+    },
+    "error": true
+  },
+  {
+    "model": "TaskResult",
+    "input": {
+      "type": "task-result",
+      "id": "res-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1"
+    },
+    "error": true
+  },
+  {
+    "model": "TaskResult",
+    "input": {
+      "type": "task-command",
+      "id": "res-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1",
+      "status": {
+        "state": "working",
+        "stateChangedAt": "2026-06-24T00:00:00Z"
+      }
+    },
+    "error": true
+  },
+  {
+    "model": "TaskResult",
+    "input": {
+      "type": "task-result",
+      "id": "res-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1",
+      "status": {
+        "state": "working",
+        "stateChangedAt": "2026-06-24T00:00:00Z"
+      },
+      "commandHistory": [
+        {
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start"
+        }
+      ]
+    },
+    "dump": "{\"type\":\"task-result\",\"id\":\"res-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"},\"commandHistory\":[{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"}]}"
+  },
+  {
+    "model": "JSONRPCRequest",
+    "input": {
+      "method": "x"
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"x\"}"
+  },
+  {
+    "model": "JSONRPCRequest",
+    "input": {
+      "params": [
+        1,
+        null
+      ],
+      "id": 7,
+      "method": "x",
+      "jsonrpc": "2.0"
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"x\",\"id\":7,\"params\":[1,null]}"
+  },
+  {
+    "model": "JSONRPCRequest",
+    "input": {
+      "params": {
+        "a": null
+      },
+      "id": "abc",
+      "method": "x"
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"x\",\"id\":\"abc\",\"params\":{\"a\":null}}"
+  },
+  {
+    "model": "JSONRPCRequest",
+    "input": {
+      "method": "x",
+      "id": null,
+      "params": null
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"x\"}"
+  },
+  {
+    "model": "JSONRPCRequest",
+    "input": {
+      "method": "x",
+      "jsonrpc": "1.0"
+    },
+    "error": true
+  },
+  {
+    "model": "JSONRPCRequest",
+    "input": {
+      "id": 1
+    },
+    "error": true
+  },
+  {
+    "model": "JSONRPCRequest",
+    "input": {
+      "method": "x",
+      "id": 1.5
+    },
+    "error": true
+  },
+  {
+    "model": "JSONRPCRequest",
+    "input": {
+      "method": "x",
+      "params": "str"
+    },
+    "error": true
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "code": -32000,
+      "message": "boom"
+    },
+    "dump": "{\"code\":-32000,\"message\":\"boom\"}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "data": null,
+      "message": "m",
+      "code": 1
+    },
+    "dump": "{\"code\":1,\"message\":\"m\"}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "data": 0,
+      "message": "m",
+      "code": 1
+    },
+    "dump": "{\"code\":1,\"message\":\"m\",\"data\":0}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "data": false,
+      "message": "m",
+      "code": 1
+    },
+    "dump": "{\"code\":1,\"message\":\"m\",\"data\":false}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "data": "",
+      "message": "m",
+      "code": 1
+    },
+    "dump": "{\"code\":1,\"message\":\"m\",\"data\":\"\"}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "data": [],
+      "message": "m",
+      "code": 1
+    },
+    "dump": "{\"code\":1,\"message\":\"m\",\"data\":[]}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "data": {},
+      "message": "m",
+      "code": 1
+    },
+    "dump": "{\"code\":1,\"message\":\"m\",\"data\":{}}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "data": {
+        "a": null
+      },
+      "message": "m",
+      "code": 1
+    },
+    "dump": "{\"code\":1,\"message\":\"m\",\"data\":{\"a\":null}}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "data": [
+        null
+      ],
+      "message": "m",
+      "code": 1
+    },
+    "dump": "{\"code\":1,\"message\":\"m\",\"data\":[null]}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "data": "detail",
+      "message": "m",
+      "code": 1
+    },
+    "dump": "{\"code\":1,\"message\":\"m\",\"data\":\"detail\"}"
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "code": "x",
+      "message": "m"
+    },
+    "error": true
+  },
+  {
+    "model": "JSONRPCError",
+    "input": {
+      "code": 1
+    },
+    "error": true
+  },
+  {
+    "model": "JSONRPCResponse",
+    "input": {},
+    "dump": "{\"jsonrpc\":\"2.0\"}"
+  },
+  {
+    "model": "JSONRPCResponse",
+    "input": {
+      "error": {
+        "code": 1,
+        "message": "m"
+      },
+      "result": null,
+      "id": "r"
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"r\",\"error\":{\"code\":1,\"message\":\"m\"}}"
+  },
+  {
+    "model": "JSONRPCResponse",
+    "input": {
+      "result": {
+        "a": null
+      },
+      "id": 3
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":3,\"result\":{\"a\":null}}"
+  },
+  {
+    "model": "JSONRPCResponse",
+    "input": {
+      "result": 0
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"result\":0}"
+  },
+  {
+    "model": "JSONRPCResponse",
+    "input": {
+      "result": false
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"result\":false}"
+  },
+  {
+    "model": "RpcRequestParams",
+    "input": {
+      "command": {
+        "type": "task-command",
+        "id": "cmd-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "leader",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "command": "start"
+      }
+    },
+    "dump": "{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"}}"
+  },
+  {
+    "model": "RpcRequestParams",
+    "input": {},
+    "error": true
+  },
+  {
+    "model": "RpcRequest",
+    "input": {
+      "params": {
+        "command": {
+          "taskId": "task-1",
+          "commandParams": {
+            "a": null,
+            "nested": {
+              "b": [
+                1,
+                null,
+                "x"
+              ]
+            },
+            "lastCommandSentAt": "2026-06-24T00:00:00Z"
+          },
+          "command": "continue",
+          "sessionId": "sess-1",
+          "groupId": "group-1",
+          "dataItems": [
+            {
+              "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n"
+            },
+            {
+              "type": "file",
+              "name": "a.txt",
+              "mimeType": "text/plain",
+              "uri": "https://x/a.txt",
+              "bytes": "YWJj"
+            },
+            {
+              "type": "data",
+              "data": {
+                "k": null,
+                "list": [
+                  true,
+                  false,
+                  null
+                ]
+              },
+              "metadata": {}
+            }
+          ],
+          "mentions": [
+            "p1",
+            "p2"
+          ],
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "senderRole": "leader",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "id": "cmd-2",
+          "type": "task-command"
+        }
+      },
+      "id": "rpc-1"
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":\"rpc-1\",\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":[\"p1\",\"p2\"],\"dataItems\":[{\"type\":\"text\",\"text\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"},{\"type\":\"file\",\"name\":\"a.txt\",\"mimeType\":\"text/plain\",\"uri\":\"https://x/a.txt\",\"bytes\":\"YWJj\"},{\"metadata\":{},\"type\":\"data\",\"data\":{\"k\":null,\"list\":[true,false,null]}}],\"groupId\":\"group-1\",\"sessionId\":\"sess-1\",\"command\":\"continue\",\"commandParams\":{\"a\":null,\"nested\":{\"b\":[1,null,\"x\"]},\"lastCommandSentAt\":\"2026-06-24T00:00:00Z\"},\"taskId\":\"task-1\"}}}"
+  },
+  {
+    "model": "RpcRequest",
+    "input": {
+      "params": {
+        "command": {
+          "type": "task-command",
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start"
+        }
+      },
+      "method": "rpc",
+      "jsonrpc": "2.0",
+      "id": 9
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":9,\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"}}}"
+  },
+  {
+    "model": "RpcRequest",
+    "input": {
+      "params": {
+        "command": {
+          "type": "task-command",
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start"
+        }
+      },
+      "method": "stream"
+    },
+    "error": true
+  },
+  {
+    "model": "RpcRequest",
+    "input": {
+      "method": "rpc"
+    },
+    "error": true
+  },
+  {
+    "model": "RpcRequest",
+    "input": {
+      "params": {
+        "command": {
+          "type": "task-command",
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "nope"
+        }
+      }
+    },
+    "error": true
+  },
+  {
+    "model": "RpcResponse",
+    "input": {
+      "id": "r",
+      "result": {
+        "statusHistory": [
+          {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          },
+          {
+            "dataItems": [
+              {
+                "type": "text",
+                "text": "progress",
+                "metadata": {
+                  "k": null
+                }
+              }
+            ],
+            "stateChangedAt": "2026-06-24T00:00:00Z",
+            "state": "awaiting-input"
+          }
+        ],
+        "commandHistory": [
+          {
+            "type": "task-command",
+            "id": "cmd-1",
+            "sentAt": "2026-06-24T00:00:00Z",
+            "senderRole": "leader",
+            "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "command": "start"
+          },
+          {
+            "taskId": "task-1",
+            "commandParams": {
+              "a": null,
+              "nested": {
+                "b": [
+                  1,
+                  null,
+                  "x"
+                ]
+              },
+              "lastCommandSentAt": "2026-06-24T00:00:00Z"
+            },
+            "command": "continue",
+            "sessionId": "sess-1",
+            "groupId": "group-1",
+            "dataItems": [
+              {
+                "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n"
+              },
+              {
+                "type": "file",
+                "name": "a.txt",
+                "mimeType": "text/plain",
+                "uri": "https://x/a.txt",
+                "bytes": "YWJj"
+              },
+              {
+                "type": "data",
+                "data": {
+                  "k": null,
+                  "list": [
+                    true,
+                    false,
+                    null
+                  ]
+                },
+                "metadata": {}
+              }
+            ],
+            "mentions": [
+              "p1",
+              "p2"
+            ],
+            "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "senderRole": "leader",
+            "sentAt": "2026-06-24T00:00:00Z",
+            "id": "cmd-2",
+            "type": "task-command"
+          }
+        ],
+        "products": [
+          {
+            "dataItems": [
+              {
+                "type": "text",
+                "text": "answer"
+              },
+              {
+                "data": {
+                  "score": 3
+                }
+              }
+            ],
+            "description": "desc",
+            "name": "Result",
+            "id": "prod-1"
+          },
+          {
+            "id": "prod-2",
+            "dataItems": []
+          }
+        ],
+        "status": {
+          "dataItems": [
+            {
+              "type": "text",
+              "text": "progress",
+              "metadata": {
+                "k": null
+              }
+            }
+          ],
+          "stateChangedAt": "2026-06-24T00:00:00Z",
+          "state": "awaiting-input"
+        },
+        "taskId": "task-1",
+        "sessionId": "sess-1",
+        "groupId": null,
+        "dataItems": null,
+        "mentions": "all",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "senderRole": "partner",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "id": "res-2"
+      }
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"r\",\"result\":{\"type\":\"task-result\",\"id\":\"res-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"mentions\":\"all\",\"sessionId\":\"sess-1\",\"taskId\":\"task-1\",\"status\":{\"state\":\"awaiting-input\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\",\"dataItems\":[{\"metadata\":{\"k\":null},\"type\":\"text\",\"text\":\"progress\"}]},\"products\":[{\"id\":\"prod-1\",\"name\":\"Result\",\"description\":\"desc\",\"dataItems\":[{\"type\":\"text\",\"text\":\"answer\"},{\"type\":\"data\",\"data\":{\"score\":3}}]},{\"id\":\"prod-2\",\"dataItems\":[]}],\"commandHistory\":[{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"},{\"type\":\"task-command\",\"id\":\"cmd-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":[\"p1\",\"p2\"],\"dataItems\":[{\"type\":\"text\",\"text\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"},{\"type\":\"file\",\"name\":\"a.txt\",\"mimeType\":\"text/plain\",\"uri\":\"https://x/a.txt\",\"bytes\":\"YWJj\"},{\"metadata\":{},\"type\":\"data\",\"data\":{\"k\":null,\"list\":[true,false,null]}}],\"groupId\":\"group-1\",\"sessionId\":\"sess-1\",\"command\":\"continue\",\"commandParams\":{\"a\":null,\"nested\":{\"b\":[1,null,\"x\"]},\"lastCommandSentAt\":\"2026-06-24T00:00:00Z\"},\"taskId\":\"task-1\"}],\"statusHistory\":[{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"},{\"state\":\"awaiting-input\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\",\"dataItems\":[{\"metadata\":{\"k\":null},\"type\":\"text\",\"text\":\"progress\"}]}]}}"
+  },
+  {
+    "model": "RpcResponse",
+    "input": {
+      "id": "r",
+      "error": {
+        "code": -32001,
+        "message": "Task not found",
+        "data": {
+          "taskId": "t"
+        }
+      }
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"r\",\"error\":{\"code\":-32001,\"message\":\"Task not found\",\"data\":{\"taskId\":\"t\"}}}"
+  },
+  {
+    "model": "RpcResponse",
+    "input": {
+      "result": null,
+      "error": null,
+      "id": null
+    },
+    "dump": "{\"jsonrpc\":\"2.0\"}"
+  },
+  {
+    "model": "RpcResponse",
+    "input": {
+      "result": {
+        "not": "a task result"
+      }
+    },
+    "error": true
+  },
+  {
+    "model": "TaskStatusUpdateEvent",
+    "input": {
+      "type": "task-status-update",
+      "id": "ev-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1",
+      "status": {
+        "state": "working",
+        "stateChangedAt": "2026-06-24T00:00:00Z"
+      }
+    },
+    "dump": "{\"type\":\"task-status-update\",\"id\":\"ev-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}"
+  },
+  {
+    "model": "TaskStatusUpdateEvent",
+    "input": {
+      "id": "ev-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1",
+      "status": {
+        "state": "working",
+        "stateChangedAt": "2026-06-24T00:00:00Z"
+      }
+    },
+    "dump": "{\"type\":\"task-status-update\",\"id\":\"ev-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}"
+  },
+  {
+    "model": "TaskStatusUpdateEvent",
+    "input": {
+      "type": "task-status-update",
+      "id": "ev-1",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "taskId": "task-1"
+    },
+    "error": true
+  },
+  {
+    "model": "ProductChunkEvent",
+    "input": {
+      "lastChunk": false,
+      "append": true,
+      "product": {
+        "id": "prod-1",
+        "dataItems": [
+          {
+            "text": "chunk"
+          }
+        ]
+      },
+      "taskId": "task-1",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "senderRole": "partner",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "id": "ev-2",
+      "type": "product-chunk"
+    },
+    "dump": "{\"type\":\"product-chunk\",\"id\":\"ev-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"product\":{\"id\":\"prod-1\",\"dataItems\":[{\"type\":\"text\",\"text\":\"chunk\"}]},\"append\":true,\"lastChunk\":false}"
+  },
+  {
+    "model": "ProductChunkEvent",
+    "input": {
+      "append": true,
+      "product": {
+        "id": "prod-1",
+        "dataItems": [
+          {
+            "text": "chunk"
+          }
+        ]
+      },
+      "taskId": "task-1",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "senderRole": "partner",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "id": "ev-2"
+    },
+    "error": true
+  },
+  {
+    "model": "ProductChunkEvent",
+    "input": {
+      "lastChunk": false,
+      "append": null,
+      "product": {
+        "id": "prod-1",
+        "dataItems": [
+          {
+            "text": "chunk"
+          }
+        ]
+      },
+      "taskId": "task-1",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "senderRole": "partner",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "id": "ev-2",
+      "type": "product-chunk"
+    },
+    "error": true
+  },
+  {
+    "model": "StreamRequestParams",
+    "input": {
+      "message": {
+        "type": "task-command",
+        "id": "cmd-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "leader",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "command": "start"
+      }
+    },
+    "dump": "{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"}}"
+  },
+  {
+    "model": "StreamRequest",
+    "input": {
+      "params": {
+        "message": {
+          "taskId": "task-1",
+          "commandParams": {
+            "a": null,
+            "nested": {
+              "b": [
+                1,
+                null,
+                "x"
+              ]
+            },
+            "lastCommandSentAt": "2026-06-24T00:00:00Z"
+          },
+          "command": "continue",
+          "sessionId": "sess-1",
+          "groupId": "group-1",
+          "dataItems": [
+            {
+              "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n"
+            },
+            {
+              "type": "file",
+              "name": "a.txt",
+              "mimeType": "text/plain",
+              "uri": "https://x/a.txt",
+              "bytes": "YWJj"
+            },
+            {
+              "type": "data",
+              "data": {
+                "k": null,
+                "list": [
+                  true,
+                  false,
+                  null
+                ]
+              },
+              "metadata": {}
+            }
+          ],
+          "mentions": [
+            "p1",
+            "p2"
+          ],
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "senderRole": "leader",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "id": "cmd-2",
+          "type": "task-command"
+        }
+      },
+      "id": "s-1"
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"stream\",\"id\":\"s-1\",\"params\":{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":[\"p1\",\"p2\"],\"dataItems\":[{\"type\":\"text\",\"text\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"},{\"type\":\"file\",\"name\":\"a.txt\",\"mimeType\":\"text/plain\",\"uri\":\"https://x/a.txt\",\"bytes\":\"YWJj\"},{\"metadata\":{},\"type\":\"data\",\"data\":{\"k\":null,\"list\":[true,false,null]}}],\"groupId\":\"group-1\",\"sessionId\":\"sess-1\",\"command\":\"continue\",\"commandParams\":{\"a\":null,\"nested\":{\"b\":[1,null,\"x\"]},\"lastCommandSentAt\":\"2026-06-24T00:00:00Z\"},\"taskId\":\"task-1\"}}}"
+  },
+  {
+    "model": "StreamRequest",
+    "input": {
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start"
+        }
+      },
+      "method": "rpc"
+    },
+    "error": true
+  },
+  {
+    "model": "StreamRequest",
+    "input": {
+      "params": {
+        "command": {
+          "type": "task-command",
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start"
+        }
+      }
+    },
+    "error": true
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventData": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "working",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      },
+      "eventSeq": 4
+    },
+    "dump": "{\"eventSeq\":4,\"eventData\":{\"type\":\"task-result\",\"id\":\"res-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}"
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventData": {
+        "statusHistory": [
+          {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          },
+          {
+            "dataItems": [
+              {
+                "type": "text",
+                "text": "progress",
+                "metadata": {
+                  "k": null
+                }
+              }
+            ],
+            "stateChangedAt": "2026-06-24T00:00:00Z",
+            "state": "awaiting-input"
+          }
+        ],
+        "commandHistory": [
+          {
+            "type": "task-command",
+            "id": "cmd-1",
+            "sentAt": "2026-06-24T00:00:00Z",
+            "senderRole": "leader",
+            "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "command": "start"
+          },
+          {
+            "taskId": "task-1",
+            "commandParams": {
+              "a": null,
+              "nested": {
+                "b": [
+                  1,
+                  null,
+                  "x"
+                ]
+              },
+              "lastCommandSentAt": "2026-06-24T00:00:00Z"
+            },
+            "command": "continue",
+            "sessionId": "sess-1",
+            "groupId": "group-1",
+            "dataItems": [
+              {
+                "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n"
+              },
+              {
+                "type": "file",
+                "name": "a.txt",
+                "mimeType": "text/plain",
+                "uri": "https://x/a.txt",
+                "bytes": "YWJj"
+              },
+              {
+                "type": "data",
+                "data": {
+                  "k": null,
+                  "list": [
+                    true,
+                    false,
+                    null
+                  ]
+                },
+                "metadata": {}
+              }
+            ],
+            "mentions": [
+              "p1",
+              "p2"
+            ],
+            "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "senderRole": "leader",
+            "sentAt": "2026-06-24T00:00:00Z",
+            "id": "cmd-2",
+            "type": "task-command"
+          }
+        ],
+        "products": [
+          {
+            "dataItems": [
+              {
+                "type": "text",
+                "text": "answer"
+              },
+              {
+                "data": {
+                  "score": 3
+                }
+              }
+            ],
+            "description": "desc",
+            "name": "Result",
+            "id": "prod-1"
+          },
+          {
+            "id": "prod-2",
+            "dataItems": []
+          }
+        ],
+        "status": {
+          "dataItems": [
+            {
+              "type": "text",
+              "text": "progress",
+              "metadata": {
+                "k": null
+              }
+            }
+          ],
+          "stateChangedAt": "2026-06-24T00:00:00Z",
+          "state": "awaiting-input"
+        },
+        "taskId": "task-1",
+        "sessionId": "sess-1",
+        "groupId": null,
+        "dataItems": null,
+        "mentions": "all",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "senderRole": "partner",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "id": "res-2"
+      },
+      "eventSeq": 4
+    },
+    "error": true
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventData": {
+        "type": "task-command",
+        "id": "cmd-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "leader",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "command": "start"
+      },
+      "eventSeq": 4
+    },
+    "dump": "{\"eventSeq\":4,\"eventData\":{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\"}}"
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventData": {
+        "taskId": "task-1",
+        "commandParams": {
+          "a": null,
+          "nested": {
+            "b": [
+              1,
+              null,
+              "x"
+            ]
+          },
+          "lastCommandSentAt": "2026-06-24T00:00:00Z"
+        },
+        "command": "continue",
+        "sessionId": "sess-1",
+        "groupId": "group-1",
+        "dataItems": [
+          {
+            "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n"
+          },
+          {
+            "type": "file",
+            "name": "a.txt",
+            "mimeType": "text/plain",
+            "uri": "https://x/a.txt",
+            "bytes": "YWJj"
+          },
+          {
+            "type": "data",
+            "data": {
+              "k": null,
+              "list": [
+                true,
+                false,
+                null
+              ]
+            },
+            "metadata": {}
+          }
+        ],
+        "mentions": [
+          "p1",
+          "p2"
+        ],
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "senderRole": "leader",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "id": "cmd-2",
+        "type": "task-command"
+      },
+      "eventSeq": 4
+    },
+    "dump": "{\"eventSeq\":4,\"eventData\":{\"type\":\"task-command\",\"id\":\"cmd-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":[\"p1\",\"p2\"],\"dataItems\":[{\"type\":\"text\",\"text\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"},{\"type\":\"file\",\"name\":\"a.txt\",\"mimeType\":\"text/plain\",\"uri\":\"https://x/a.txt\",\"bytes\":\"YWJj\"},{\"metadata\":{},\"type\":\"data\",\"data\":{\"k\":null,\"list\":[true,false,null]}}],\"groupId\":\"group-1\",\"sessionId\":\"sess-1\",\"command\":\"continue\",\"commandParams\":{\"a\":null,\"nested\":{\"b\":[1,null,\"x\"]},\"lastCommandSentAt\":\"2026-06-24T00:00:00Z\"},\"taskId\":\"task-1\"}}"
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventData": {
+        "type": "task-status-update",
+        "id": "ev-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "working",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      },
+      "eventSeq": 4
+    },
+    "dump": "{\"eventSeq\":4,\"eventData\":{\"type\":\"task-status-update\",\"id\":\"ev-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}"
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventData": {
+        "lastChunk": false,
+        "append": true,
+        "product": {
+          "id": "prod-1",
+          "dataItems": [
+            {
+              "text": "chunk"
+            }
+          ]
+        },
+        "taskId": "task-1",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "senderRole": "partner",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "id": "ev-2",
+        "type": "product-chunk"
+      },
+      "eventSeq": 4
+    },
+    "dump": "{\"eventSeq\":4,\"eventData\":{\"type\":\"product-chunk\",\"id\":\"ev-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"product\":{\"id\":\"prod-1\",\"dataItems\":[{\"type\":\"text\",\"text\":\"chunk\"}]},\"append\":true,\"lastChunk\":false}}"
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventSeq": 1,
+      "eventData": {
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "working",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "error": true
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventSeq": 1,
+      "eventData": {
+        "type": "message",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "working",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "error": true
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventSeq": 1,
+      "eventData": {
+        "type": "task-result",
+        "id": "cmd-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "leader",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "command": "start"
+      }
+    },
+    "error": true
+  },
+  {
+    "model": "StreamEventData",
+    "input": {
+      "eventData": {
+        "type": "task-result",
+        "id": "res-1",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "senderRole": "partner",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "taskId": "task-1",
+        "status": {
+          "state": "working",
+          "stateChangedAt": "2026-06-24T00:00:00Z"
+        }
+      }
+    },
+    "error": true
+  },
+  {
+    "model": "StreamResponse",
+    "input": {
+      "id": "s",
+      "result": {
+        "eventSeq": 2,
+        "eventData": {
+          "lastChunk": false,
+          "append": true,
+          "product": {
+            "id": "prod-1",
+            "dataItems": [
+              {
+                "text": "chunk"
+              }
+            ]
+          },
+          "taskId": "task-1",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "senderRole": "partner",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "id": "ev-2",
+          "type": "product-chunk"
+        }
+      }
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"s\",\"result\":{\"eventSeq\":2,\"eventData\":{\"type\":\"product-chunk\",\"id\":\"ev-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"product\":{\"id\":\"prod-1\",\"dataItems\":[{\"type\":\"text\",\"text\":\"chunk\"}]},\"append\":true,\"lastChunk\":false}}}"
+  },
+  {
+    "model": "StreamResponse",
+    "input": {
+      "id": 5,
+      "error": {
+        "code": -32002,
+        "message": "Cannot re-stream"
+      }
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":5,\"error\":{\"code\":-32002,\"message\":\"Cannot re-stream\"}}"
+  },
+  {
+    "model": "StreamResponse",
+    "input": {
+      "error": null,
+      "result": null
+    },
+    "dump": "{\"jsonrpc\":\"2.0\"}"
+  },
+  {
+    "model": "ReStreamCommandParams",
+    "input": {},
+    "dump": "{}"
+  },
+  {
+    "model": "ReStreamCommandParams",
+    "input": {
+      "lastEventSeq": 7
+    },
+    "dump": "{\"lastEventSeq\":7}"
+  },
+  {
+    "model": "ReStreamCommandParams",
+    "input": {
+      "lastEventSeq": null
+    },
+    "dump": "{}"
+  },
+  {
+    "model": "NotificationConfig",
+    "input": {
+      "taskId": "task-1",
+      "token": "tok",
+      "url": "https://leader/cb",
+      "id": "cfg-1"
+    },
+    "dump": "{\"id\":\"cfg-1\",\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}"
+  },
+  {
+    "model": "NotificationConfig",
+    "input": {
+      "taskId": "task-1",
+      "token": "tok",
+      "url": "https://leader/cb"
+    },
+    "dump": "{\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}"
+  },
+  {
+    "model": "NotificationConfig",
+    "input": {
+      "taskId": "task-1",
+      "token": "tok",
+      "url": "https://leader/cb",
+      "id": null
+    },
+    "dump": "{\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}"
+  },
+  {
+    "model": "NotificationConfig",
+    "input": {
+      "taskId": "task-1",
+      "url": "https://leader/cb",
+      "id": "cfg-1"
+    },
+    "error": true
+  },
+  {
+    "model": "NotificationRequest",
+    "input": {
+      "params": {
+        "taskId": "task-1",
+        "token": "tok",
+        "url": "https://leader/cb"
+      },
+      "id": "1"
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/set\",\"id\":\"1\",\"params\":{\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}}"
+  },
+  {
+    "model": "NotificationRequest",
+    "input": {
+      "params": {
+        "taskId": "task-1",
+        "token": "tok",
+        "url": "https://leader/cb",
+        "id": "cfg-1"
+      },
+      "method": "notification/get"
+    },
+    "error": true
+  },
+  {
+    "model": "NotificationResponse",
+    "input": {
+      "id": "1",
+      "result": {
+        "taskId": "task-1",
+        "token": "tok",
+        "url": "https://leader/cb",
+        "id": "cfg-1"
+      }
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"result\":{\"id\":\"cfg-1\",\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}}"
+  },
+  {
+    "model": "NotificationResponse",
+    "input": {
+      "id": "1",
+      "result": null
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"1\"}"
+  },
+  {
+    "model": "NotificationIdParams",
+    "input": {
+      "taskId": "t"
+    },
+    "dump": "{\"taskId\":\"t\"}"
+  },
+  {
+    "model": "NotificationIdParams",
+    "input": {
+      "notificationConfigId": "c",
+      "taskId": "t"
+    },
+    "dump": "{\"taskId\":\"t\",\"notificationConfigId\":\"c\"}"
+  },
+  {
+    "model": "NotificationIdParams",
+    "input": {
+      "taskId": "t",
+      "configId": "ignored"
+    },
+    "dump": "{\"taskId\":\"t\"}"
+  },
+  {
+    "model": "NotificationIdParams",
+    "input": {},
+    "error": true
+  },
+  {
+    "model": "NotificationDeleteRequest",
+    "input": {
+      "params": {
+        "taskId": "t"
+      },
+      "id": 2
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/delete\",\"id\":2,\"params\":{\"taskId\":\"t\"}}"
+  },
+  {
+    "model": "NotificationDeleteRequest",
+    "input": {
+      "params": {
+        "taskId": "t"
+      },
+      "method": "notification/set"
+    },
+    "error": true
+  },
+  {
+    "model": "NotificationDeleteResult",
+    "input": {},
+    "dump": "{\"success\":true}"
+  },
+  {
+    "model": "NotificationDeleteResult",
+    "input": {
+      "success": true
+    },
+    "dump": "{\"success\":true}"
+  },
+  {
+    "model": "NotificationDeleteResult",
+    "input": {
+      "success": false
+    },
+    "error": true
+  },
+  {
+    "model": "NotificationDeleteResponse",
+    "input": {
+      "id": "x",
+      "result": {}
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"x\",\"result\":{\"success\":true}}"
+  },
+  {
+    "model": "NotificationDeleteResponse",
+    "input": {
+      "id": "x"
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"x\"}"
+  },
+  {
+    "model": "NotificationGetRequest",
+    "input": {
+      "params": {
+        "notificationConfigId": "c",
+        "taskId": "t"
+      }
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/get\",\"params\":{\"taskId\":\"t\",\"notificationConfigId\":\"c\"}}"
+  },
+  {
+    "model": "NotificationGetResponse",
+    "input": {
+      "id": "x",
+      "result": [
+        {
+          "taskId": "task-1",
+          "token": "tok",
+          "url": "https://leader/cb",
+          "id": "cfg-1"
+        },
+        {
+          "taskId": "task-1",
+          "token": "tok",
+          "url": "https://leader/cb"
+        }
+      ]
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"x\",\"result\":[{\"id\":\"cfg-1\",\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"},{\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}]}"
+  },
+  {
+    "model": "NotificationGetResponse",
+    "input": {
+      "id": "x",
+      "result": []
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"id\":\"x\",\"result\":[]}"
+  },
+  {
+    "model": "NotificationStartParams",
+    "input": {
+      "notificationConfigId": "c"
+    },
+    "dump": "{\"notificationConfigId\":\"c\"}"
+  },
+  {
+    "model": "NotificationStartParams",
+    "input": {
+      "notifyOnStates": [
+        "completed",
+        "failed"
+      ],
+      "notificationConfigId": "c"
+    },
+    "dump": "{\"notificationConfigId\":\"c\",\"notifyOnStates\":[\"completed\",\"failed\"]}"
+  },
+  {
+    "model": "NotificationStartParams",
+    "input": {
+      "notifyOnStates": [
+        "bogus"
+      ],
+      "notificationConfigId": "c"
+    },
+    "error": true
+  },
+  {
+    "model": "NotificationStartParams",
+    "input": {
+      "notifyOnStates": []
+    },
+    "error": true
+  },
+  {
+    "model": "NotificationStartRequestParams",
+    "input": {
+      "message": {
+        "taskId": "task-1",
+        "commandParams": {
+          "a": null,
+          "nested": {
+            "b": [
+              1,
+              null,
+              "x"
+            ]
+          },
+          "lastCommandSentAt": "2026-06-24T00:00:00Z"
+        },
+        "command": "continue",
+        "sessionId": "sess-1",
+        "groupId": "group-1",
+        "dataItems": [
+          {
+            "text": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n"
+          },
+          {
+            "type": "file",
+            "name": "a.txt",
+            "mimeType": "text/plain",
+            "uri": "https://x/a.txt",
+            "bytes": "YWJj"
+          },
+          {
+            "type": "data",
+            "data": {
+              "k": null,
+              "list": [
+                true,
+                false,
+                null
+              ]
+            },
+            "metadata": {}
+          }
+        ],
+        "mentions": [
+          "p1",
+          "p2"
+        ],
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "senderRole": "leader",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "id": "cmd-2",
+        "type": "task-command"
+      }
+    },
+    "dump": "{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"mentions\":[\"p1\",\"p2\"],\"dataItems\":[{\"type\":\"text\",\"text\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"},{\"type\":\"file\",\"name\":\"a.txt\",\"mimeType\":\"text/plain\",\"uri\":\"https://x/a.txt\",\"bytes\":\"YWJj\"},{\"metadata\":{},\"type\":\"data\",\"data\":{\"k\":null,\"list\":[true,false,null]}}],\"groupId\":\"group-1\",\"sessionId\":\"sess-1\",\"command\":\"continue\",\"commandParams\":{\"a\":null,\"nested\":{\"b\":[1,null,\"x\"]},\"lastCommandSentAt\":\"2026-06-24T00:00:00Z\"},\"taskId\":\"task-1\"}}"
+  },
+  {
+    "model": "NotificationStartRequest",
+    "input": {
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start",
+          "commandParams": {
+            "notificationConfigId": "c"
+          }
+        }
+      },
+      "id": "4"
+    },
+    "dump": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/start\",\"id\":\"4\",\"params\":{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"leader\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\",\"command\":\"start\",\"commandParams\":{\"notificationConfigId\":\"c\"}}}}"
+  },
+  {
+    "model": "NotificationStartRequest",
+    "input": {
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start"
+        }
+      },
+      "method": "notification/set"
+    },
+    "error": true
+  }
+]

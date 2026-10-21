@@ -1,0 +1,1755 @@
+[
+  {
+    "input": {},
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": "t"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      }
+    },
+    "type": "data",
+    "dump": "{\"type\":\"data\",\"data\":{\"k\":1}}"
+  },
+  {
+    "input": {
+      "name": "n"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "mimeType": "m"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "mimeType": "m"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "uri": "u"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "bytes": "b"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "data",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"data\",\"data\":{\"k\":1}}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "mimeType": "m"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "mimeType": "m",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "mimeType": "m",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "mimeType": "m",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "uri": "u"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "bytes": "b"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "mimeType": "m"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "mimeType": "m",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "mimeType": "m",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "mimeType": "m",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "mimeType": "m",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "mimeType": "m",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "mimeType": "m",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "mimeType": "m",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "text",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "mimeType": "m",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "mimeType": "m",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "mimeType": "m",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "mimeType": "m",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "mimeType": "m",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "mimeType": "m",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": {
+        "k": 1
+      },
+      "name": "n",
+      "mimeType": "m",
+      "uri": "u",
+      "bytes": "b",
+      "metadata": {
+        "m": 1
+      }
+    },
+    "type": "file",
+    "dump": "{\"metadata\":{\"m\":1},\"type\":\"file\",\"name\":\"n\",\"mimeType\":\"m\",\"uri\":\"u\",\"bytes\":\"b\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "text": null
+    },
+    "type": "data",
+    "dump": "{\"type\":\"data\",\"data\":{\"k\":1}}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "text": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "text": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": null
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "data": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "data": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": null
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "name": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "name": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "mimeType": null
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "mimeType": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "mimeType": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "mimeType": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "uri": null
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "uri": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "uri": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "uri": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "bytes": null
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "bytes": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "bytes": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "bytes": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "metadata": null
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "data": {
+        "k": 1
+      },
+      "metadata": null
+    },
+    "type": "data",
+    "dump": "{\"type\":\"data\",\"data\":{\"k\":1}}"
+  },
+  {
+    "input": {
+      "name": "n",
+      "metadata": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "metadata": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": 1
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  },
+  {
+    "input": {
+      "text": 1,
+      "name": "n"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "data": "x",
+      "name": "n"
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "data": "x",
+      "text": "t"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "data": "x",
+      "uri": "u"
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "extra": 1,
+      "another": 2
+    },
+    "type": "text",
+    "dump": "{\"type\":\"text\",\"text\":\"t\"}"
+  },
+  {
+    "input": {
+      "text": "t",
+      "name": "n",
+      "uri": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\",\"name\":\"n\"}"
+  },
+  {
+    "input": {
+      "name": 1
+    },
+    "error": true
+  },
+  {
+    "input": {
+      "metadata": "x"
+    },
+    "error": true
+  },
+  {
+    "input": {
+      "metadata": null
+    },
+    "type": "file",
+    "dump": "{\"type\":\"file\"}"
+  }
+]

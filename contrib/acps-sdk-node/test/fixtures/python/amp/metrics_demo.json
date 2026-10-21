@@ -1,0 +1,850 @@
+{
+  "series": [
+    {
+      "label": "A1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 8,
+          "queuedTasks": 11,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 46.8,
+          "memoryUsage": 16.9
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 87.53,
+            "requestTotal": 2878,
+            "requestPerSecond": 47.97,
+            "p99LatencyMs": 255.7,
+            "p95LatencyMs": 157.4,
+            "p50LatencyMs": 59.6
+          },
+          {
+            "window": "PT5M",
+            "successRate": 97.35,
+            "requestTotal": 7815,
+            "requestPerSecond": 26.05,
+            "p99LatencyMs": 160.6,
+            "p95LatencyMs": 94.5,
+            "p50LatencyMs": 45.4
+          },
+          {
+            "window": "PT15M",
+            "successRate": 100.0,
+            "requestTotal": 90,
+            "requestPerSecond": 0.1,
+            "p99LatencyMs": 184.9,
+            "p95LatencyMs": 179.4,
+            "p50LatencyMs": 59.8
+          }
+        ]
+      }
+    },
+    {
+      "label": "A1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 8,
+          "queuedTasks": 12,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 47.6,
+          "memoryUsage": 17.4
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 89.16,
+            "requestTotal": 3000,
+            "requestPerSecond": 50.0,
+            "p99LatencyMs": 243.7,
+            "p95LatencyMs": 150.0,
+            "p50LatencyMs": 55.1
+          },
+          {
+            "window": "PT5M",
+            "successRate": 96.89,
+            "requestTotal": 7881,
+            "requestPerSecond": 26.27,
+            "p99LatencyMs": 151.7,
+            "p95LatencyMs": 84.6,
+            "p50LatencyMs": 42.7
+          },
+          {
+            "window": "PT15M",
+            "successRate": 99.56,
+            "requestTotal": 2439,
+            "requestPerSecond": 2.71,
+            "p99LatencyMs": 186.1,
+            "p95LatencyMs": 172.4,
+            "p50LatencyMs": 60.6
+          }
+        ]
+      }
+    },
+    {
+      "label": "A1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 7,
+          "queuedTasks": 13,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 48.7,
+          "memoryUsage": 19.4
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 90.2,
+            "requestTotal": 2884,
+            "requestPerSecond": 48.06,
+            "p99LatencyMs": 248.1,
+            "p95LatencyMs": 147.1,
+            "p50LatencyMs": 55.8
+          },
+          {
+            "window": "PT5M",
+            "successRate": 97.73,
+            "requestTotal": 7002,
+            "requestPerSecond": 23.34,
+            "p99LatencyMs": 165.4,
+            "p95LatencyMs": 85.9,
+            "p50LatencyMs": 40.4
+          },
+          {
+            "window": "PT15M",
+            "successRate": 99.07,
+            "requestTotal": 729,
+            "requestPerSecond": 0.81,
+            "p99LatencyMs": 190.5,
+            "p95LatencyMs": 178.3,
+            "p50LatencyMs": 61.5
+          }
+        ]
+      }
+    },
+    {
+      "label": "A1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 5,
+          "queuedTasks": 13,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 50.9,
+          "memoryUsage": 16.6
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 91.09,
+            "requestTotal": 3000,
+            "requestPerSecond": 50.0,
+            "p99LatencyMs": 248.9,
+            "p95LatencyMs": 139.6,
+            "p50LatencyMs": 51.2
+          },
+          {
+            "window": "PT5M",
+            "successRate": 98.6,
+            "requestTotal": 7794,
+            "requestPerSecond": 25.98,
+            "p99LatencyMs": 170.8,
+            "p95LatencyMs": 85.4,
+            "p50LatencyMs": 40.0
+          },
+          {
+            "window": "PT15M",
+            "successRate": 99.9,
+            "requestTotal": 90,
+            "requestPerSecond": 0.1,
+            "p99LatencyMs": 194.1,
+            "p95LatencyMs": 172.7,
+            "p50LatencyMs": 59.1
+          }
+        ]
+      }
+    },
+    {
+      "label": "A1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 6,
+          "queuedTasks": 14,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 49.8,
+          "memoryUsage": 19.5
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 92.99,
+            "requestTotal": 2884,
+            "requestPerSecond": 48.06,
+            "p99LatencyMs": 261.4,
+            "p95LatencyMs": 137.5,
+            "p50LatencyMs": 53.1
+          },
+          {
+            "window": "PT5M",
+            "successRate": 99.11,
+            "requestTotal": 8064,
+            "requestPerSecond": 26.88,
+            "p99LatencyMs": 175.6,
+            "p95LatencyMs": 87.8,
+            "p50LatencyMs": 41.8
+          },
+          {
+            "window": "PT15M",
+            "successRate": 100.0,
+            "requestTotal": 2439,
+            "requestPerSecond": 2.71,
+            "p99LatencyMs": 208.4,
+            "p95LatencyMs": 162.6,
+            "p50LatencyMs": 54.2
+          }
+        ]
+      }
+    },
+    {
+      "label": "A1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 5,
+          "queuedTasks": 13,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 52.2,
+          "memoryUsage": 19.7
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 91.18,
+            "requestTotal": 3000,
+            "requestPerSecond": 50.0,
+            "p99LatencyMs": 271.5,
+            "p95LatencyMs": 137.2,
+            "p50LatencyMs": 53.2
+          },
+          {
+            "window": "PT5M",
+            "successRate": 98.9,
+            "requestTotal": 7485,
+            "requestPerSecond": 24.95,
+            "p99LatencyMs": 177.4,
+            "p95LatencyMs": 90.9,
+            "p50LatencyMs": 40.7
+          },
+          {
+            "window": "PT15M",
+            "successRate": 99.56,
+            "requestTotal": 729,
+            "requestPerSecond": 0.81,
+            "p99LatencyMs": 221.9,
+            "p95LatencyMs": 155.4,
+            "p50LatencyMs": 51.8
+          }
+        ]
+      }
+    },
+    {
+      "label": "A2",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 6,
+          "queuedTasks": 16,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 51.5,
+          "memoryUsage": 17.7
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 91.72,
+            "requestTotal": 2884,
+            "requestPerSecond": 48.06,
+            "p99LatencyMs": 259.4,
+            "p95LatencyMs": 129.7,
+            "p50LatencyMs": 48.8
+          },
+          {
+            "window": "PT5M",
+            "successRate": 100.0,
+            "requestTotal": 7980,
+            "requestPerSecond": 26.6,
+            "p99LatencyMs": 163.1,
+            "p95LatencyMs": 99.3,
+            "p50LatencyMs": 43.5
+          },
+          {
+            "window": "PT15M",
+            "successRate": 99.07,
+            "requestTotal": 90,
+            "requestPerSecond": 0.1,
+            "p99LatencyMs": 227.1,
+            "p95LatencyMs": 164.0,
+            "p50LatencyMs": 56.6
+          }
+        ]
+      }
+    },
+    {
+      "label": "A1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 8,
+          "queuedTasks": 15,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 52.0,
+          "memoryUsage": 20.6
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 92.26,
+            "requestTotal": 3000,
+            "requestPerSecond": 50.0,
+            "p99LatencyMs": 255.7,
+            "p95LatencyMs": 138.3,
+            "p50LatencyMs": 51.2
+          },
+          {
+            "window": "PT5M",
+            "successRate": 100.0,
+            "requestTotal": 7335,
+            "requestPerSecond": 24.45,
+            "p99LatencyMs": 173.4,
+            "p95LatencyMs": 96.4,
+            "p50LatencyMs": 44.7
+          },
+          {
+            "window": "PT15M",
+            "successRate": 99.9,
+            "requestTotal": 2439,
+            "requestPerSecond": 2.71,
+            "p99LatencyMs": 218.8,
+            "p95LatencyMs": 163.2,
+            "p50LatencyMs": 54.4
+          }
+        ]
+      }
+    },
+    {
+      "label": "B1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 0,
+          "queuedTasks": 4,
+          "maxActiveTasks": 3,
+          "maxQueuedTasks": 5,
+          "cpuUsage": 53.5,
+          "memoryUsage": 61.5
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 93.32,
+            "requestTotal": 1698,
+            "requestPerSecond": 28.3,
+            "p99LatencyMs": 278.0,
+            "p95LatencyMs": 260.4,
+            "p50LatencyMs": 96.9
+          },
+          {
+            "window": "PT5M",
+            "successRate": 87.47,
+            "requestTotal": 513,
+            "requestPerSecond": 1.71,
+            "p99LatencyMs": 310.7,
+            "p95LatencyMs": 207.9,
+            "p50LatencyMs": 100.0
+          },
+          {
+            "window": "PT15M",
+            "successRate": 97.37,
+            "requestTotal": 22131,
+            "requestPerSecond": 24.59,
+            "p99LatencyMs": 83.8,
+            "p95LatencyMs": 57.3,
+            "p50LatencyMs": 35.6
+          }
+        ]
+      }
+    },
+    {
+      "label": "A2",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 7,
+          "queuedTasks": 15,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 55.1,
+          "memoryUsage": 18.5
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 91.41,
+            "requestTotal": 2884,
+            "requestPerSecond": 48.06,
+            "p99LatencyMs": 259.7,
+            "p95LatencyMs": 141.3,
+            "p50LatencyMs": 50.0
+          },
+          {
+            "window": "PT5M",
+            "successRate": 100.0,
+            "requestTotal": 7038,
+            "requestPerSecond": 23.46,
+            "p99LatencyMs": 159.7,
+            "p95LatencyMs": 97.0,
+            "p50LatencyMs": 46.3
+          },
+          {
+            "window": "PT15M",
+            "successRate": 100.0,
+            "requestTotal": 729,
+            "requestPerSecond": 0.81,
+            "p99LatencyMs": 214.5,
+            "p95LatencyMs": 166.8,
+            "p50LatencyMs": 55.6
+          }
+        ]
+      }
+    },
+    {
+      "label": "A1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 7,
+          "queuedTasks": 13,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 51.6,
+          "memoryUsage": 19.5
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 90.24,
+            "requestTotal": 3000,
+            "requestPerSecond": 50.0,
+            "p99LatencyMs": 252.5,
+            "p95LatencyMs": 142.8,
+            "p50LatencyMs": 53.1
+          },
+          {
+            "window": "PT5M",
+            "successRate": 100.0,
+            "requestTotal": 6258,
+            "requestPerSecond": 20.86,
+            "p99LatencyMs": 164.0,
+            "p95LatencyMs": 99.9,
+            "p50LatencyMs": 45.9
+          },
+          {
+            "window": "PT15M",
+            "successRate": 99.56,
+            "requestTotal": 90,
+            "requestPerSecond": 0.1,
+            "p99LatencyMs": 227.0,
+            "p95LatencyMs": 160.2,
+            "p50LatencyMs": 53.4
+          }
+        ]
+      }
+    },
+    {
+      "label": "B1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 1,
+          "queuedTasks": 4,
+          "maxActiveTasks": 3,
+          "maxQueuedTasks": 5,
+          "cpuUsage": 55.9,
+          "memoryUsage": 64.4
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 95.26,
+            "requestTotal": 1766,
+            "requestPerSecond": 29.43,
+            "p99LatencyMs": 264.8,
+            "p95LatencyMs": 251.9,
+            "p50LatencyMs": 100.0
+          },
+          {
+            "window": "PT5M",
+            "successRate": 88.53,
+            "requestTotal": 30,
+            "requestPerSecond": 0.1,
+            "p99LatencyMs": 306.5,
+            "p95LatencyMs": 213.3,
+            "p50LatencyMs": 100.0
+          },
+          {
+            "window": "PT15M",
+            "successRate": 96.45,
+            "requestTotal": 24399,
+            "requestPerSecond": 27.11,
+            "p99LatencyMs": 91.1,
+            "p95LatencyMs": 51.8,
+            "p50LatencyMs": 32.5
+          }
+        ]
+      }
+    },
+    {
+      "label": "A2",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 7,
+          "queuedTasks": 15,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 46.6,
+          "memoryUsage": 21.6
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 90.9,
+            "requestTotal": 2884,
+            "requestPerSecond": 48.06,
+            "p99LatencyMs": 260.4,
+            "p95LatencyMs": 143.4,
+            "p50LatencyMs": 51.3
+          },
+          {
+            "window": "PT5M",
+            "successRate": 100.0,
+            "requestTotal": 6840,
+            "requestPerSecond": 22.8,
+            "p99LatencyMs": 174.0,
+            "p95LatencyMs": 107.8,
+            "p50LatencyMs": 44.4
+          },
+          {
+            "window": "PT15M",
+            "successRate": 99.07,
+            "requestTotal": 2439,
+            "requestPerSecond": 2.71,
+            "p99LatencyMs": 236.2,
+            "p95LatencyMs": 164.7,
+            "p50LatencyMs": 57.5
+          }
+        ]
+      }
+    },
+    {
+      "label": "A1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 7,
+          "queuedTasks": 13,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 47.9,
+          "memoryUsage": 21.5
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 91.71,
+            "requestTotal": 3000,
+            "requestPerSecond": 50.0,
+            "p99LatencyMs": 256.0,
+            "p95LatencyMs": 145.1,
+            "p50LatencyMs": 53.7
+          },
+          {
+            "window": "PT5M",
+            "successRate": 100.0,
+            "requestTotal": 7008,
+            "requestPerSecond": 23.36,
+            "p99LatencyMs": 181.2,
+            "p95LatencyMs": 99.6,
+            "p50LatencyMs": 40.4
+          },
+          {
+            "window": "PT15M",
+            "successRate": 99.9,
+            "requestTotal": 729,
+            "requestPerSecond": 0.81,
+            "p99LatencyMs": 232.3,
+            "p95LatencyMs": 158.1,
+            "p50LatencyMs": 52.7
+          }
+        ]
+      }
+    },
+    {
+      "label": "B1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 1,
+          "queuedTasks": 3,
+          "maxActiveTasks": 3,
+          "maxQueuedTasks": 5,
+          "cpuUsage": 57.6,
+          "memoryUsage": 65.8
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 96.8,
+            "requestTotal": 1823,
+            "requestPerSecond": 30.39,
+            "p99LatencyMs": 257.8,
+            "p95LatencyMs": 244.4,
+            "p50LatencyMs": 98.8
+          },
+          {
+            "window": "PT5M",
+            "successRate": 87.64,
+            "requestTotal": 330,
+            "requestPerSecond": 1.1,
+            "p99LatencyMs": 302.4,
+            "p95LatencyMs": 216.5,
+            "p50LatencyMs": 100.0
+          },
+          {
+            "window": "PT15M",
+            "successRate": 96.31,
+            "requestTotal": 23670,
+            "requestPerSecond": 26.3,
+            "p99LatencyMs": 85.8,
+            "p95LatencyMs": 42.9,
+            "p50LatencyMs": 30.4
+          }
+        ]
+      }
+    },
+    {
+      "label": "C1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 5,
+          "queuedTasks": 13,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 70.5,
+          "memoryUsage": 30.1
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 85.0,
+            "requestTotal": 2773,
+            "requestPerSecond": 46.21,
+            "p99LatencyMs": 299.4,
+            "p95LatencyMs": 167.9,
+            "p50LatencyMs": 58.4
+          },
+          {
+            "window": "PT5M",
+            "successRate": 85.57,
+            "requestTotal": 1572,
+            "requestPerSecond": 5.24,
+            "p99LatencyMs": 104.5,
+            "p95LatencyMs": 91.2,
+            "p50LatencyMs": 56.7
+          },
+          {
+            "window": "PT15M",
+            "successRate": 90.48,
+            "requestTotal": 37449,
+            "requestPerSecond": 41.61,
+            "p99LatencyMs": 278.7,
+            "p95LatencyMs": 150.3,
+            "p50LatencyMs": 55.8
+          }
+        ]
+      }
+    },
+    {
+      "label": "C1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 5,
+          "queuedTasks": 15,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 73.0,
+          "memoryUsage": 31.3
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 86.13,
+            "requestTotal": 2719,
+            "requestPerSecond": 45.32,
+            "p99LatencyMs": 290.2,
+            "p95LatencyMs": 169.5,
+            "p50LatencyMs": 59.8
+          },
+          {
+            "window": "PT5M",
+            "successRate": 86.17,
+            "requestTotal": 1641,
+            "requestPerSecond": 5.47,
+            "p99LatencyMs": 109.9,
+            "p95LatencyMs": 82.8,
+            "p50LatencyMs": 54.1
+          },
+          {
+            "window": "PT15M",
+            "successRate": 90.6,
+            "requestTotal": 35829,
+            "requestPerSecond": 39.81,
+            "p99LatencyMs": 264.6,
+            "p95LatencyMs": 151.6,
+            "p50LatencyMs": 58.4
+          }
+        ]
+      }
+    },
+    {
+      "label": "C1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 5,
+          "queuedTasks": 17,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 68.3,
+          "memoryUsage": 30.4
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 85.96,
+            "requestTotal": 2609,
+            "requestPerSecond": 43.49,
+            "p99LatencyMs": 282.7,
+            "p95LatencyMs": 165.6,
+            "p50LatencyMs": 63.9
+          },
+          {
+            "window": "PT5M",
+            "successRate": 87.44,
+            "requestTotal": 1155,
+            "requestPerSecond": 3.85,
+            "p99LatencyMs": 100.5,
+            "p95LatencyMs": 82.1,
+            "p50LatencyMs": 58.6
+          },
+          {
+            "window": "PT15M",
+            "successRate": 92.15,
+            "requestTotal": 36225,
+            "requestPerSecond": 40.25,
+            "p99LatencyMs": 274.8,
+            "p95LatencyMs": 156.5,
+            "p50LatencyMs": 63.4
+          }
+        ]
+      }
+    },
+    {
+      "label": "C1",
+      "body": {
+        "loadMetrics": {
+          "activeTasks": 7,
+          "queuedTasks": 18,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 68.2,
+          "memoryUsage": 27.5
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 86.96,
+            "requestTotal": 2547,
+            "requestPerSecond": 42.45,
+            "p99LatencyMs": 278.3,
+            "p95LatencyMs": 156.0,
+            "p50LatencyMs": 67.4
+          },
+          {
+            "window": "PT5M",
+            "successRate": 85.69,
+            "requestTotal": 1464,
+            "requestPerSecond": 4.88,
+            "p99LatencyMs": 93.3,
+            "p95LatencyMs": 86.4,
+            "p50LatencyMs": 63.5
+          },
+          {
+            "window": "PT15M",
+            "successRate": 91.59,
+            "requestTotal": 34227,
+            "requestPerSecond": 38.03,
+            "p99LatencyMs": 288.9,
+            "p95LatencyMs": 163.7,
+            "p50LatencyMs": 64.3
+          }
+        ]
+      }
+    }
+  ],
+  "line": {
+    "input": {
+      "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+      "timestamp": "2026-10-19T08:01:12.160000+00:00",
+      "aic": "fixture-aic-line",
+      "body": {
+        "uptimeSeconds": 1.5,
+        "loadMetrics": {
+          "activeTasks": 2,
+          "queuedTasks": 9,
+          "maxActiveTasks": 10,
+          "maxQueuedTasks": 20,
+          "cpuUsage": 47.8,
+          "memoryUsage": 66.1
+        },
+        "windowMetrics": [
+          {
+            "window": "PT1M",
+            "successRate": 85.0,
+            "requestTotal": 2391,
+            "requestPerSecond": 39.85,
+            "p99LatencyMs": 175.7,
+            "p95LatencyMs": 165.9,
+            "p50LatencyMs": 94.2
+          },
+          {
+            "window": "PT5M",
+            "successRate": 88.6,
+            "requestTotal": 1014,
+            "requestPerSecond": 3.38,
+            "p99LatencyMs": 328.9,
+            "p95LatencyMs": 183.3,
+            "p50LatencyMs": 78.8
+          },
+          {
+            "window": "PT15M",
+            "successRate": 86.91,
+            "requestTotal": 36306,
+            "requestPerSecond": 40.34,
+            "p99LatencyMs": 288.2,
+            "p95LatencyMs": 148.6,
+            "p50LatencyMs": 78.0
+          }
+        ]
+      }
+    },
+    "line": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"metrics\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"fixture-aic-line\", \"body\": {\"uptimeSeconds\": 1.5, \"loadMetrics\": {\"activeTasks\": 2, \"queuedTasks\": 9, \"maxActiveTasks\": 10, \"maxQueuedTasks\": 20, \"cpuUsage\": 47.8, \"memoryUsage\": 66.1}, \"windowMetrics\": [{\"window\": \"PT1M\", \"successRate\": 85.0, \"requestTotal\": 2391, \"requestPerSecond\": 39.85, \"p99LatencyMs\": 175.7, \"p95LatencyMs\": 165.9, \"p50LatencyMs\": 94.2}, {\"window\": \"PT5M\", \"successRate\": 88.6, \"requestTotal\": 1014, \"requestPerSecond\": 3.38, \"p99LatencyMs\": 328.9, \"p95LatencyMs\": 183.3, \"p50LatencyMs\": 78.8}, {\"window\": \"PT15M\", \"successRate\": 86.91, \"requestTotal\": 36306, \"requestPerSecond\": 40.34, \"p99LatencyMs\": 288.2, \"p95LatencyMs\": 148.6, \"p50LatencyMs\": 78.0}]}}"
+  }
+}

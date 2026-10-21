@@ -1,0 +1,134 @@
+[
+  {
+    "name": "valid token",
+    "binding": false,
+    "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+    "token": "tok",
+    "status": 200,
+    "responseBody": {
+      "ok": true
+    },
+    "handled": 1
+  },
+  {
+    "name": "legacy header casing",
+    "binding": false,
+    "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+    "tokenHeader": "X-ACPS-AIP-Notification-Token",
+    "token": "tok",
+    "status": 200,
+    "responseBody": {
+      "ok": true
+    },
+    "handled": 1
+  },
+  {
+    "name": "wrong token",
+    "binding": false,
+    "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+    "token": "nope",
+    "status": 401,
+    "responseBody": {
+      "detail": "Invalid or missing notification token"
+    },
+    "handled": 0
+  },
+  {
+    "name": "missing token",
+    "binding": false,
+    "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+    "status": 401,
+    "responseBody": {
+      "detail": "Invalid or missing notification token"
+    },
+    "handled": 0
+  },
+  {
+    "name": "empty token",
+    "binding": false,
+    "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+    "token": "",
+    "status": 401,
+    "responseBody": {
+      "detail": "Invalid or missing notification token"
+    },
+    "handled": 0
+  },
+  {
+    "name": "malformed body",
+    "binding": false,
+    "body": "{\"not\": \"a task result\"}",
+    "token": "tok",
+    "status": 400,
+    "parseError": true,
+    "handled": 0
+  },
+  {
+    "name": "invalid json",
+    "binding": false,
+    "body": "{",
+    "token": "tok",
+    "status": 400,
+    "parseError": true,
+    "handled": 0
+  },
+  {
+    "name": "binding ok",
+    "binding": true,
+    "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+    "token": "tok",
+    "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+    "status": 200,
+    "responseBody": {
+      "ok": true
+    },
+    "handled": 1
+  },
+  {
+    "name": "binding missing peer",
+    "binding": true,
+    "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+    "token": "tok",
+    "status": 401,
+    "responseBody": {
+      "detail": {
+        "code": -32008,
+        "message": "AuthenticationRequiredError",
+        "data": "peer AIC is required for identity binding"
+      }
+    },
+    "handled": 0
+  },
+  {
+    "name": "binding forged sender",
+    "binding": true,
+    "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+    "token": "tok",
+    "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+    "status": 403,
+    "responseBody": {
+      "detail": {
+        "code": -32009,
+        "message": "AuthorizationFailedError",
+        "data": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      }
+    },
+    "handled": 0
+  },
+  {
+    "name": "binding checked before token",
+    "binding": true,
+    "body": "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+    "token": "nope",
+    "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+    "status": 403,
+    "responseBody": {
+      "detail": {
+        "code": -32009,
+        "message": "AuthorizationFailedError",
+        "data": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      }
+    },
+    "handled": 0
+  }
+]

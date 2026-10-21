@@ -1,0 +1,280 @@
+{
+  "cases": [
+    {
+      "input": 0,
+      "canonical": "0"
+    },
+    {
+      "input": -0.0,
+      "canonical": "0"
+    },
+    {
+      "input": 1,
+      "canonical": "1"
+    },
+    {
+      "input": -1,
+      "canonical": "-1"
+    },
+    {
+      "input": 0.1,
+      "canonical": "0.1"
+    },
+    {
+      "input": 0.30000000000000004,
+      "canonical": "0.30000000000000004"
+    },
+    {
+      "input": 1e+21,
+      "canonical": "1e+21"
+    },
+    {
+      "input": 1e+20,
+      "canonical": "100000000000000000000"
+    },
+    {
+      "input": 1e-07,
+      "canonical": "1e-7"
+    },
+    {
+      "input": 1e-06,
+      "canonical": "0.000001"
+    },
+    {
+      "input": 1.5e-07,
+      "canonical": "1.5e-7"
+    },
+    {
+      "input": 1e-05,
+      "canonical": "0.00001"
+    },
+    {
+      "input": 1.2345e-05,
+      "canonical": "0.000012345"
+    },
+    {
+      "input": 1e+16,
+      "canonical": "10000000000000000"
+    },
+    {
+      "input": 1000000000000000.0,
+      "canonical": "1000000000000000"
+    },
+    {
+      "input": 123456789012345680000,
+      "canonical": "123456789012345680000"
+    },
+    {
+      "input": 1.7976931348623157e+308,
+      "canonical": "1.7976931348623157e+308"
+    },
+    {
+      "input": 5e-324,
+      "canonical": "5e-324"
+    },
+    {
+      "input": 9007199254740992,
+      "canonical": "9007199254740992"
+    },
+    {
+      "input": 9007199254740993,
+      "canonical": "9007199254740992"
+    },
+    {
+      "input": 18446744073709551616,
+      "canonical": "18446744073709552000"
+    },
+    {
+      "input": 9007199254740993,
+      "canonical": "9007199254740992"
+    },
+    {
+      "input": 4.35,
+      "canonical": "4.35"
+    },
+    {
+      "input": 0.002,
+      "canonical": "0.002"
+    },
+    {
+      "input": -1e-07,
+      "canonical": "-1e-7"
+    },
+    {
+      "input": 100,
+      "canonical": "100"
+    },
+    {
+      "input": 1e+100,
+      "canonical": "1e+100"
+    },
+    {
+      "input": 1e-100,
+      "canonical": "1e-100"
+    },
+    {
+      "input": 333333333.3333333,
+      "canonical": "333333333.3333333"
+    },
+    {
+      "input": 12.0,
+      "canonical": "12"
+    },
+    {
+      "input": -12.5,
+      "canonical": "-12.5"
+    },
+    {
+      "input": 1e-06,
+      "canonical": "0.000001"
+    },
+    {
+      "input": 999999999999999999999,
+      "canonical": "1e+21"
+    },
+    {
+      "input": {
+        "b": 1,
+        "a": 2,
+        "c": {
+          "z": [
+            3,
+            {
+              "y": 1,
+              "x": 2
+            }
+          ],
+          "a": null
+        }
+      },
+      "canonical": "{\"a\":2,\"b\":1,\"c\":{\"a\":null,\"z\":[3,{\"x\":2,\"y\":1}]}}"
+    },
+    {
+      "input": {
+        "€": "Euro Sign",
+        "\r": "Carriage Return",
+        "דּ": "Hebrew Letter Dalet With Dagesh",
+        "1": "One",
+        "😀": "Emoji: Grinning Face",
+        "": "Control",
+        "ö": "Latin Small Letter O With Diaeresis"
+      },
+      "canonical": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}"
+    },
+    {
+      "input": {
+        "keys": {
+          "": 1,
+          "A": 2,
+          "a": 3,
+          "aa": 4,
+          "é": 5,
+          "￿": 6,
+          "😀": 7,
+          "10": 8,
+          "9": 9
+        }
+      },
+      "canonical": "{\"keys\":{\"\":1,\"10\":8,\"9\":9,\"A\":2,\"a\":3,\"aa\":4,\"é\":5,\"😀\":7,\"￿\":6}}"
+    },
+    {
+      "input": {
+        "text": "quote\" back\\ nl\n tab\t ctl\u0001\u001f del ls  é 中文 😀 /slash",
+        "controls": "\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\t\n\u000b\f\r\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001a\u001b\u001c\u001d\u001e\u001f",
+        "unicode": "  ﻿"
+      },
+      "canonical": "{\"controls\":\"\\u0000\\u0001\\u0002\\u0003\\u0004\\u0005\\u0006\\u0007\\b\\t\\n\\u000b\\f\\r\\u000e\\u000f\\u0010\\u0011\\u0012\\u0013\\u0014\\u0015\\u0016\\u0017\\u0018\\u0019\\u001a\\u001b\\u001c\\u001d\\u001e\\u001f\",\"text\":\"quote\\\" back\\\\ nl\\n tab\\t ctl\\u0001\\u001f del ls  é 中文 😀 /slash\",\"unicode\":\"  ﻿\"}"
+    },
+    {
+      "input": [
+        null,
+        true,
+        false,
+        [],
+        {},
+        "",
+        0,
+        [
+          []
+        ],
+        {
+          "a": {}
+        }
+      ],
+      "canonical": "[null,true,false,[],{},\"\",0,[[]],{\"a\":{}}]"
+    },
+    {
+      "input": {
+        "numbers": [
+          1e+21,
+          0.1,
+          -0.0,
+          1e-07,
+          9007199254740993
+        ]
+      },
+      "canonical": "{\"numbers\":[1e+21,0.1,0,1e-7,9007199254740992]}"
+    }
+  ],
+  "log_id_fallback": [
+    {
+      "raw": {
+        "schema_version": "1.0",
+        "timestamp": "2026-10-19T08:01:12.160000Z",
+        "aic": "aic-1",
+        "log_type": "access",
+        "body": {
+          "durationMs": 12.5
+        }
+      },
+      "log_id": "c2JUYjWuqjfLOVj0jRlJlurK1x0mH1hw+VORrhyXG1E"
+    },
+    {
+      "raw": {
+        "schema_version": "1.0",
+        "timestamp": "2026-10-19T08:01:12.160000+00:00",
+        "aic": "aic-2",
+        "log_type": "audit",
+        "log_id": "should-be-ignored",
+        "observed_timestamp": "2026-10-19T08:01:13Z",
+        "trace_id": "abc",
+        "span_id": null,
+        "parent_span_id": "",
+        "correlation_id": "会话",
+        "integrity": {
+          "alg": "EdDSA",
+          "kid": "k",
+          "sig": "s"
+        },
+        "body": {
+          "actor": {
+            "id": "u",
+            "type": "user"
+          },
+          "z": [
+            1,
+            null,
+            {
+              "b": 2,
+              "a": 1
+            }
+          ],
+          "text": "quote\" back\\ nl\n tab\t ctl\u0001\u001f del ls  é 中文 😀 /slash"
+        }
+      },
+      "log_id": "ysT7PmAjq5b0nTnOuxfx/B5L4ZjrBJYLwvufEooawnI"
+    },
+    {
+      "raw": {
+        "timestamp": "t",
+        "aic": "a",
+        "log_type": "system",
+        "body": null,
+        "resource": {
+          "x": 1
+        }
+      },
+      "log_id": "A498g63wd3uLAhnJnFh/bMd74o+NA++sEF6tr1mEfDg"
+    }
+  ]
+}

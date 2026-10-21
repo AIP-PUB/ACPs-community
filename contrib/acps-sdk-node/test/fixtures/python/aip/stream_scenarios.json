@@ -1,0 +1,862 @@
+[
+  {
+    "name": "start replays buffered events and ends on terminal",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "publish": [
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r2",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "completed",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ]
+    ],
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start",
+          "sessionId": "sess-1",
+          "taskId": "task-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 200,
+      "mediaType": "text/event-stream",
+      "frames": [
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"result\":{\"eventSeq\":1,\"eventData\":{\"type\":\"task-result\",\"id\":\"r1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}\n\n",
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"result\":{\"eventSeq\":2,\"eventData\":{\"type\":\"task-result\",\"id\":\"r2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}\n\n"
+      ]
+    }
+  },
+  {
+    "name": "start publishes from on_stream_start",
+    "options": {
+      "identityBindingEnabled": true,
+      "localAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    "onStart": [
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "res",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "completed",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ]
+    ],
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start",
+          "sessionId": "sess-1",
+          "taskId": "task-1"
+        }
+      },
+      "id": 3
+    },
+    "outcome": {
+      "status": 200,
+      "mediaType": "text/event-stream",
+      "frames": [
+        "data: {\"jsonrpc\":\"2.0\",\"id\":3,\"result\":{\"eventSeq\":1,\"eventData\":{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}\n\n"
+      ]
+    }
+  },
+  {
+    "name": "start without task id",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start",
+          "sessionId": "sess-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 400,
+      "detail": {
+        "code": -32602,
+        "message": "taskId is required for stream/start"
+      }
+    }
+  },
+  {
+    "name": "unsupported command",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "get",
+          "sessionId": "sess-1",
+          "taskId": "task-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 400,
+      "detail": {
+        "code": -32602,
+        "message": "Unsupported stream command: TaskCommandType.Get"
+      }
+    }
+  },
+  {
+    "name": "parse error",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "request": {
+      "invalid": "body"
+    },
+    "outcome": {
+      "status": 400,
+      "detail": {
+        "code": -32700,
+        "message": "Parse error"
+      },
+      "parseErrorDataOmitted": true
+    }
+  },
+  {
+    "name": "re-stream not found",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "re-stream",
+          "sessionId": "sess-1",
+          "taskId": "nope"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 404,
+      "detail": {
+        "code": -32001,
+        "message": "Stream not found: nope"
+      }
+    }
+  },
+  {
+    "name": "re-stream without task id",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "re-stream",
+          "sessionId": "sess-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 404,
+      "detail": {
+        "code": -32001,
+        "message": "Stream not found: None"
+      }
+    }
+  },
+  {
+    "name": "re-stream without task id recovered by on_re_stream",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "reStreamChannel": true,
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "re-stream",
+          "sessionId": "sess-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 200,
+      "mediaType": "text/event-stream",
+      "frames": [
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"error\":{\"code\":-32001,\"message\":\"Task stream not found: None\"}}\n\n"
+      ]
+    }
+  },
+  {
+    "name": "re-stream recovered channel not registered in hub",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "reStreamChannel": true,
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "re-stream",
+          "sessionId": "sess-1",
+          "taskId": "lost"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 200,
+      "mediaType": "text/event-stream",
+      "frames": [
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"error\":{\"code\":-32001,\"message\":\"Task stream not found: lost\"}}\n\n"
+      ]
+    }
+  },
+  {
+    "name": "re-stream resumes after lastEventSeq",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "publish": [
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-status-update",
+          "id": "ev-1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "lastChunk": false,
+          "append": true,
+          "product": {
+            "id": "prod-1",
+            "dataItems": [
+              {
+                "text": "chunk"
+              }
+            ]
+          },
+          "taskId": "task-1",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "senderRole": "partner",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "id": "ev-2",
+          "type": "product-chunk"
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r4",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "completed",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ]
+    ],
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "re-stream",
+          "sessionId": "sess-1",
+          "taskId": "task-1",
+          "commandParams": {
+            "lastEventSeq": 2
+          }
+        }
+      }
+    },
+    "outcome": {
+      "status": 200,
+      "mediaType": "text/event-stream",
+      "frames": [
+        "data: {\"jsonrpc\":\"2.0\",\"result\":{\"eventSeq\":3,\"eventData\":{\"type\":\"product-chunk\",\"id\":\"ev-2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"product\":{\"id\":\"prod-1\",\"dataItems\":[{\"type\":\"text\",\"text\":\"chunk\"}]},\"append\":true,\"lastChunk\":false}}}\n\n",
+        "data: {\"jsonrpc\":\"2.0\",\"result\":{\"eventSeq\":4,\"eventData\":{\"type\":\"task-result\",\"id\":\"r4\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}\n\n"
+      ]
+    }
+  },
+  {
+    "name": "re-stream without lastEventSeq replays all",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "publish": [
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r2",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "failed",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ]
+    ],
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "re-stream",
+          "sessionId": "sess-1",
+          "taskId": "task-1",
+          "commandParams": {}
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 200,
+      "mediaType": "text/event-stream",
+      "frames": [
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"result\":{\"eventSeq\":1,\"eventData\":{\"type\":\"task-result\",\"id\":\"r1\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}\n\n",
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"result\":{\"eventSeq\":2,\"eventData\":{\"type\":\"task-result\",\"id\":\"r2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"failed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}\n\n"
+      ]
+    }
+  },
+  {
+    "name": "re-stream buffer overflow",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "maxBuffer": 2,
+    "publish": [
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r0",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r2",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r3",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "completed",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ]
+    ],
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "re-stream",
+          "sessionId": "sess-1",
+          "taskId": "task-1",
+          "commandParams": {
+            "lastEventSeq": 1
+          }
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 200,
+      "mediaType": "text/event-stream",
+      "frames": [
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"error\":{\"code\":-32002,\"message\":\"Cannot re-stream: buffer overflow, please restart\"}}\n\n"
+      ]
+    }
+  },
+  {
+    "name": "re-stream exactly at buffer edge",
+    "options": {
+      "identityBindingEnabled": false
+    },
+    "maxBuffer": 2,
+    "publish": [
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r0",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r1",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r2",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "r3",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "completed",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ]
+    ],
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "re-stream",
+          "sessionId": "sess-1",
+          "taskId": "task-1",
+          "commandParams": {
+            "lastEventSeq": 2
+          }
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 200,
+      "mediaType": "text/event-stream",
+      "frames": [
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"result\":{\"eventSeq\":3,\"eventData\":{\"type\":\"task-result\",\"id\":\"r2\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}\n\n",
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"result\":{\"eventSeq\":4,\"eventData\":{\"type\":\"task-result\",\"id\":\"r3\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}\n\n"
+      ]
+    }
+  },
+  {
+    "name": "identity missing peer",
+    "options": {
+      "identityBindingEnabled": true,
+      "localAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "peerAic": null
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start",
+          "sessionId": "sess-1",
+          "taskId": "task-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 401,
+      "detail": {
+        "code": -32008,
+        "message": "AuthenticationRequiredError",
+        "data": "peer AIC is required for identity binding"
+      }
+    }
+  },
+  {
+    "name": "identity sender mismatch",
+    "options": {
+      "identityBindingEnabled": true,
+      "localAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start",
+          "sessionId": "sess-1",
+          "taskId": "task-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 403,
+      "detail": {
+        "code": -32009,
+        "message": "AuthorizationFailedError",
+        "data": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      }
+    }
+  },
+  {
+    "name": "identity invalid sender",
+    "options": {
+      "identityBindingEnabled": true,
+      "localAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "bad",
+          "command": "start",
+          "sessionId": "sess-1",
+          "taskId": "task-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 403,
+      "detail": {
+        "code": -32009,
+        "message": "AuthorizationFailedError",
+        "data": "senderId is invalid: AIC 必须包含 10 段，当前为 1 段"
+      }
+    }
+  },
+  {
+    "name": "identity requires local AIC",
+    "options": {
+      "identityBindingEnabled": true,
+      "localAic": null,
+      "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "start",
+          "sessionId": "sess-1",
+          "taskId": "task-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "exception": "ValueError",
+      "message": "local_aic is required when identity_binding_enabled=True"
+    }
+  },
+  {
+    "name": "outbound event sender mismatch",
+    "options": {
+      "identityBindingEnabled": true,
+      "localAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "peerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    "publish": [
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "ok",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+          "taskId": "task-1",
+          "status": {
+            "state": "working",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ],
+      [
+        "task-1",
+        {
+          "type": "task-result",
+          "id": "forged",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "partner",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+          "taskId": "task-1",
+          "status": {
+            "state": "completed",
+            "stateChangedAt": "2026-06-24T00:00:00Z"
+          }
+        }
+      ]
+    ],
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "stream",
+      "params": {
+        "message": {
+          "type": "task-command",
+          "id": "cmd",
+          "sentAt": "2026-06-24T00:00:00Z",
+          "senderRole": "leader",
+          "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "command": "re-stream",
+          "sessionId": "sess-1",
+          "taskId": "task-1"
+        }
+      },
+      "id": "stream-1"
+    },
+    "outcome": {
+      "status": 200,
+      "mediaType": "text/event-stream",
+      "frames": [
+        "data: {\"jsonrpc\":\"2.0\",\"id\":\"stream-1\",\"result\":{\"eventSeq\":1,\"eventData\":{\"type\":\"task-result\",\"id\":\"ok\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5\",\"taskId\":\"task-1\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}\n\n"
+      ],
+      "streamError": "SenderIdentityMismatchError",
+      "streamErrorMessage": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match expected AIC 1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+    }
+  }
+]

@@ -1,0 +1,2307 @@
+{
+  "functions": [
+    {
+      "fn": "normalizeAudiences",
+      "input": "a",
+      "expected": {
+        "value": [
+          "a"
+        ]
+      }
+    },
+    {
+      "fn": "normalizeAudiences",
+      "input": " a ",
+      "expected": {
+        "value": [
+          "a"
+        ]
+      }
+    },
+    {
+      "fn": "normalizeAudiences",
+      "input": [
+        "a",
+        "b",
+        "a",
+        " ",
+        "c "
+      ],
+      "expected": {
+        "value": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "fn": "normalizeAudiences",
+      "input": [],
+      "expected": {
+        "value": []
+      }
+    },
+    {
+      "fn": "normalizeAudiences",
+      "input": null,
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "aud claim must be a string or array of strings"
+        }
+      }
+    },
+    {
+      "fn": "normalizeAudiences",
+      "input": 5,
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "aud claim must be a string or array of strings"
+        }
+      }
+    },
+    {
+      "fn": "normalizeAudiences",
+      "input": {
+        "a": 1
+      },
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "aud claim must be a string or array of strings"
+        }
+      }
+    },
+    {
+      "fn": "normalizeAudiences",
+      "input": [
+        "a",
+        1
+      ],
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "aud claim values must be strings"
+        }
+      }
+    },
+    {
+      "fn": "normalizeAudiences",
+      "input": "",
+      "expected": {
+        "value": []
+      }
+    },
+    {
+      "fn": "parseScopeClaim",
+      "input": "a b  a\tc\n",
+      "expected": {
+        "value": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "fn": "parseScopeClaim",
+      "input": null,
+      "expected": {
+        "value": []
+      }
+    },
+    {
+      "fn": "parseScopeClaim",
+      "input": "",
+      "expected": {
+        "value": []
+      }
+    },
+    {
+      "fn": "parseScopeClaim",
+      "input": [
+        "a"
+      ],
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "scope claim must be a string"
+        }
+      }
+    },
+    {
+      "fn": "parseScopeClaim",
+      "input": 5,
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "scope claim must be a string"
+        }
+      }
+    },
+    {
+      "fn": "parseScopeClaim",
+      "input": "　x　y\u001c",
+      "expected": {
+        "value": [
+          "x",
+          "y"
+        ]
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": "a",
+      "expected": {
+        "value": [
+          "a"
+        ]
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": " a ,b,, a",
+      "expected": {
+        "value": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": [
+        "a",
+        " b ",
+        "a",
+        ""
+      ],
+      "expected": {
+        "value": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": null,
+      "expected": {
+        "value": []
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": "",
+      "expected": {
+        "value": []
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": 5,
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "claim must be a string or iterable of strings"
+        }
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": true,
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "claim must be a string or iterable of strings"
+        }
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": {
+        "a": 1
+      },
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "claim must be a string or iterable of strings"
+        }
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": [
+        "a",
+        2
+      ],
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "claim values must be strings"
+        }
+      }
+    },
+    {
+      "fn": "parseMultiValueClaim",
+      "input": "a b",
+      "expected": {
+        "value": [
+          "a b"
+        ]
+      }
+    }
+  ],
+  "principals": [
+    {
+      "name": "default_client_roles",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {
+        "resource_client_id": "monitor-api"
+      },
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice",
+            "role": "AUDITOR,SYSTEM_READER"
+          }
+        }
+      }
+    },
+    {
+      "name": "no_resource_client",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice"
+          }
+        }
+      }
+    },
+    {
+      "name": "realm_roles_enabled",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {
+        "resource_client_id": "monitor-api",
+        "read_realm_roles": true
+      },
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER",
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice",
+            "role": "AUDITOR,REALM_ADMIN,SYSTEM_READER"
+          }
+        }
+      }
+    },
+    {
+      "name": "client_roles_disabled",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {
+        "resource_client_id": "monitor-api",
+        "read_client_roles": false,
+        "read_realm_roles": true
+      },
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "REALM_ADMIN"
+            ],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice",
+            "role": "REALM_ADMIN"
+          }
+        }
+      }
+    },
+    {
+      "name": "groups_disabled",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {
+        "resource_client_id": "monitor-api",
+        "read_groups": false
+      },
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": []
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice",
+            "role": "AUDITOR,SYSTEM_READER"
+          }
+        }
+      }
+    },
+    {
+      "name": "custom_claim_names",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        },
+        "nick": "  nick  ",
+        "display": "Disp",
+        "mail": "m@example.com",
+        "verified": false,
+        "org": "org-1",
+        "aics": "x,y"
+      },
+      "claim_mapping": {
+        "username_claims": [
+          "missing",
+          "nick"
+        ],
+        "name_claims": "display",
+        "email_claim": "mail",
+        "email_verified_claim": "verified",
+        "tenant_claim": "org",
+        "allowed_aics_claim": "aics"
+      },
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "nick",
+            "name": "Disp",
+            "email": "m@example.com",
+            "email_verified": false,
+            "tenant_id": "org-1",
+            "allowed_aics": [
+              "x",
+              "y"
+            ],
+            "roles": [],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            },
+            "nick": "  nick  ",
+            "display": "Disp",
+            "mail": "m@example.com",
+            "verified": false,
+            "org": "org-1",
+            "aics": "x,y"
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Disp"
+          }
+        }
+      }
+    },
+    {
+      "name": "username_fallback",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "   ",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        },
+        "username": "bob"
+      },
+      "claim_mapping": {},
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "bob",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "   ",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            },
+            "username": "bob"
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice"
+          }
+        }
+      }
+    },
+    {
+      "name": "name_falls_back_to_username",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "alice"
+          }
+        }
+      }
+    },
+    {
+      "name": "blank_optional_strings",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "  ",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": " ",
+        "email_verified": true,
+        "tenant_id": "",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": null,
+            "username": "alice",
+            "name": "Alice",
+            "email": null,
+            "email_verified": true,
+            "tenant_id": null,
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "  ",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": " ",
+            "email_verified": true,
+            "tenant_id": "",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice"
+          }
+        }
+      }
+    },
+    {
+      "name": "duplicate_roles_across_sources",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": "A,B"
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "B",
+            "C"
+          ]
+        }
+      },
+      "claim_mapping": {
+        "resource_client_id": "monitor-api",
+        "read_realm_roles": true
+      },
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [
+              "A",
+              "B",
+              "C"
+            ],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": "A,B"
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "B",
+                "C"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice",
+            "role": "A,B,C"
+          }
+        }
+      }
+    },
+    {
+      "name": "resource_access_not_object",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": [
+          "x"
+        ],
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {
+        "resource_client_id": "monitor-api"
+      },
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": [
+              "x"
+            ],
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice"
+          }
+        }
+      }
+    },
+    {
+      "name": "realm_access_not_object",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": "x"
+      },
+      "claim_mapping": {
+        "read_realm_roles": true
+      },
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "Alice",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": "x"
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "Alice"
+          }
+        }
+      }
+    },
+    {
+      "name": "prototype_claim_names",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {
+        "username_claims": [
+          "constructor",
+          "toString"
+        ],
+        "name_claims": [
+          "__proto__",
+          "hasOwnProperty"
+        ]
+      },
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://issuer.example/realms/acps-monitor",
+            "principal_id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": null,
+            "name": null,
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "user-123",
+          "principal_key": "https://issuer.example/realms/acps-monitor#user-123",
+          "raw_claims": {
+            "iss": "https://issuer.example/realms/acps-monitor",
+            "sub": "user-123",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "1fd518d08ee89ca73b230c9cad6ad2b28e147eb23c65f979d30c3c5ca1aaf9b7",
+            "type": "human",
+            "name": "alice@example.com"
+          }
+        }
+      }
+    },
+    {
+      "name": "missing_iss",
+      "claims": {
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "iss claim must be a non-empty string"
+        }
+      }
+    },
+    {
+      "name": "blank_sub",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": " ",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "sub claim must be a non-empty string"
+        }
+      }
+    },
+    {
+      "name": "aud_missing",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "aud claim must be a string or array of strings"
+        }
+      }
+    },
+    {
+      "name": "aud_bad_item",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "a",
+          null
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "aud claim values must be strings"
+        }
+      }
+    },
+    {
+      "name": "azp_number",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": 1,
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "azp claim must be a string"
+        }
+      }
+    },
+    {
+      "name": "email_verified_string",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": "true",
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "email_verified claim must be a boolean"
+        }
+      }
+    },
+    {
+      "name": "scope_list",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": [
+          "a"
+        ],
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "scope claim must be a string"
+        }
+      }
+    },
+    {
+      "name": "allowed_aics_number",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": 1,
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "claim must be a string or iterable of strings"
+        }
+      }
+    },
+    {
+      "name": "client_roles_bad_item",
+      "claims": {
+        "iss": "https://issuer.example/realms/acps-monitor",
+        "sub": "user-123",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "Alice",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "A",
+              1
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {
+        "resource_client_id": "monitor-api"
+      },
+      "expected": {
+        "error": {
+          "type": "TypeError",
+          "message": "claim values must be strings"
+        }
+      }
+    },
+    {
+      "name": "non_ascii_values",
+      "claims": {
+        "iss": "https://身份.example/realms/测试",
+        "sub": "用户",
+        "aud": [
+          "monitor-api",
+          "account"
+        ],
+        "azp": "monitor-web",
+        "preferred_username": "alice",
+        "name": "张三",
+        "email": "alice@example.com",
+        "email_verified": true,
+        "tenant_id": "tenant-1",
+        "allowed_aics": [
+          "aic-1",
+          "aic-2"
+        ],
+        "scope": "metrics:read system:query",
+        "groups": [
+          "/ops",
+          "/monitor"
+        ],
+        "resource_access": {
+          "monitor-api": {
+            "roles": [
+              "AUDITOR",
+              "SYSTEM_READER"
+            ]
+          }
+        },
+        "realm_access": {
+          "roles": [
+            "REALM_ADMIN"
+          ]
+        }
+      },
+      "claim_mapping": {},
+      "expected": {
+        "principal": {
+          "dump": {
+            "issuer": "https://身份.example/realms/测试",
+            "principal_id": "81dc405d52c2f955b94f4e14a6593e30139de642a005801bff18a2897a35c19f",
+            "audiences": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "username": "alice",
+            "name": "张三",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "roles": [],
+            "scopes": [
+              "metrics:read",
+              "system:query"
+            ],
+            "groups": [
+              "/ops",
+              "/monitor"
+            ]
+          },
+          "subject": "用户",
+          "principal_key": "https://身份.example/realms/测试#用户",
+          "raw_claims": {
+            "iss": "https://身份.example/realms/测试",
+            "sub": "用户",
+            "aud": [
+              "monitor-api",
+              "account"
+            ],
+            "azp": "monitor-web",
+            "preferred_username": "alice",
+            "name": "张三",
+            "email": "alice@example.com",
+            "email_verified": true,
+            "tenant_id": "tenant-1",
+            "allowed_aics": [
+              "aic-1",
+              "aic-2"
+            ],
+            "scope": "metrics:read system:query",
+            "groups": [
+              "/ops",
+              "/monitor"
+            ],
+            "resource_access": {
+              "monitor-api": {
+                "roles": [
+                  "AUDITOR",
+                  "SYSTEM_READER"
+                ]
+              }
+            },
+            "realm_access": {
+              "roles": [
+                "REALM_ADMIN"
+              ]
+            }
+          },
+          "audit_actor": {
+            "id": "81dc405d52c2f955b94f4e14a6593e30139de642a005801bff18a2897a35c19f",
+            "type": "human",
+            "name": "张三"
+          }
+        }
+      }
+    }
+  ]
+}

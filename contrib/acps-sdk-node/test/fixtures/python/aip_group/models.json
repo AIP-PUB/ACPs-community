@@ -1,0 +1,458 @@
+{
+  "group_mgmt_command": {
+    "type": "group-mgmt-command",
+    "id": "mgmt-cmd-1",
+    "sentAt": "2026-04-15T00:00:00+00:00",
+    "senderRole": "leader",
+    "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+    "mentions": [
+      "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+    ],
+    "dataItems": [],
+    "groupId": "group-session-1",
+    "sessionId": "session-1",
+    "command": "mute"
+  },
+  "group_mgmt_result": {
+    "type": "group-mgmt-result",
+    "id": "mgmt-result-1",
+    "sentAt": "2026-04-15T00:00:00+00:00",
+    "senderRole": "partner",
+    "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+    "dataItems": [],
+    "groupId": "group-session-1",
+    "status": {
+      "connected": true,
+      "muted": false
+    }
+  },
+  "inbox_invitation": {
+    "type": "group-invitation",
+    "id": "invite-1",
+    "sentAt": "2026-06-24T00:00:00Z",
+    "senderRole": "leader",
+    "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+    "groupId": "group-session-1",
+    "protocol": "rabbitmq:4.2",
+    "expiresAt": "2026-06-24T00:05:00Z",
+    "invitationToken": "token-1",
+    "group": {
+      "groupId": "group-session-1",
+      "leader": {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "partners": [
+        {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+        }
+      ]
+    },
+    "amqp": {
+      "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+      "exchangeType": "fanout",
+      "routingKey": ""
+    }
+  },
+  "legacy_invitation": {
+    "input": {
+      "type": "group-invitation",
+      "id": "invite-legacy",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "protocol": "rabbitmq:4.2",
+      "expiresAt": "2026-06-24T00:05:00Z",
+      "invitationToken": "token-1",
+      "group": {
+        "groupId": "group-session-1",
+        "leader": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        },
+        "partners": [
+          {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+          }
+        ]
+      },
+      "amqp": {
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "exchangeType": "fanout",
+        "routingKey": ""
+      }
+    },
+    "output": {
+      "type": "group-invitation",
+      "id": "invite-legacy",
+      "sentAt": "2026-06-24T00:00:00Z",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "groupId": "group-session-1",
+      "protocol": "rabbitmq:4.2",
+      "expiresAt": "2026-06-24T00:05:00Z",
+      "invitationToken": "token-1",
+      "group": {
+        "groupId": "group-session-1",
+        "leader": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        },
+        "partners": [
+          {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+          }
+        ]
+      },
+      "amqp": {
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "exchangeType": "fanout",
+        "routingKey": ""
+      }
+    }
+  },
+  "defaults_invitation": {
+    "input": {
+      "protocol": "rabbitmq:4.2",
+      "expiresAt": "2026-06-24T00:05:00Z",
+      "invitationToken": "token-1",
+      "group": {
+        "groupId": "group-session-1",
+        "leader": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        },
+        "partners": [
+          {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+          }
+        ]
+      },
+      "amqp": {
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "exchangeType": "fanout",
+        "routingKey": ""
+      }
+    },
+    "output": {
+      "type": "group-invitation",
+      "id": "invite-12345678-1234-4678-9234-567812345678",
+      "sentAt": "2026-10-19T08:01:12.160000+00:00",
+      "senderRole": "leader",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "groupId": "group-session-1",
+      "protocol": "rabbitmq:4.2",
+      "expiresAt": "2026-06-24T00:05:00Z",
+      "invitationToken": "token-1",
+      "group": {
+        "groupId": "group-session-1",
+        "leader": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        },
+        "partners": [
+          {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+          }
+        ]
+      },
+      "amqp": {
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "exchangeType": "fanout",
+        "routingKey": ""
+      }
+    }
+  },
+  "legacy_invitation_error": {
+    "input": {
+      "type": "group-invitation-error",
+      "id": "invite-err-legacy",
+      "sentAt": "2026-06-24T00:00:01Z",
+      "groupId": "group-session-1",
+      "partnerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "invitationToken": "token-1",
+      "error": {
+        "code": -32020,
+        "message": "Invitation rejected by partner policy",
+        "data": {
+          "errorType": "INVITATION_REJECTED"
+        }
+      }
+    },
+    "output": {
+      "type": "group-invitation-error",
+      "id": "invite-err-legacy",
+      "sentAt": "2026-06-24T00:00:01Z",
+      "senderRole": "partner",
+      "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "groupId": "group-session-1",
+      "partnerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "invitationToken": "token-1",
+      "error": {
+        "code": -32020,
+        "message": "Invitation rejected by partner policy",
+        "data": {
+          "errorType": "INVITATION_REJECTED"
+        }
+      }
+    }
+  },
+  "invitation_error": {
+    "type": "group-invitation-error",
+    "id": "invite-err-1",
+    "sentAt": "2026-06-24T00:00:00Z",
+    "senderRole": "partner",
+    "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+    "groupId": "group-session-1",
+    "invitationToken": "token-1",
+    "error": {
+      "code": -32021,
+      "message": "Connection failed",
+      "data": {
+        "errorType": "CONNECTION_FAILED",
+        "details": {
+          "host": "mq",
+          "port": 5671
+        }
+      }
+    }
+  },
+  "rabbitmq_request": {
+    "jsonrpc": "2.0",
+    "method": "group",
+    "id": "req-1",
+    "params": {
+      "protocol": "rabbitmq:4.0",
+      "group": {
+        "groupId": "group-session-1",
+        "leader": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        },
+        "partners": [
+          {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+          }
+        ]
+      },
+      "server": {
+        "host": "mq.acps.example.com",
+        "port": 5671,
+        "vhost": "acps"
+      },
+      "amqp": {
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "exchangeType": "fanout",
+        "routingKey": ""
+      }
+    }
+  },
+  "rabbitmq_request_with_token": {
+    "jsonrpc": "2.0",
+    "method": "group",
+    "id": 7,
+    "params": {
+      "protocol": "rabbitmq:4.0",
+      "group": {
+        "groupId": "group-session-1",
+        "leader": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        },
+        "partners": [
+          {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+          }
+        ]
+      },
+      "server": {
+        "host": "localhost",
+        "port": 5672,
+        "vhost": "/",
+        "accessToken": "guest:guest"
+      },
+      "amqp": {
+        "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+        "exchangeType": "fanout",
+        "routingKey": ""
+      }
+    }
+  },
+  "rabbitmq_response_ok": {
+    "jsonrpc": "2.0",
+    "id": "req-1",
+    "result": {
+      "connectionName": "agent-1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+      "vhost": "acps",
+      "nodeName": "unknown",
+      "queueName": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1_1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+    }
+  },
+  "rabbitmq_response_error": {
+    "jsonrpc": "2.0",
+    "id": "req-1",
+    "error": {
+      "code": -32021,
+      "message": "Connection failed",
+      "data": {
+        "errorType": "CONNECTION_FAILED",
+        "details": {
+          "host": "h",
+          "port": 1,
+          "reason": null
+        }
+      }
+    }
+  },
+  "invalid": {
+    "invitation_sender_mismatch": {
+      "model": "InboxGroupInvitation",
+      "input": {
+        "type": "group-invitation",
+        "id": "invite-legacy",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "protocol": "rabbitmq:4.2",
+        "expiresAt": "2026-06-24T00:05:00Z",
+        "invitationToken": "token-1",
+        "group": {
+          "groupId": "group-session-1",
+          "leader": {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          },
+          "partners": [
+            {
+              "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+            }
+          ]
+        },
+        "amqp": {
+          "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+          "exchangeType": "fanout",
+          "routingKey": ""
+        },
+        "senderRole": "leader",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "groupId": "group-session-1"
+      },
+      "error": "1 validation error for InboxGroupInvitation\n  Value error, senderId must equal group.leader.aic [type=value_error, input_value={'type': 'group-invitatio...pId': 'group-session-1'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+    },
+    "invitation_group_mismatch": {
+      "model": "InboxGroupInvitation",
+      "input": {
+        "type": "group-invitation",
+        "id": "invite-legacy",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "protocol": "rabbitmq:4.2",
+        "expiresAt": "2026-06-24T00:05:00Z",
+        "invitationToken": "token-1",
+        "group": {
+          "groupId": "group-session-1",
+          "leader": {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          },
+          "partners": [
+            {
+              "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+            }
+          ]
+        },
+        "amqp": {
+          "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+          "exchangeType": "fanout",
+          "routingKey": ""
+        },
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "groupId": "group-x",
+        "senderRole": "leader"
+      },
+      "error": "1 validation error for InboxGroupInvitation\n  Value error, groupId must equal group.groupId [type=value_error, input_value={'type': 'group-invitatio... 'senderRole': 'leader'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+    },
+    "invitation_sender_role_partner": {
+      "model": "InboxGroupInvitation",
+      "input": {
+        "type": "group-invitation",
+        "id": "invite-legacy",
+        "sentAt": "2026-06-24T00:00:00Z",
+        "protocol": "rabbitmq:4.2",
+        "expiresAt": "2026-06-24T00:05:00Z",
+        "invitationToken": "token-1",
+        "group": {
+          "groupId": "group-session-1",
+          "leader": {
+            "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          },
+          "partners": [
+            {
+              "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+            }
+          ]
+        },
+        "amqp": {
+          "exchange": "group_1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4_group-session-1",
+          "exchangeType": "fanout",
+          "routingKey": ""
+        },
+        "senderRole": "partner",
+        "groupId": "group-session-1",
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "error": "1 validation error for InboxGroupInvitation\nsenderRole\n  Input should be 'leader' [type=literal_error, input_value='partner', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.12/v/literal_error"
+    },
+    "invitation_error_partner_mismatch": {
+      "model": "InboxGroupInvitationError",
+      "input": {
+        "type": "group-invitation-error",
+        "id": "invite-err-legacy",
+        "sentAt": "2026-06-24T00:00:01Z",
+        "groupId": "group-session-1",
+        "partnerAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "invitationToken": "token-1",
+        "error": {
+          "code": -32020,
+          "message": "Invitation rejected by partner policy",
+          "data": {
+            "errorType": "INVITATION_REJECTED"
+          }
+        },
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "senderRole": "partner"
+      },
+      "error": "1 validation error for InboxGroupInvitationError\n  Value error, partnerAic must equal senderId when present [type=value_error, input_value={'type': 'group-invitatio...'senderRole': 'partner'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+    }
+  },
+  "mentions": [
+    {
+      "mentions": null,
+      "is_mentioned": false,
+      "must_respond": false
+    },
+    {
+      "mentions": [],
+      "is_mentioned": false,
+      "must_respond": false
+    },
+    {
+      "mentions": "all",
+      "is_mentioned": true,
+      "must_respond": true
+    },
+    {
+      "mentions": [
+        "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+      ],
+      "is_mentioned": true,
+      "must_respond": true
+    },
+    {
+      "mentions": [
+        "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      ],
+      "is_mentioned": false,
+      "must_respond": false
+    },
+    {
+      "mentions": [
+        "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5",
+        "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      ],
+      "is_mentioned": true,
+      "must_respond": true
+    }
+  ],
+  "direct_identity": {
+    "ok": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+    "mismatch": "group.leader.aic 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+    "missing_leader": "group.leader.aic is required"
+  }
+}

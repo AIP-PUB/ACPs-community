@@ -1,0 +1,120 @@
+[
+  {
+    "model": "AgentCapabilities",
+    "name": "lax: string and int booleans",
+    "input": {
+      "streaming": "yes",
+      "notification": 1
+    },
+    "ok": true,
+    "dump": {
+      "streaming": true,
+      "notification": true,
+      "messageQueue": []
+    },
+    "json": "{\"streaming\":true,\"notification\":true,\"messageQueue\":[]}",
+    "kind": "lax"
+  },
+  {
+    "model": "AgentCapabilitySpec",
+    "name": "lax: string active",
+    "input": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": "true",
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {},
+      "securitySchemes": {},
+      "capabilities": {
+        "streaming": false,
+        "notification": false
+      }
+    },
+    "ok": true,
+    "dump": {
+      "aic": "1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN",
+      "active": true,
+      "lastModifiedTime": "2025-03-15T16:30:00+08:00",
+      "protocolVersion": "02.02",
+      "name": "n",
+      "description": "d",
+      "version": "1.0.0",
+      "provider": {
+        "countryCode": "CN"
+      },
+      "securitySchemes": {},
+      "endPoints": [],
+      "capabilities": {
+        "streaming": false,
+        "notification": false,
+        "messageQueue": []
+      },
+      "defaultInputModes": [],
+      "defaultOutputModes": [],
+      "skills": []
+    },
+    "json": "{\"aic\":\"1.2.156.3088.1.34C2.478BDF.3GF546.1.0SEN\",\"active\":true,\"lastModifiedTime\":\"2025-03-15T16:30:00+08:00\",\"protocolVersion\":\"02.02\",\"name\":\"n\",\"description\":\"d\",\"version\":\"1.0.0\",\"provider\":{\"countryCode\":\"CN\"},\"securitySchemes\":{},\"endPoints\":[],\"capabilities\":{\"streaming\":false,\"notification\":false,\"messageQueue\":[]},\"defaultInputModes\":[],\"defaultOutputModes\":[],\"skills\":[]}",
+    "kind": "lax"
+  },
+  {
+    "model": "AgentSkill",
+    "name": "populate_by_name: input_modes",
+    "input": {
+      "id": "s",
+      "name": "n",
+      "description": "d",
+      "version": "1",
+      "input_modes": [
+        "text/plain"
+      ]
+    },
+    "ok": true,
+    "dump": {
+      "id": "s",
+      "name": "n",
+      "description": "d",
+      "version": "1",
+      "tags": [],
+      "inputModes": [
+        "text/plain"
+      ]
+    },
+    "json": "{\"id\":\"s\",\"name\":\"n\",\"description\":\"d\",\"version\":\"1\",\"tags\":[],\"inputModes\":[\"text/plain\"]}",
+    "kind": "populateByName"
+  },
+  {
+    "model": "APIKeySecurityScheme",
+    "name": "populate_by_name: in_location",
+    "input": {
+      "type": "apiKey",
+      "name": "k",
+      "in_location": "header"
+    },
+    "ok": true,
+    "dump": {
+      "type": "apiKey",
+      "name": "k",
+      "in": "header"
+    },
+    "json": "{\"type\":\"apiKey\",\"name\":\"k\",\"in\":\"header\"}",
+    "kind": "populateByName"
+  },
+  {
+    "model": "MutualTLSSecurityScheme",
+    "name": "populate_by_name: x_ca_challenge_base_url",
+    "input": {
+      "type": "mutualTLS",
+      "x_ca_challenge_base_url": "u"
+    },
+    "ok": true,
+    "dump": {
+      "type": "mutualTLS",
+      "x-caChallengeBaseUrl": "u"
+    },
+    "json": "{\"type\":\"mutualTLS\",\"x-caChallengeBaseUrl\":\"u\"}",
+    "kind": "populateByName"
+  }
+]

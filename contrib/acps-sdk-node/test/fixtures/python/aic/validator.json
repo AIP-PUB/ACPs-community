@@ -1,0 +1,5257 @@
+[
+  {
+    "salt": {
+      "none": true
+    },
+    "saltHex": null,
+    "hasSalt": false,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": null
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": null
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": null
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": null
+      },
+      {
+        "body": "",
+        "result": null
+      },
+      {
+        "body": "SS",
+        "result": null
+      },
+      {
+        "body": "ß",
+        "result": null
+      },
+      {
+        "body": "1.2.É",
+        "result": null
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": null
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          false,
+          "未配置 SALT，无法验证 CRC"
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          false,
+          "未配置 SALT，无法验证 CRC"
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          false,
+          "未配置 SALT，无法验证 CRC"
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          false,
+          "未配置 SALT，无法验证 CRC"
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "bytes": "1234"
+    },
+    "saltHex": "1234",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0JU4"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0W1Z"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0JU4"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0JU4"
+      },
+      {
+        "body": "",
+        "result": "02X5"
+      },
+      {
+        "body": "SS",
+        "result": "0OZJ"
+      },
+      {
+        "body": "ß",
+        "result": "0OZJ"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "1CXV"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "bytes": ""
+    },
+    "saltHex": "",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0PQT"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0455"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0PQT"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0PQT"
+      },
+      {
+        "body": "",
+        "result": "1EKF"
+      },
+      {
+        "body": "SS",
+        "result": "08S5"
+      },
+      {
+        "body": "ß",
+        "result": "08S5"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "0XQ3"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0PQT",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0pqt",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0pqt",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0PQT",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "bytes": "00"
+    },
+    "saltHex": "00",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "196Y"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0XX1"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "196Y"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "196Y"
+      },
+      {
+        "body": "",
+        "result": "18MO"
+      },
+      {
+        "body": "SS",
+        "result": "0SMM"
+      },
+      {
+        "body": "ß",
+        "result": "0SMM"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "0YOW"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0XX1，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0XX1，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0XX1，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0XX1，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 196Y，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.196Y",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.196Y",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.196Y",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "196Y",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.196y",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.196y",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.196Y",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "196Y",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "bytes": "ffffffffffffffffffffffffffffffff"
+    },
+    "saltHex": "ffffffffffffffffffffffffffffffff",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "051W"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0QSL"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "051W"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "051W"
+      },
+      {
+        "body": "",
+        "result": "0KZV"
+      },
+      {
+        "body": "SS",
+        "result": "05I3"
+      },
+      {
+        "body": "ß",
+        "result": "05I3"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "0I78"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 051W，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 051W，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 051W，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 051W，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0QSL，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0QSL，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0QSL，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0QSL，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 051W，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 051W，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 051W，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 051W，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 051W，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 051W，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 051W，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 051W，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.051W",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.051W",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.051W",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "051W",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.051w",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.051w",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.051W",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "051W",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "bytes": "deadbeef"
+    },
+    "saltHex": "deadbeef",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0CVT"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0KOY"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0CVT"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0CVT"
+      },
+      {
+        "body": "",
+        "result": "0CRB"
+      },
+      {
+        "body": "SS",
+        "result": "0SER"
+      },
+      {
+        "body": "ß",
+        "result": "0SER"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "0EBO"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0KOY，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0KOY，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0KOY，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0KOY，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0CVT，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0CVT",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0CVT",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0CVT",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0CVT",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0cvt",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0cvt",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0CVT",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0CVT",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "0x1234"
+    },
+    "saltHex": "1234",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0JU4"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0W1Z"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0JU4"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0JU4"
+      },
+      {
+        "body": "",
+        "result": "02X5"
+      },
+      {
+        "body": "SS",
+        "result": "0OZJ"
+      },
+      {
+        "body": "ß",
+        "result": "0OZJ"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "1CXV"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "0X1234"
+    },
+    "saltHex": "1234",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0JU4"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0W1Z"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0JU4"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0JU4"
+      },
+      {
+        "body": "",
+        "result": "02X5"
+      },
+      {
+        "body": "SS",
+        "result": "0OZJ"
+      },
+      {
+        "body": "ß",
+        "result": "0OZJ"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "1CXV"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "1234"
+    },
+    "saltHex": "1234",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0JU4"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0W1Z"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0JU4"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0JU4"
+      },
+      {
+        "body": "",
+        "result": "02X5"
+      },
+      {
+        "body": "SS",
+        "result": "0OZJ"
+      },
+      {
+        "body": "ß",
+        "result": "0OZJ"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "1CXV"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "abc"
+    },
+    "saltHex": "0abc",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "1E7Q"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0B31"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "1E7Q"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "1E7Q"
+      },
+      {
+        "body": "",
+        "result": "0TCJ"
+      },
+      {
+        "body": "SS",
+        "result": "192D"
+      },
+      {
+        "body": "ß",
+        "result": "192D"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "0LND"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0B31，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0B31，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0B31，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0B31，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 1E7Q，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.1E7Q",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.1E7Q",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.1E7Q",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "1E7Q",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.1e7q",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.1e7q",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.1E7Q",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "1E7Q",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": " 1234 "
+    },
+    "saltHex": "1234",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0JU4"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0W1Z"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0JU4"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0JU4"
+      },
+      {
+        "body": "",
+        "result": "02X5"
+      },
+      {
+        "body": "SS",
+        "result": "0OZJ"
+      },
+      {
+        "body": "ß",
+        "result": "0OZJ"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "1CXV"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "12  34"
+    },
+    "saltHex": "1234",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0JU4"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0W1Z"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0JU4"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0JU4"
+      },
+      {
+        "body": "",
+        "result": "02X5"
+      },
+      {
+        "body": "SS",
+        "result": "0OZJ"
+      },
+      {
+        "body": "ß",
+        "result": "0OZJ"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "1CXV"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "12\t\t34"
+    },
+    "saltHex": "1234",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0JU4"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0W1Z"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0JU4"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0JU4"
+      },
+      {
+        "body": "",
+        "result": "02X5"
+      },
+      {
+        "body": "SS",
+        "result": "0OZJ"
+      },
+      {
+        "body": "ß",
+        "result": "0OZJ"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "1CXV"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "　1234　"
+    },
+    "saltHex": "1234",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0JU4"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0W1Z"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0JU4"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0JU4"
+      },
+      {
+        "body": "",
+        "result": "02X5"
+      },
+      {
+        "body": "SS",
+        "result": "0OZJ"
+      },
+      {
+        "body": "ß",
+        "result": "0OZJ"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "1CXV"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "\u001c1234"
+    },
+    "saltHex": "1234",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0JU4"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0W1Z"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0JU4"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0JU4"
+      },
+      {
+        "body": "",
+        "result": "02X5"
+      },
+      {
+        "body": "SS",
+        "result": "0OZJ"
+      },
+      {
+        "body": "ß",
+        "result": "0OZJ"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "1CXV"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0W1Z，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0JU4，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": ""
+    },
+    "saltHex": "",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0PQT"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0455"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0PQT"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0PQT"
+      },
+      {
+        "body": "",
+        "result": "1EKF"
+      },
+      {
+        "body": "SS",
+        "result": "08S5"
+      },
+      {
+        "body": "ß",
+        "result": "08S5"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "0XQ3"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0PQT",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0pqt",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0pqt",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0PQT",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "0x"
+    },
+    "saltHex": "",
+    "hasSalt": true,
+    "checksums": [
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "result": "0PQT"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+        "result": "0455"
+      },
+      {
+        "body": "1.2.156.3088.1.1.34c2.478bdf.3gf546",
+        "result": "0PQT"
+      },
+      {
+        "body": " 1.2.156.3088.1.1.34C2.478BDF.3GF546 ",
+        "result": "0PQT"
+      },
+      {
+        "body": "",
+        "result": "1EKF"
+      },
+      {
+        "body": "SS",
+        "result": "08S5"
+      },
+      {
+        "body": "ß",
+        "result": "08S5"
+      },
+      {
+        "body": "1.2.É",
+        "error": "UnicodeEncodeError"
+      },
+      {
+        "body": "1.2.\u001c3",
+        "result": "0XQ3"
+      }
+    ],
+    "validations": [
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0455，实际 0SV9",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.000000.0SV9",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "000000",
+            "checksum": "0SV9",
+            "isOntology": true,
+            "isEntity": false,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.000000",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 ZZZZ",
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.ZZZZ",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "ZZZZ",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+        "default": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "requireCrc": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "noPrefix": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4"
+        ],
+        "withDetail": [
+          false,
+          "CRC 校验失败，期望 0PQT，实际 0JU4",
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0JU4",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+        "default": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段"
+        ],
+        "withDetail": [
+          false,
+          "AIC 必须包含 10 段，当前为 9 段",
+          null
+        ]
+      },
+      {
+        "aic": "",
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": null,
+        "default": [
+          false,
+          "AIC 不能为空"
+        ],
+        "requireCrc": [
+          false,
+          "AIC 不能为空"
+        ],
+        "noPrefix": [
+          false,
+          "AIC 不能为空"
+        ],
+        "withDetail": [
+          false,
+          "AIC 不能为空",
+          null
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0PQT",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      },
+      {
+        "aic": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0pqt",
+        "default": [
+          true,
+          null
+        ],
+        "requireCrc": [
+          true,
+          null
+        ],
+        "noPrefix": [
+          true,
+          null
+        ],
+        "withDetail": [
+          true,
+          null,
+          {
+            "raw": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0pqt",
+            "normalized": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0PQT",
+            "prefix": "1.2.156.3088",
+            "version": "1",
+            "arsp": "1",
+            "vendor": "34C2",
+            "ontologySerial": "478BDF",
+            "instanceSerial": "3GF546",
+            "checksum": "0PQT",
+            "isOntology": false,
+            "isEntity": true,
+            "body": "1.2.156.3088.1.1.34C2.478BDF.3GF546",
+            "ontologyPrefix": "1.2.156.3088.1.1.34C2.478BDF"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "salt": {
+      "str": "12 34"
+    },
+    "constructError": "ValueError"
+  },
+  {
+    "salt": {
+      "str": "12 345"
+    },
+    "constructError": "ValueError"
+  },
+  {
+    "salt": {
+      "str": "1 2"
+    },
+    "constructError": "ValueError"
+  },
+  {
+    "salt": {
+      "str": "zz"
+    },
+    "constructError": "ValueError"
+  },
+  {
+    "salt": {
+      "str": "0xg1"
+    },
+    "constructError": "ValueError"
+  },
+  {
+    "salt": {
+      "str": "ÿÿ"
+    },
+    "constructError": "ValueError"
+  }
+]

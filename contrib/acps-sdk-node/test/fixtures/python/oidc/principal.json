@@ -1,0 +1,320 @@
+{
+  "principal_ids": [
+    {
+      "issuer": "https://issuer.example/realms/acps-leader",
+      "subject": "user-123",
+      "principal_key": "https://issuer.example/realms/acps-leader#user-123",
+      "principal_id": "7635553fa877cf35c48c2fc97aca260fdc07fd6e05266f4c00d3f60a3a59e46f"
+    },
+    {
+      "issuer": "issuer#a",
+      "subject": "subject",
+      "principal_key": "issuer#a#subject",
+      "principal_id": "a588eda7a182d332fb0d1567410416854f456529f4c46cb57018c6fa8c69a785"
+    },
+    {
+      "issuer": "issuer",
+      "subject": "a#subject",
+      "principal_key": "issuer#a#subject",
+      "principal_id": "0c59e3889456838112595697f9cdccf4811e9fd704d98bd6a999990d270e816b"
+    },
+    {
+      "issuer": "https://身份.example/realms/测试",
+      "subject": "用户-😀",
+      "principal_key": "https://身份.example/realms/测试#用户-😀",
+      "principal_id": "92d27c42a5796cebc9cca1b2fb4c3ec0009ef1381febd3460cff3d098d3c9894"
+    },
+    {
+      "issuer": "",
+      "subject": "",
+      "principal_key": "#",
+      "principal_id": "8052603c01ecd25fcdcd27048203f7109b236fc61f35e1c20da9e30c787d5fc7"
+    },
+    {
+      "issuer": "quote\"and\\slash",
+      "subject": "control\u0001\n",
+      "principal_key": "quote\"and\\slash#control\u0001\n",
+      "principal_id": "920218ccce22c023d8408065b3a228df48ea7e6b99d03875c8674774ea6dd827"
+    }
+  ],
+  "canonical_json": [
+    {
+      "value": {
+        "b": 2,
+        "a": 1
+      },
+      "hex": "7b2261223a312c2262223a327d"
+    },
+    {
+      "value": {
+        "a": 1,
+        "b": 2
+      },
+      "hex": "7b2261223a312c2262223a327d"
+    },
+    {
+      "value": [
+        "oidc-principal-v1",
+        "https://issuer.example",
+        "sub"
+      ],
+      "hex": "5b226f6964632d7072696e636970616c2d7631222c2268747470733a2f2f6973737565722e6578616d706c65222c22737562225d"
+    },
+    {
+      "value": {
+        "10": 1,
+        "2": 2,
+        "a": 3,
+        "B": 4,
+        "é": 5,
+        "￿": 6,
+        "😀": 7,
+        "": 8
+      },
+      "hex": "7b22223a382c223130223a312c2232223a322c2242223a342c2261223a332c22c3a9223a352c22efbfbf223a362c22f09f9880223a377d"
+    },
+    {
+      "value": {
+        "nested": {
+          "z": [
+            3,
+            {
+              "y": null,
+              "x": true
+            }
+          ],
+          "a": false
+        }
+      },
+      "hex": "7b226e6573746564223a7b2261223a66616c73652c227a223a5b332c7b2278223a747275652c2279223a6e756c6c7d5d7d7d"
+    },
+    {
+      "value": [
+        0,
+        -1,
+        9007199254740991,
+        -9007199254740991
+      ],
+      "hex": "5b302c2d312c393030373139393235343734303939312c2d393030373139393235343734303939315d"
+    },
+    {
+      "value": [
+        0.1,
+        1.5e-05,
+        1e-07,
+        123.456,
+        -2.5e-10,
+        0.0001,
+        0.00011,
+        9.99e-05,
+        1e-300,
+        2500000000000000.5
+      ],
+      "hex": "5b302e312c312e35652d30352c31652d30372c3132332e3435362c2d322e35652d31302c302e303030312c302e30303031312c392e3939652d30352c31652d3330302c323530303030303030303030303030302e355d"
+    },
+    {
+      "value": [
+        "\u0000\u001f\"\\\n\t\b\f\r",
+        "  ",
+        "中文",
+        "😀"
+      ],
+      "hex": "5b225c75303030305c75303031665c225c5c5c6e5c745c625c665c72222c227fc280e280a8e280a9222c22e4b8ade69687222c22f09f9880225d"
+    },
+    {
+      "value": null,
+      "hex": "6e756c6c"
+    },
+    {
+      "value": "plain string",
+      "hex": "22706c61696e20737472696e6722"
+    },
+    {
+      "value": [],
+      "hex": "5b5d"
+    },
+    {
+      "value": {},
+      "hex": "7b7d"
+    }
+  ],
+  "principals": [
+    {
+      "input": {
+        "issuer": "https://issuer.example/realms/acps-leader",
+        "subject": "raw-subject",
+        "principal_key": "https://issuer.example/realms/acps-leader#raw-subject",
+        "principal_id": "principal-id",
+        "audiences": [
+          "leader-api"
+        ],
+        "username": "alice",
+        "roles": [
+          "USER",
+          "ADMIN"
+        ],
+        "raw_claims": {
+          "sub": "raw-subject"
+        }
+      },
+      "dump": {
+        "issuer": "https://issuer.example/realms/acps-leader",
+        "principal_id": "principal-id",
+        "audiences": [
+          "leader-api"
+        ],
+        "azp": null,
+        "username": "alice",
+        "name": null,
+        "email": null,
+        "email_verified": null,
+        "tenant_id": null,
+        "allowed_aics": [],
+        "roles": [
+          "USER",
+          "ADMIN"
+        ],
+        "scopes": [],
+        "groups": []
+      },
+      "audit_actor": {
+        "id": "principal-id",
+        "type": "human",
+        "name": "alice",
+        "role": "ADMIN,USER"
+      }
+    },
+    {
+      "input": {
+        "issuer": "i",
+        "subject": "s",
+        "principal_key": "i#s",
+        "principal_id": "p",
+        "audiences": [],
+        "name": "",
+        "username": "",
+        "email": "e@example.com"
+      },
+      "dump": {
+        "issuer": "i",
+        "principal_id": "p",
+        "audiences": [],
+        "azp": null,
+        "username": "",
+        "name": "",
+        "email": "e@example.com",
+        "email_verified": null,
+        "tenant_id": null,
+        "allowed_aics": [],
+        "roles": [],
+        "scopes": [],
+        "groups": []
+      },
+      "audit_actor": {
+        "id": "p",
+        "type": "human",
+        "name": "e@example.com"
+      }
+    },
+    {
+      "input": {
+        "issuer": "i",
+        "subject": "s",
+        "principal_key": "i#s",
+        "principal_id": "p",
+        "audiences": [
+          "a"
+        ],
+        "name": null,
+        "username": null,
+        "email": "",
+        "roles": [
+          "b",
+          "A",
+          "a",
+          "Ä"
+        ]
+      },
+      "dump": {
+        "issuer": "i",
+        "principal_id": "p",
+        "audiences": [
+          "a"
+        ],
+        "azp": null,
+        "username": null,
+        "name": null,
+        "email": "",
+        "email_verified": null,
+        "tenant_id": null,
+        "allowed_aics": [],
+        "roles": [
+          "b",
+          "A",
+          "a",
+          "Ä"
+        ],
+        "scopes": [],
+        "groups": []
+      },
+      "audit_actor": {
+        "id": "p",
+        "type": "human",
+        "name": "",
+        "role": "A,a,b,Ä"
+      }
+    },
+    {
+      "input": {
+        "issuer": "i",
+        "subject": "s",
+        "principal_key": "i#s",
+        "principal_id": "p",
+        "audiences": [
+          "a"
+        ],
+        "name": "Name",
+        "username": "user",
+        "email_verified": false,
+        "tenant_id": "t",
+        "allowed_aics": [
+          "aic"
+        ],
+        "scopes": [
+          "x"
+        ],
+        "groups": [
+          "/g"
+        ]
+      },
+      "dump": {
+        "issuer": "i",
+        "principal_id": "p",
+        "audiences": [
+          "a"
+        ],
+        "azp": null,
+        "username": "user",
+        "name": "Name",
+        "email": null,
+        "email_verified": false,
+        "tenant_id": "t",
+        "allowed_aics": [
+          "aic"
+        ],
+        "roles": [],
+        "scopes": [
+          "x"
+        ],
+        "groups": [
+          "/g"
+        ]
+      },
+      "audit_actor": {
+        "id": "p",
+        "type": "human",
+        "name": "Name"
+      }
+    }
+  ]
+}

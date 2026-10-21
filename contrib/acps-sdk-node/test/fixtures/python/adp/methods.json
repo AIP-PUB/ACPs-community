@@ -1,0 +1,505 @@
+{
+  "request": [
+    {
+      "name": "defaults",
+      "input": {
+        "query": "q"
+      },
+      "overrides": null,
+      "expected": {
+        "getEffectiveDepthLimit": 3,
+        "getEffectiveFanoutLimit": 1,
+        "getEffectiveFanoutRemaining": 1,
+        "getEffectiveEachTimeoutMs": 10000,
+        "getEffectiveTotalTimeoutMs": 60000,
+        "getForwardChainLength": 0
+      }
+    },
+    {
+      "name": "explicit values",
+      "input": {
+        "query": "q",
+        "forwardDepthLimit": 5,
+        "forwardFanoutLimit": 4,
+        "forwardEachTimeoutMs": 100,
+        "forwardTotalTimeoutMs": 200,
+        "forwardChain": [
+          "a",
+          "b"
+        ]
+      },
+      "overrides": null,
+      "expected": {
+        "getEffectiveDepthLimit": 5,
+        "getEffectiveFanoutLimit": 4,
+        "getEffectiveFanoutRemaining": 4,
+        "getEffectiveEachTimeoutMs": 100,
+        "getEffectiveTotalTimeoutMs": 200,
+        "getForwardChainLength": 2
+      }
+    },
+    {
+      "name": "fanout remaining zero is kept",
+      "input": {
+        "query": "q",
+        "forwardFanoutLimit": 3,
+        "forwardFanoutRemaining": 0
+      },
+      "overrides": null,
+      "expected": {
+        "getEffectiveDepthLimit": 3,
+        "getEffectiveFanoutLimit": 3,
+        "getEffectiveFanoutRemaining": 0,
+        "getEffectiveEachTimeoutMs": 10000,
+        "getEffectiveTotalTimeoutMs": 60000,
+        "getForwardChainLength": 0
+      }
+    },
+    {
+      "name": "fanout remaining falls back to limit",
+      "input": {
+        "query": "q",
+        "forwardFanoutLimit": 3
+      },
+      "overrides": null,
+      "expected": {
+        "getEffectiveDepthLimit": 3,
+        "getEffectiveFanoutLimit": 3,
+        "getEffectiveFanoutRemaining": 3,
+        "getEffectiveEachTimeoutMs": 10000,
+        "getEffectiveTotalTimeoutMs": 60000,
+        "getForwardChainLength": 0
+      }
+    },
+    {
+      "name": "empty chain",
+      "input": {
+        "query": "q",
+        "forwardChain": []
+      },
+      "overrides": null,
+      "expected": {
+        "getEffectiveDepthLimit": 3,
+        "getEffectiveFanoutLimit": 1,
+        "getEffectiveFanoutRemaining": 1,
+        "getEffectiveEachTimeoutMs": 10000,
+        "getEffectiveTotalTimeoutMs": 60000,
+        "getForwardChainLength": 0
+      }
+    },
+    {
+      "name": "zero values fall back to defaults",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "forwardDepthLimit": 0,
+        "forwardFanoutLimit": 0,
+        "forwardEachTimeoutMs": 0,
+        "forwardTotalTimeoutMs": 0
+      },
+      "expected": {
+        "getEffectiveDepthLimit": 3,
+        "getEffectiveFanoutLimit": 1,
+        "getEffectiveFanoutRemaining": 1,
+        "getEffectiveEachTimeoutMs": 10000,
+        "getEffectiveTotalTimeoutMs": 60000,
+        "getForwardChainLength": 0
+      }
+    }
+  ],
+  "serialization": [
+    {
+      "name": "request to_dict/to_json",
+      "input": {
+        "query": "北京",
+        "forwardChain": [
+          "a"
+        ],
+        "context": {
+          "userProfile": {
+            "k": null
+          }
+        }
+      },
+      "toDict": {
+        "type": "explicit",
+        "query": "北京",
+        "context": {
+          "userProfile": {
+            "k": null
+          }
+        },
+        "forwardChain": [
+          "a"
+        ]
+      },
+      "toJson": "{\"type\":\"explicit\",\"query\":\"北京\",\"context\":{\"userProfile\":{\"k\":null}},\"forwardChain\":[\"a\"]}",
+      "fromJsonOfToJson": {
+        "type": "explicit",
+        "query": "北京",
+        "context": {
+          "userProfile": {
+            "k": null
+          }
+        },
+        "forwardChain": [
+          "a"
+        ]
+      }
+    },
+    {
+      "name": "request with null type",
+      "input": {
+        "type": null,
+        "query": "q"
+      },
+      "toDict": {
+        "query": "q"
+      },
+      "toJson": "{\"query\":\"q\"}",
+      "fromJsonOfToJson": {
+        "type": "explicit",
+        "query": "q"
+      }
+    },
+    {
+      "name": "request with default filter logic",
+      "input": {
+        "type": "filtered",
+        "filter": {}
+      },
+      "toDict": {
+        "type": "filtered",
+        "filter": {
+          "logic": "and"
+        }
+      },
+      "toJson": "{\"type\":\"filtered\",\"filter\":{\"logic\":\"and\"}}",
+      "fromJsonOfToJson": {
+        "type": "filtered",
+        "filter": {
+          "logic": "and"
+        }
+      }
+    }
+  ],
+  "iterAgentSkills": [
+    {
+      "name": "iter_agent_skills joins acsMap",
+      "input": {
+        "acsMap": {
+          "AIC-001": {
+            "name": "FoodAgent"
+          },
+          "AIC-002": {
+            "name": "TeaAgent"
+          }
+        },
+        "agents": [
+          {
+            "group": "美食推荐",
+            "agentSkills": [
+              {
+                "aic": "AIC-001",
+                "skillId": "food-rec",
+                "ranking": 1
+              },
+              {
+                "aic": "AIC-404",
+                "skillId": "missing-acs",
+                "ranking": 2
+              }
+            ]
+          },
+          {
+            "group": "",
+            "agentSkills": []
+          },
+          {
+            "group": "茶饮",
+            "agentSkills": [
+              {
+                "aic": "AIC-002",
+                "skillId": "tea",
+                "ranking": 1,
+                "memo": "m"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": [
+        [
+          "AIC-001",
+          {
+            "name": "FoodAgent"
+          },
+          {
+            "aic": "AIC-001",
+            "skillId": "food-rec",
+            "ranking": 1
+          },
+          "美食推荐"
+        ],
+        [
+          "AIC-404",
+          {},
+          {
+            "aic": "AIC-404",
+            "skillId": "missing-acs",
+            "ranking": 2
+          },
+          "美食推荐"
+        ],
+        [
+          "AIC-002",
+          {
+            "name": "TeaAgent"
+          },
+          {
+            "aic": "AIC-002",
+            "skillId": "tea",
+            "ranking": 1,
+            "memo": "m"
+          },
+          "茶饮"
+        ]
+      ]
+    },
+    {
+      "name": "iter_agent_skills on empty result",
+      "input": {},
+      "expected": []
+    }
+  ],
+  "response": {
+    "success": {
+      "input": {
+        "acsMap": {
+          "AIC-001": {
+            "name": "FoodAgent"
+          },
+          "AIC-002": {
+            "name": "TeaAgent"
+          }
+        },
+        "agents": [
+          {
+            "group": "美食推荐",
+            "agentSkills": [
+              {
+                "aic": "AIC-001",
+                "skillId": "food-rec",
+                "ranking": 1
+              },
+              {
+                "aic": "AIC-404",
+                "skillId": "missing-acs",
+                "ranking": 2
+              }
+            ]
+          },
+          {
+            "group": "",
+            "agentSkills": []
+          },
+          {
+            "group": "茶饮",
+            "agentSkills": [
+              {
+                "aic": "AIC-002",
+                "skillId": "tea",
+                "ranking": 1,
+                "memo": "m"
+              }
+            ]
+          }
+        ]
+      },
+      "toDict": {
+        "result": {
+          "acsMap": {
+            "AIC-001": {
+              "name": "FoodAgent"
+            },
+            "AIC-002": {
+              "name": "TeaAgent"
+            }
+          },
+          "agents": [
+            {
+              "group": "美食推荐",
+              "agentSkills": [
+                {
+                  "aic": "AIC-001",
+                  "skillId": "food-rec",
+                  "ranking": 1
+                },
+                {
+                  "aic": "AIC-404",
+                  "skillId": "missing-acs",
+                  "ranking": 2
+                }
+              ]
+            },
+            {
+              "group": "",
+              "agentSkills": []
+            },
+            {
+              "group": "茶饮",
+              "agentSkills": [
+                {
+                  "aic": "AIC-002",
+                  "skillId": "tea",
+                  "ranking": 1,
+                  "memo": "m"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "toJson": "{\"result\":{\"acsMap\":{\"AIC-001\":{\"name\":\"FoodAgent\"},\"AIC-002\":{\"name\":\"TeaAgent\"}},\"agents\":[{\"group\":\"美食推荐\",\"agentSkills\":[{\"aic\":\"AIC-001\",\"skillId\":\"food-rec\",\"ranking\":1},{\"aic\":\"AIC-404\",\"skillId\":\"missing-acs\",\"ranking\":2}]},{\"group\":\"\",\"agentSkills\":[]},{\"group\":\"茶饮\",\"agentSkills\":[{\"aic\":\"AIC-002\",\"skillId\":\"tea\",\"ranking\":1,\"memo\":\"m\"}]}]}}",
+      "isSuccess": true,
+      "isError": false,
+      "adpError": null
+    },
+    "failures": [
+      {
+        "args": {
+          "code": 40001,
+          "message": "MissingQuery",
+          "data": null
+        },
+        "toDict": {
+          "error": {
+            "code": 40001,
+            "message": "MissingQuery"
+          }
+        },
+        "toJson": "{\"error\":{\"code\":40001,\"message\":\"MissingQuery\"}}",
+        "isSuccess": false,
+        "isError": true,
+        "adpError": {
+          "code": 40001,
+          "message": "MissingQuery",
+          "data": null,
+          "httpStatus": 400,
+          "isClientError": true,
+          "isForwardError": false
+        }
+      },
+      {
+        "args": {
+          "code": 50804,
+          "message": "Fan-out budget exhausted",
+          "data": {
+            "availableBudget": 1,
+            "requiredBranches": 3
+          }
+        },
+        "toDict": {
+          "error": {
+            "code": 50804,
+            "message": "Fan-out budget exhausted",
+            "data": {
+              "availableBudget": 1,
+              "requiredBranches": 3
+            }
+          }
+        },
+        "toJson": "{\"error\":{\"code\":50804,\"message\":\"Fan-out budget exhausted\",\"data\":{\"availableBudget\":1,\"requiredBranches\":3}}}",
+        "isSuccess": false,
+        "isError": true,
+        "adpError": {
+          "code": 50804,
+          "message": "Fan-out budget exhausted",
+          "data": {
+            "availableBudget": 1,
+            "requiredBranches": 3
+          },
+          "httpStatus": 508,
+          "isClientError": false,
+          "isForwardError": true
+        }
+      },
+      {
+        "args": {
+          "code": 12345,
+          "message": "Custom",
+          "data": "detail"
+        },
+        "toDict": {
+          "error": {
+            "code": 12345,
+            "message": "Custom",
+            "data": "detail"
+          }
+        },
+        "toJson": "{\"error\":{\"code\":12345,\"message\":\"Custom\",\"data\":\"detail\"}}",
+        "isSuccess": false,
+        "isError": true,
+        "adpError": {
+          "code": 12345,
+          "message": "Custom",
+          "data": "detail",
+          "httpStatus": 500,
+          "isClientError": false,
+          "isForwardError": false
+        }
+      },
+      {
+        "args": {
+          "code": 40099,
+          "message": "",
+          "data": null
+        },
+        "toDict": {
+          "error": {
+            "code": 40099,
+            "message": ""
+          }
+        },
+        "toJson": "{\"error\":{\"code\":40099,\"message\":\"\"}}",
+        "isSuccess": false,
+        "isError": true,
+        "adpError": {
+          "code": 40099,
+          "message": "UnknownError",
+          "data": null,
+          "httpStatus": 500,
+          "isClientError": false,
+          "isForwardError": false
+        }
+      }
+    ],
+    "successWithNone": {
+      "error": {
+        "kind": "ValidationError",
+        "errors": [
+          {
+            "loc": [],
+            "type": "value_error",
+            "msg": "Value error, result 和 error 字段必须至少存在一个"
+          }
+        ]
+      }
+    },
+    "failureWithBadCode": {
+      "error": {
+        "kind": "ValidationError",
+        "errors": [
+          {
+            "loc": [
+              "code"
+            ],
+            "type": "int_parsing",
+            "msg": "Input should be a valid integer, unable to parse string as an integer"
+          }
+        ]
+      }
+    }
+  }
+}

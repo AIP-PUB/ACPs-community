@@ -1,0 +1,1383 @@
+{
+  "validateDiscoveryRequest": [
+    {
+      "name": "valid explicit",
+      "input": {
+        "query": "q"
+      },
+      "overrides": null,
+      "result": null
+    },
+    {
+      "name": "trending without query",
+      "input": {
+        "type": "trending"
+      },
+      "overrides": null,
+      "result": null
+    },
+    {
+      "name": "null type without query",
+      "input": {
+        "type": null
+      },
+      "overrides": null,
+      "result": null
+    },
+    {
+      "name": "blank query bypassing the model",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "query": "   "
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 40001,
+        "message": "type='explicit' 时 query 字段必填且不能为空字符串",
+        "data": null,
+        "httpStatus": 400,
+        "body": {
+          "code": 40001,
+          "message": "type='explicit' 时 query 字段必填且不能为空字符串"
+        }
+      }
+    },
+    {
+      "name": "python-blank query bypassing the model",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "query": "\u001c"
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 40001,
+        "message": "type='explicit' 时 query 字段必填且不能为空字符串",
+        "data": null,
+        "httpStatus": 400,
+        "body": {
+          "code": 40001,
+          "message": "type='explicit' 时 query 字段必填且不能为空字符串"
+        }
+      }
+    },
+    {
+      "name": "BOM query is not blank",
+      "input": {
+        "query": "﻿"
+      },
+      "overrides": null,
+      "result": null
+    },
+    {
+      "name": "null query bypassing the model",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "query": null
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 40001,
+        "message": "type='explicit' 时 query 字段必填且不能为空字符串",
+        "data": null,
+        "httpStatus": 400,
+        "body": {
+          "code": 40001,
+          "message": "type='explicit' 时 query 字段必填且不能为空字符串"
+        }
+      }
+    },
+    {
+      "name": "depth limit too large",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "forwardDepthLimit": 6
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 40002,
+        "message": "forwardDepthLimit 必须在 [1, 5] 区间，收到: 6",
+        "data": null,
+        "httpStatus": 400,
+        "body": {
+          "code": 40002,
+          "message": "forwardDepthLimit 必须在 [1, 5] 区间，收到: 6"
+        }
+      }
+    },
+    {
+      "name": "depth limit zero",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "forwardDepthLimit": 0
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 40002,
+        "message": "forwardDepthLimit 必须在 [1, 5] 区间，收到: 0",
+        "data": null,
+        "httpStatus": 400,
+        "body": {
+          "code": 40002,
+          "message": "forwardDepthLimit 必须在 [1, 5] 区间，收到: 0"
+        }
+      }
+    },
+    {
+      "name": "fanout limit too large",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "forwardFanoutLimit": 9
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 40005,
+        "message": "forwardFanoutLimit 必须在 [1, 5] 区间，收到: 9",
+        "data": null,
+        "httpStatus": 400,
+        "body": {
+          "code": 40005,
+          "message": "forwardFanoutLimit 必须在 [1, 5] 区间，收到: 9"
+        }
+      }
+    },
+    {
+      "name": "fanout limit negative",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "forwardFanoutLimit": -1
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 40005,
+        "message": "forwardFanoutLimit 必须在 [1, 5] 区间，收到: -1",
+        "data": null,
+        "httpStatus": 400,
+        "body": {
+          "code": 40005,
+          "message": "forwardFanoutLimit 必须在 [1, 5] 区间，收到: -1"
+        }
+      }
+    },
+    {
+      "name": "depth checked before fanout",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "forwardDepthLimit": 6,
+        "forwardFanoutLimit": 9
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 40002,
+        "message": "forwardDepthLimit 必须在 [1, 5] 区间，收到: 6",
+        "data": null,
+        "httpStatus": 400,
+        "body": {
+          "code": 40002,
+          "message": "forwardDepthLimit 必须在 [1, 5] 区间，收到: 6"
+        }
+      }
+    },
+    {
+      "name": "filter depth 3 is allowed",
+      "input": {
+        "query": "q",
+        "filter": {
+          "groups": [
+            {
+              "logic": "or"
+            },
+            {
+              "groups": [
+                {
+                  "logic": "or"
+                },
+                {
+                  "conditions": [
+                    {
+                      "field": "active",
+                      "op": "eq",
+                      "value": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "overrides": null,
+      "result": null
+    },
+    {
+      "name": "filter depth 4 is rejected",
+      "input": {
+        "query": "q",
+        "filter": {
+          "groups": [
+            {
+              "logic": "or"
+            },
+            {
+              "groups": [
+                {
+                  "logic": "or"
+                },
+                {
+                  "groups": [
+                    {
+                      "logic": "or"
+                    },
+                    {
+                      "conditions": [
+                        {
+                          "field": "active",
+                          "op": "eq",
+                          "value": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "overrides": null,
+      "error": {
+        "kind": "ADPError",
+        "code": 40004,
+        "message": "过滤条件嵌套深度超过建议上限 3 层，当前深度: 4",
+        "data": null,
+        "httpStatus": 400,
+        "body": {
+          "code": 40004,
+          "message": "过滤条件嵌套深度超过建议上限 3 层，当前深度: 4"
+        }
+      }
+    },
+    {
+      "name": "filter with empty groups",
+      "input": {
+        "query": "q",
+        "filter": {
+          "groups": []
+        }
+      },
+      "overrides": null,
+      "result": null
+    }
+  ],
+  "validateForwardChain": [
+    {
+      "name": "first hop without chain",
+      "input": {
+        "query": "q"
+      },
+      "overrides": null,
+      "currentServerAic": "AIC-DS-A",
+      "senderAic": null,
+      "result": null
+    },
+    {
+      "name": "first hop with sender but no chain",
+      "input": {
+        "query": "q"
+      },
+      "overrides": null,
+      "currentServerAic": "AIC-DS-A",
+      "senderAic": "AIC-CLIENT",
+      "result": null
+    },
+    {
+      "name": "valid second hop",
+      "input": {
+        "query": "q",
+        "forwardChain": [
+          "AIC-DS-A"
+        ]
+      },
+      "overrides": null,
+      "currentServerAic": "AIC-DS-B",
+      "senderAic": "AIC-DS-A",
+      "result": null
+    },
+    {
+      "name": "sender omitted skips integrity check",
+      "input": {
+        "query": "q",
+        "forwardChain": [
+          "AIC-DS-A"
+        ]
+      },
+      "overrides": null,
+      "currentServerAic": "AIC-DS-B",
+      "senderAic": null,
+      "result": null
+    },
+    {
+      "name": "loop detected",
+      "input": {
+        "query": "q",
+        "forwardChain": [
+          "AIC-DS-A",
+          "AIC-DS-B"
+        ]
+      },
+      "overrides": null,
+      "currentServerAic": "AIC-DS-A",
+      "senderAic": "AIC-DS-B",
+      "error": {
+        "kind": "ADPError",
+        "code": 50801,
+        "message": "在 forwardChain 中检测到当前服务器 AIC 'AIC-DS-A'，判定为环路。forwardChain: ['AIC-DS-A', 'AIC-DS-B']",
+        "data": {
+          "forwardChain": [
+            "AIC-DS-A",
+            "AIC-DS-B"
+          ],
+          "currentServerAic": "AIC-DS-A"
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50801,
+          "message": "在 forwardChain 中检测到当前服务器 AIC 'AIC-DS-A'，判定为环路。forwardChain: ['AIC-DS-A', 'AIC-DS-B']",
+          "data": {
+            "forwardChain": [
+              "AIC-DS-A",
+              "AIC-DS-B"
+            ],
+            "currentServerAic": "AIC-DS-A"
+          }
+        }
+      }
+    },
+    {
+      "name": "loop detected with quotes in AIC",
+      "input": {
+        "query": "q",
+        "forwardChain": [
+          "it's",
+          "say \"hi\""
+        ]
+      },
+      "overrides": null,
+      "currentServerAic": "it's",
+      "senderAic": null,
+      "error": {
+        "kind": "ADPError",
+        "code": 50801,
+        "message": "在 forwardChain 中检测到当前服务器 AIC \"it's\"，判定为环路。forwardChain: [\"it's\", 'say \"hi\"']",
+        "data": {
+          "forwardChain": [
+            "it's",
+            "say \"hi\""
+          ],
+          "currentServerAic": "it's"
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50801,
+          "message": "在 forwardChain 中检测到当前服务器 AIC \"it's\"，判定为环路。forwardChain: [\"it's\", 'say \"hi\"']",
+          "data": {
+            "forwardChain": [
+              "it's",
+              "say \"hi\""
+            ],
+            "currentServerAic": "it's"
+          }
+        }
+      }
+    },
+    {
+      "name": "loop checked before depth",
+      "input": {
+        "query": "q",
+        "forwardDepthLimit": 1,
+        "forwardChain": [
+          "AIC-DS-A"
+        ]
+      },
+      "overrides": null,
+      "currentServerAic": "AIC-DS-A",
+      "senderAic": null,
+      "error": {
+        "kind": "ADPError",
+        "code": 50801,
+        "message": "在 forwardChain 中检测到当前服务器 AIC 'AIC-DS-A'，判定为环路。forwardChain: ['AIC-DS-A']",
+        "data": {
+          "forwardChain": [
+            "AIC-DS-A"
+          ],
+          "currentServerAic": "AIC-DS-A"
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50801,
+          "message": "在 forwardChain 中检测到当前服务器 AIC 'AIC-DS-A'，判定为环路。forwardChain: ['AIC-DS-A']",
+          "data": {
+            "forwardChain": [
+              "AIC-DS-A"
+            ],
+            "currentServerAic": "AIC-DS-A"
+          }
+        }
+      }
+    },
+    {
+      "name": "depth exceeded with default limit",
+      "input": {
+        "query": "q",
+        "forwardChain": [
+          "A",
+          "B",
+          "C"
+        ]
+      },
+      "overrides": null,
+      "currentServerAic": "D",
+      "senderAic": "C",
+      "error": {
+        "kind": "ADPError",
+        "code": 50802,
+        "message": "转发深度已达到 forwardDepthLimit=3，当前 forwardChain 长度: 3",
+        "data": {
+          "forwardChain": [
+            "A",
+            "B",
+            "C"
+          ],
+          "forwardDepthLimit": 3
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50802,
+          "message": "转发深度已达到 forwardDepthLimit=3，当前 forwardChain 长度: 3",
+          "data": {
+            "forwardChain": [
+              "A",
+              "B",
+              "C"
+            ],
+            "forwardDepthLimit": 3
+          }
+        }
+      }
+    },
+    {
+      "name": "depth exceeded with explicit limit",
+      "input": {
+        "query": "q",
+        "forwardDepthLimit": 2,
+        "forwardChain": [
+          "A",
+          "B"
+        ]
+      },
+      "overrides": null,
+      "currentServerAic": "C",
+      "senderAic": "B",
+      "error": {
+        "kind": "ADPError",
+        "code": 50802,
+        "message": "转发深度已达到 forwardDepthLimit=2，当前 forwardChain 长度: 2",
+        "data": {
+          "forwardChain": [
+            "A",
+            "B"
+          ],
+          "forwardDepthLimit": 2
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50802,
+          "message": "转发深度已达到 forwardDepthLimit=2，当前 forwardChain 长度: 2",
+          "data": {
+            "forwardChain": [
+              "A",
+              "B"
+            ],
+            "forwardDepthLimit": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "chain tampered",
+      "input": {
+        "query": "q",
+        "forwardChain": [
+          "AIC-DS-A",
+          "AIC-DS-X"
+        ]
+      },
+      "overrides": null,
+      "currentServerAic": "AIC-DS-C",
+      "senderAic": "AIC-DS-B",
+      "error": {
+        "kind": "ADPError",
+        "code": 50803,
+        "message": "forwardChain 最后一个 AIC 'AIC-DS-X' 与发送方证书 AIC 'AIC-DS-B' 不一致，链条完整性受到破坏",
+        "data": {
+          "forwardChainLastAic": "AIC-DS-X",
+          "senderAic": "AIC-DS-B"
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50803,
+          "message": "forwardChain 最后一个 AIC 'AIC-DS-X' 与发送方证书 AIC 'AIC-DS-B' 不一致，链条完整性受到破坏",
+          "data": {
+            "forwardChainLastAic": "AIC-DS-X",
+            "senderAic": "AIC-DS-B"
+          }
+        }
+      }
+    },
+    {
+      "name": "chain tampered with backslash",
+      "input": {
+        "query": "q",
+        "forwardChain": [
+          "a\\b"
+        ]
+      },
+      "overrides": null,
+      "currentServerAic": "c",
+      "senderAic": "a'b",
+      "error": {
+        "kind": "ADPError",
+        "code": 50803,
+        "message": "forwardChain 最后一个 AIC 'a\\\\b' 与发送方证书 AIC \"a'b\" 不一致，链条完整性受到破坏",
+        "data": {
+          "forwardChainLastAic": "a\\b",
+          "senderAic": "a'b"
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50803,
+          "message": "forwardChain 最后一个 AIC 'a\\\\b' 与发送方证书 AIC \"a'b\" 不一致，链条完整性受到破坏",
+          "data": {
+            "forwardChainLastAic": "a\\b",
+            "senderAic": "a'b"
+          }
+        }
+      }
+    },
+    {
+      "name": "empty chain with zero depth limit",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "forwardDepthLimit": 0
+      },
+      "currentServerAic": "A",
+      "senderAic": null,
+      "result": null
+    }
+  ],
+  "validateFanoutBudget": [
+    {
+      "name": "default budget covers one branch",
+      "input": {
+        "query": "q"
+      },
+      "overrides": null,
+      "requiredBranches": 1,
+      "result": null
+    },
+    {
+      "name": "default budget rejects two branches",
+      "input": {
+        "query": "q"
+      },
+      "overrides": null,
+      "requiredBranches": 2,
+      "error": {
+        "kind": "ADPError",
+        "code": 50804,
+        "message": "fan-out 剩余额度 1 不足以支撑 2 个并发分支",
+        "data": {
+          "availableBudget": 1,
+          "requiredBranches": 2
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50804,
+          "message": "fan-out 剩余额度 1 不足以支撑 2 个并发分支",
+          "data": {
+            "availableBudget": 1,
+            "requiredBranches": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "limit used when remaining unset",
+      "input": {
+        "query": "q",
+        "forwardFanoutLimit": 4
+      },
+      "overrides": null,
+      "requiredBranches": 3,
+      "result": null
+    },
+    {
+      "name": "remaining overrides limit",
+      "input": {
+        "query": "q",
+        "forwardFanoutLimit": 4,
+        "forwardFanoutRemaining": 2
+      },
+      "overrides": null,
+      "requiredBranches": 3,
+      "error": {
+        "kind": "ADPError",
+        "code": 50804,
+        "message": "fan-out 剩余额度 2 不足以支撑 3 个并发分支",
+        "data": {
+          "availableBudget": 2,
+          "requiredBranches": 3
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50804,
+          "message": "fan-out 剩余额度 2 不足以支撑 3 个并发分支",
+          "data": {
+            "availableBudget": 2,
+            "requiredBranches": 3
+          }
+        }
+      }
+    },
+    {
+      "name": "zero remaining allows zero branches",
+      "input": {
+        "query": "q",
+        "forwardFanoutRemaining": 0
+      },
+      "overrides": null,
+      "requiredBranches": 0,
+      "result": null
+    }
+  ],
+  "validateTrustedTarget": [
+    {
+      "name": "no trusted list",
+      "input": {
+        "query": "q"
+      },
+      "overrides": null,
+      "targetAic": "X",
+      "result": true
+    },
+    {
+      "name": "empty trusted list",
+      "input": {
+        "query": "q",
+        "forwardTrustedServers": []
+      },
+      "overrides": null,
+      "targetAic": "X",
+      "result": true
+    },
+    {
+      "name": "trusted target",
+      "input": {
+        "query": "q",
+        "forwardTrustedServers": [
+          "A",
+          "X"
+        ]
+      },
+      "overrides": null,
+      "targetAic": "X",
+      "result": true
+    },
+    {
+      "name": "untrusted target",
+      "input": {
+        "query": "q",
+        "forwardTrustedServers": [
+          "A"
+        ]
+      },
+      "overrides": null,
+      "targetAic": "X",
+      "result": false
+    }
+  ],
+  "shouldContinueForwarding": [
+    {
+      "name": "defaults",
+      "input": {
+        "query": "q"
+      },
+      "overrides": null,
+      "result": true
+    },
+    {
+      "name": "equal timeouts",
+      "input": {
+        "query": "q",
+        "forwardEachTimeoutMs": 500,
+        "forwardTotalTimeoutMs": 500
+      },
+      "overrides": null,
+      "result": true
+    },
+    {
+      "name": "total below each",
+      "input": {
+        "query": "q",
+        "forwardEachTimeoutMs": 501,
+        "forwardTotalTimeoutMs": 500
+      },
+      "overrides": null,
+      "result": false
+    },
+    {
+      "name": "total below default each",
+      "input": {
+        "query": "q",
+        "forwardTotalTimeoutMs": 9999
+      },
+      "overrides": null,
+      "result": false
+    },
+    {
+      "name": "zero total falls back to default",
+      "input": {
+        "query": "q",
+        "forwardEachTimeoutMs": 20000
+      },
+      "overrides": {
+        "forwardTotalTimeoutMs": 0
+      },
+      "result": true
+    }
+  ],
+  "buildForwardedRequest": [
+    {
+      "name": "first hop",
+      "input": {
+        "query": "翻译智能体",
+        "forwardDepthLimit": 3,
+        "forwardFanoutLimit": 4
+      },
+      "overrides": null,
+      "args": {
+        "currentServerAic": "AIC-DS-A",
+        "fanoutRemainingForBranch": 1
+      },
+      "result": {
+        "toDict": {
+          "type": "explicit",
+          "query": "翻译智能体",
+          "forwardDepthLimit": 3,
+          "forwardFanoutLimit": 4,
+          "forwardFanoutRemaining": 1,
+          "forwardChain": [
+            "AIC-DS-A"
+          ],
+          "forwardTotalTimeoutMs": 60000
+        },
+        "toJson": "{\"type\":\"explicit\",\"query\":\"翻译智能体\",\"forwardDepthLimit\":3,\"forwardFanoutLimit\":4,\"forwardFanoutRemaining\":1,\"forwardChain\":[\"AIC-DS-A\"],\"forwardTotalTimeoutMs\":60000}"
+      },
+      "originalUnchanged": true
+    },
+    {
+      "name": "readme example",
+      "input": {
+        "type": "explicit",
+        "query": "翻译智能体",
+        "forwardDepthLimit": 3,
+        "forwardFanoutLimit": 4,
+        "forwardChain": [
+          "AIC-DS-A"
+        ]
+      },
+      "overrides": null,
+      "args": {
+        "currentServerAic": "AIC-DS-B",
+        "fanoutRemainingForBranch": 0,
+        "elapsedMs": 200,
+        "signature": null,
+        "trustedServers": [
+          "AIC-DS-B",
+          "AIC-DS-C",
+          "AIC-DS-D"
+        ]
+      },
+      "result": {
+        "toDict": {
+          "type": "explicit",
+          "query": "翻译智能体",
+          "forwardDepthLimit": 3,
+          "forwardFanoutLimit": 4,
+          "forwardFanoutRemaining": 0,
+          "forwardChain": [
+            "AIC-DS-A",
+            "AIC-DS-B"
+          ],
+          "forwardTrustedServers": [
+            "AIC-DS-B",
+            "AIC-DS-C",
+            "AIC-DS-D"
+          ],
+          "forwardTotalTimeoutMs": 59800
+        },
+        "toJson": "{\"type\":\"explicit\",\"query\":\"翻译智能体\",\"forwardDepthLimit\":3,\"forwardFanoutLimit\":4,\"forwardFanoutRemaining\":0,\"forwardChain\":[\"AIC-DS-A\",\"AIC-DS-B\"],\"forwardTrustedServers\":[\"AIC-DS-B\",\"AIC-DS-C\",\"AIC-DS-D\"],\"forwardTotalTimeoutMs\":59800}"
+      },
+      "originalUnchanged": true
+    },
+    {
+      "name": "appends signature to existing list",
+      "input": {
+        "query": "q",
+        "forwardChain": [
+          "A"
+        ],
+        "forwardSignatures": [
+          "sig-a"
+        ],
+        "forwardTotalTimeoutMs": 1000,
+        "context": {
+          "userProfile": {
+            "k": null
+          }
+        },
+        "filter": {
+          "conditions": [
+            {
+              "field": "active",
+              "op": "eq",
+              "value": true
+            }
+          ]
+        }
+      },
+      "overrides": null,
+      "args": {
+        "currentServerAic": "B",
+        "fanoutRemainingForBranch": 2,
+        "elapsedMs": 250,
+        "signature": "sig-b",
+        "trustedServers": null
+      },
+      "result": {
+        "toDict": {
+          "type": "explicit",
+          "query": "q",
+          "context": {
+            "userProfile": {
+              "k": null
+            }
+          },
+          "filter": {
+            "conditions": [
+              {
+                "field": "active",
+                "op": "eq",
+                "value": true
+              }
+            ],
+            "logic": "and"
+          },
+          "forwardDepthLimit": 3,
+          "forwardFanoutLimit": 1,
+          "forwardFanoutRemaining": 2,
+          "forwardChain": [
+            "A",
+            "B"
+          ],
+          "forwardSignatures": [
+            "sig-a",
+            "sig-b"
+          ],
+          "forwardTotalTimeoutMs": 750
+        },
+        "toJson": "{\"type\":\"explicit\",\"query\":\"q\",\"context\":{\"userProfile\":{\"k\":null}},\"filter\":{\"conditions\":[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}],\"logic\":\"and\"},\"forwardDepthLimit\":3,\"forwardFanoutLimit\":1,\"forwardFanoutRemaining\":2,\"forwardChain\":[\"A\",\"B\"],\"forwardSignatures\":[\"sig-a\",\"sig-b\"],\"forwardTotalTimeoutMs\":750}"
+      },
+      "originalUnchanged": true
+    },
+    {
+      "name": "first signature",
+      "input": {
+        "query": "q"
+      },
+      "overrides": null,
+      "args": {
+        "currentServerAic": "A",
+        "fanoutRemainingForBranch": 0,
+        "elapsedMs": 0,
+        "signature": "sig-a",
+        "trustedServers": []
+      },
+      "result": {
+        "toDict": {
+          "type": "explicit",
+          "query": "q",
+          "forwardDepthLimit": 3,
+          "forwardFanoutLimit": 1,
+          "forwardFanoutRemaining": 0,
+          "forwardChain": [
+            "A"
+          ],
+          "forwardTrustedServers": [],
+          "forwardSignatures": [
+            "sig-a"
+          ],
+          "forwardTotalTimeoutMs": 60000
+        },
+        "toJson": "{\"type\":\"explicit\",\"query\":\"q\",\"forwardDepthLimit\":3,\"forwardFanoutLimit\":1,\"forwardFanoutRemaining\":0,\"forwardChain\":[\"A\"],\"forwardTrustedServers\":[],\"forwardSignatures\":[\"sig-a\"],\"forwardTotalTimeoutMs\":60000}"
+      },
+      "originalUnchanged": true
+    },
+    {
+      "name": "elapsed beyond total clamps to zero",
+      "input": {
+        "query": "q",
+        "forwardTotalTimeoutMs": 100
+      },
+      "overrides": null,
+      "args": {
+        "currentServerAic": "A",
+        "fanoutRemainingForBranch": 0,
+        "elapsedMs": 500
+      },
+      "result": {
+        "toDict": {
+          "type": "explicit",
+          "query": "q",
+          "forwardDepthLimit": 3,
+          "forwardFanoutLimit": 1,
+          "forwardFanoutRemaining": 0,
+          "forwardChain": [
+            "A"
+          ],
+          "forwardTotalTimeoutMs": 0
+        },
+        "toJson": "{\"type\":\"explicit\",\"query\":\"q\",\"forwardDepthLimit\":3,\"forwardFanoutLimit\":1,\"forwardFanoutRemaining\":0,\"forwardChain\":[\"A\"],\"forwardTotalTimeoutMs\":0}"
+      },
+      "originalUnchanged": true
+    },
+    {
+      "name": "null type becomes explicit after round trip",
+      "input": {
+        "type": null,
+        "query": "q"
+      },
+      "overrides": null,
+      "args": {
+        "currentServerAic": "A",
+        "fanoutRemainingForBranch": 0
+      },
+      "result": {
+        "toDict": {
+          "type": "explicit",
+          "query": "q",
+          "forwardDepthLimit": 3,
+          "forwardFanoutLimit": 1,
+          "forwardFanoutRemaining": 0,
+          "forwardChain": [
+            "A"
+          ],
+          "forwardTotalTimeoutMs": 60000
+        },
+        "toJson": "{\"type\":\"explicit\",\"query\":\"q\",\"forwardDepthLimit\":3,\"forwardFanoutLimit\":1,\"forwardFanoutRemaining\":0,\"forwardChain\":[\"A\"],\"forwardTotalTimeoutMs\":60000}"
+      },
+      "originalUnchanged": true
+    },
+    {
+      "name": "null type without query fails the round trip",
+      "input": {
+        "type": null
+      },
+      "overrides": null,
+      "args": {
+        "currentServerAic": "A",
+        "fanoutRemainingForBranch": 0
+      },
+      "error": {
+        "kind": "ValidationError",
+        "errors": [
+          {
+            "loc": [],
+            "type": "value_error",
+            "msg": "Value error, type='explicit' 时 query 字段必填且不能为空字符串"
+          }
+        ]
+      },
+      "originalUnchanged": true
+    },
+    {
+      "name": "zero total timeout fails the round trip",
+      "input": {
+        "query": "q"
+      },
+      "overrides": {
+        "forwardTotalTimeoutMs": 0
+      },
+      "args": {
+        "currentServerAic": "A",
+        "fanoutRemainingForBranch": 0
+      },
+      "error": {
+        "kind": "ValidationError",
+        "errors": [
+          {
+            "loc": [
+              "forwardTotalTimeoutMs"
+            ],
+            "type": "greater_than",
+            "msg": "Input should be greater than 0"
+          }
+        ]
+      },
+      "originalUnchanged": true
+    },
+    {
+      "name": "filtered request keeps filter logic default",
+      "input": {
+        "type": "filtered",
+        "filter": {
+          "logic": null
+        }
+      },
+      "overrides": null,
+      "args": {
+        "currentServerAic": "A",
+        "fanoutRemainingForBranch": 3,
+        "elapsedMs": 10
+      },
+      "result": {
+        "toDict": {
+          "type": "filtered",
+          "filter": {
+            "logic": "and"
+          },
+          "forwardDepthLimit": 3,
+          "forwardFanoutLimit": 1,
+          "forwardFanoutRemaining": 3,
+          "forwardChain": [
+            "A"
+          ],
+          "forwardTotalTimeoutMs": 59990
+        },
+        "toJson": "{\"type\":\"filtered\",\"filter\":{\"logic\":\"and\"},\"forwardDepthLimit\":3,\"forwardFanoutLimit\":1,\"forwardFanoutRemaining\":3,\"forwardChain\":[\"A\"],\"forwardTotalTimeoutMs\":59990}"
+      },
+      "originalUnchanged": true
+    }
+  ],
+  "allocateFanoutBudget": [
+    {
+      "args": {
+        "totalRemaining": 4,
+        "branchCount": 3
+      },
+      "result": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 4,
+        "branchCount": 3,
+        "strategy": "weighted",
+        "weights": [
+          2,
+          1,
+          1
+        ]
+      },
+      "result": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 10,
+        "branchCount": 3
+      },
+      "result": [
+        2,
+        2,
+        3
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 11,
+        "branchCount": 3
+      },
+      "result": [
+        2,
+        3,
+        3
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 3,
+        "branchCount": 3
+      },
+      "result": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 5,
+        "branchCount": 1
+      },
+      "result": [
+        4
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 10,
+        "branchCount": 3,
+        "strategy": "weighted",
+        "weights": [
+          1,
+          1,
+          1
+        ]
+      },
+      "result": [
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 10,
+        "branchCount": 3,
+        "strategy": "weighted",
+        "weights": [
+          5,
+          0,
+          0
+        ]
+      },
+      "result": [
+        7,
+        0,
+        0
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 100,
+        "branchCount": 5,
+        "strategy": "weighted",
+        "weights": [
+          3,
+          1,
+          4,
+          1,
+          5
+        ]
+      },
+      "result": [
+        21,
+        6,
+        28,
+        6,
+        34
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 9,
+        "branchCount": 4,
+        "strategy": "weighted",
+        "weights": [
+          1,
+          2,
+          2,
+          1
+        ]
+      },
+      "result": [
+        1,
+        2,
+        2,
+        0
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 7,
+        "branchCount": 2,
+        "strategy": "weighted",
+        "weights": [
+          0,
+          0
+        ]
+      },
+      "result": [
+        0,
+        0
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 8,
+        "branchCount": 2,
+        "strategy": "weighted",
+        "weights": [
+          -1,
+          3
+        ]
+      },
+      "result": [
+        -3,
+        9
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 5,
+        "branchCount": 2,
+        "strategy": "weighted",
+        "weights": null
+      },
+      "result": [
+        1,
+        2
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 5,
+        "branchCount": 2,
+        "strategy": "unknown"
+      },
+      "result": [
+        1,
+        2
+      ]
+    },
+    {
+      "args": {
+        "totalRemaining": 5,
+        "branchCount": 3,
+        "strategy": "weighted",
+        "weights": [
+          1,
+          2
+        ]
+      },
+      "error": {
+        "kind": "ValueError",
+        "message": "权重列表长度 2 与分支数 3 不一致"
+      }
+    },
+    {
+      "args": {
+        "totalRemaining": 2,
+        "branchCount": 3
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 50804,
+        "message": "fan-out 剩余额度 2 不足以支撑 3 个并发分支",
+        "data": {
+          "availableBudget": 2,
+          "requiredBranches": 3
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50804,
+          "message": "fan-out 剩余额度 2 不足以支撑 3 个并发分支",
+          "data": {
+            "availableBudget": 2,
+            "requiredBranches": 3
+          }
+        }
+      }
+    },
+    {
+      "args": {
+        "totalRemaining": 2,
+        "branchCount": 3,
+        "strategy": "weighted",
+        "weights": [
+          1,
+          1,
+          1
+        ]
+      },
+      "error": {
+        "kind": "ADPError",
+        "code": 50804,
+        "message": "fan-out 剩余额度 2 不足以支撑 3 个并发分支",
+        "data": {
+          "availableBudget": 2,
+          "requiredBranches": 3
+        },
+        "httpStatus": 508,
+        "body": {
+          "code": 50804,
+          "message": "fan-out 剩余额度 2 不足以支撑 3 个并发分支",
+          "data": {
+            "availableBudget": 2,
+            "requiredBranches": 3
+          }
+        }
+      }
+    },
+    {
+      "args": {
+        "totalRemaining": 3,
+        "branchCount": 0
+      },
+      "error": {
+        "kind": "ZeroDivisionError",
+        "message": "integer division or modulo by zero"
+      }
+    },
+    {
+      "args": {
+        "totalRemaining": 3,
+        "branchCount": 0,
+        "strategy": "weighted",
+        "weights": []
+      },
+      "result": []
+    },
+    {
+      "args": {
+        "totalRemaining": 5,
+        "branchCount": -2
+      },
+      "result": []
+    }
+  ]
+}

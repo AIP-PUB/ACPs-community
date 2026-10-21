@@ -1,0 +1,1744 @@
+{
+  "normalize": [
+    {
+      "input": null,
+      "result": null
+    },
+    {
+      "input": "",
+      "result": null
+    },
+    {
+      "input": "   ",
+      "result": null
+    },
+    {
+      "input": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "  1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4 \n",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "\u001cabc\u001c",
+      "result": "ABC"
+    },
+    {
+      "input": "abc",
+      "result": "ABC"
+    },
+    {
+      "input": "﻿abc",
+      "result": "﻿ABC"
+    },
+    {
+      "input": "　abc　",
+      "result": "ABC"
+    },
+    {
+      "input": "a b",
+      "result": "A B"
+    },
+    {
+      "input": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4"
+    }
+  ],
+  "normalizeAndValidate": [
+    {
+      "input": null,
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "input": null,
+      "fieldName": "groupLeaderId",
+      "error": "SenderIdentityMismatchError",
+      "message": "groupLeaderId is required"
+    },
+    {
+      "input": "",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "input": "",
+      "fieldName": "groupLeaderId",
+      "error": "SenderIdentityMismatchError",
+      "message": "groupLeaderId is required"
+    },
+    {
+      "input": "  ",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "input": "  ",
+      "fieldName": "groupLeaderId",
+      "error": "SenderIdentityMismatchError",
+      "message": "groupLeaderId is required"
+    },
+    {
+      "input": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "fieldName": "groupLeaderId",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "fieldName": "groupLeaderId",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "\t1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\n",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "\t1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\n",
+      "fieldName": "groupLeaderId",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "bad-aic",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "input": "bad-aic",
+      "fieldName": "groupLeaderId",
+      "error": "SenderIdentityMismatchError",
+      "message": "groupLeaderId is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "input": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+      "fieldName": "groupLeaderId",
+      "result": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "\u001c1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "\u001c1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "fieldName": "groupLeaderId",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "﻿1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is invalid: 前缀不匹配，期望 1.2.156.3088，实际 ﻿1.2.156.3088"
+    },
+    {
+      "input": "﻿1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "fieldName": "groupLeaderId",
+      "error": "SenderIdentityMismatchError",
+      "message": "groupLeaderId is invalid: 前缀不匹配，期望 1.2.156.3088，实际 ﻿1.2.156.3088"
+    }
+  ],
+  "normalizeAndValidateExpected": [
+    {
+      "input": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "input": null,
+      "fieldName": "local_aic",
+      "error": "Error",
+      "message": "local_aic is required"
+    },
+    {
+      "input": "",
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "input": "",
+      "fieldName": "local_aic",
+      "error": "Error",
+      "message": "local_aic is required"
+    },
+    {
+      "input": "  ",
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "input": "  ",
+      "fieldName": "local_aic",
+      "error": "Error",
+      "message": "local_aic is required"
+    },
+    {
+      "input": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "fieldName": "local_aic",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "fieldName": "local_aic",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "\t1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\n",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "\t1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4\n",
+      "fieldName": "local_aic",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "bad-aic",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "input": "bad-aic",
+      "fieldName": "local_aic",
+      "error": "Error",
+      "message": "local_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "input": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+      "fieldName": "local_aic",
+      "result": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "\u001c1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "\u001c1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "fieldName": "local_aic",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "input": "﻿1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "Error",
+      "message": "expected_aic is invalid: 前缀不匹配，期望 1.2.156.3088，实际 ﻿1.2.156.3088"
+    },
+    {
+      "input": "﻿1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "fieldName": "local_aic",
+      "error": "Error",
+      "message": "local_aic is invalid: 前缀不匹配，期望 1.2.156.3088，实际 ﻿1.2.156.3088"
+    }
+  ],
+  "assertSenderMatchesPeer": [
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC BAD"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC BAD"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match peer AIC BAD"
+    },
+    {
+      "sender": "bad",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "bad",
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "bad",
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "bad",
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "bad",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "bad",
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": "",
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": "",
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "",
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": "",
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": "",
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": null,
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": null,
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": null,
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": null,
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": null,
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": null,
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": 123,
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": 123,
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": 123,
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": 123,
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": 123,
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": 123,
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC BAD"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {},
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {},
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {},
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {},
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {},
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {},
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match peer AIC BAD"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "peer": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "peer": null,
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "peer": "",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "peer": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "peer": "bad",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match peer AIC BAD"
+    }
+  ],
+  "assertSenderMatchesExpected": [
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match expected AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match expected AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match expected AIC 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": "bad",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "bad",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": "bad",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "bad",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": "",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": "",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": "",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": null,
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": null,
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": null,
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": null,
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": 123,
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": 123,
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": 123,
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": 123,
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match expected AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": {
+        "senderId": null
+      },
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {},
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {},
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": {},
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": {},
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId is required"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match expected AIC 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": {
+        "senderId": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "sender": {
+        "senderId": " 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 "
+      },
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "error": "SenderIdentityMismatchError",
+      "message": "senderId 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4 does not match expected AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    }
+  ],
+  "assertAicMatchesExpected": [
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": null,
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is required"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "expected": "bad",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": null,
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is required"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "expected": "bad",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": null,
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "actual": null,
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "PeerAicMissingError",
+      "message": "TLS server AIC is required for identity binding"
+    },
+    {
+      "actual": null,
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "actual": null,
+      "expected": null,
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is required"
+    },
+    {
+      "actual": null,
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": null,
+      "expected": "bad",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "PeerAicMissingError",
+      "message": "peer AIC is required for identity binding"
+    },
+    {
+      "actual": "",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "PeerAicMissingError",
+      "message": "TLS server AIC is required for identity binding"
+    },
+    {
+      "actual": "",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "actual": "",
+      "expected": null,
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is required"
+    },
+    {
+      "actual": "",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "",
+      "expected": "bad",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "bad",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "InvalidPeerCertificateError",
+      "message": "peer AIC is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "bad",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "InvalidPeerCertificateError",
+      "message": "TLS server AIC is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "bad",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "actual": "bad",
+      "expected": null,
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is required"
+    },
+    {
+      "actual": "bad",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "bad",
+      "expected": "bad",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "error": "SenderIdentityMismatchError",
+      "message": "peer AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match expected_aic 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "SenderIdentityMismatchError",
+      "message": "TLS server AIC 1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6 does not match expected_partner_aic 1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": null,
+      "error": "Error",
+      "message": "expected_aic is required"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": null,
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is required"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": "bad",
+      "error": "Error",
+      "message": "expected_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    },
+    {
+      "actual": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6",
+      "expected": "bad",
+      "actualLabel": "TLS server AIC",
+      "expectedLabel": "expected_partner_aic",
+      "error": "Error",
+      "message": "expected_partner_aic is invalid: AIC 必须包含 10 段，当前为 1 段"
+    }
+  ],
+  "certificates": [
+    {
+      "spec": null,
+      "commonName": null,
+      "san": {
+        "result": null
+      },
+      "identity": {
+        "result": null
+      }
+    },
+    {
+      "spec": {},
+      "commonName": null,
+      "san": {
+        "result": null
+      },
+      "identity": {
+        "result": null
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": null
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "sanAic": null
+        }
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ],
+        "sans": [
+          [
+            "URI",
+            "acps://1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          ]
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "sanAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        }
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4"
+        ],
+        "sans": [
+          [
+            "URI",
+            "acps://1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          ]
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+      "san": {
+        "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4",
+          "sanAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        }
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "  1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4  "
+        ],
+        "sans": [
+          [
+            "URI",
+            "ACPS://1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4"
+          ]
+        ]
+      },
+      "commonName": "  1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4  ",
+      "san": {
+        "result": "1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4"
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "  1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4  ",
+          "sanAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        }
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ],
+        "sans": [
+          [
+            "URI",
+            "acps://1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+          ]
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+      },
+      "identity": {
+        "error": "InvalidPeerCertificateError",
+        "message": "peer certificate CN and SAN URI AIC do not match"
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ],
+        "sans": [
+          [
+            "URI",
+            "acps://1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          ],
+          [
+            "URI",
+            "acps://1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+          ]
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "error": "InvalidPeerCertificateError",
+        "message": "peer certificate contains multiple distinct ACPs SAN URI AIC values"
+      },
+      "identity": {
+        "error": "InvalidPeerCertificateError",
+        "message": "peer certificate contains multiple distinct ACPs SAN URI AIC values"
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ],
+        "sans": [
+          [
+            "URI",
+            "acps://1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          ],
+          [
+            "URI",
+            "acps://1.2.156.3088.1.1.34c2.478bdf.3gf546.0ju4"
+          ]
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "sanAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        }
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ],
+        "sans": [
+          [
+            "DNS",
+            "partner.local"
+          ],
+          [
+            "IP Address",
+            "127.0.0.1"
+          ],
+          [
+            "URI",
+            "https://example.com"
+          ]
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": null
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "sanAic": null
+        }
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ],
+        "sans": [
+          [
+            "DNS",
+            "partner.local"
+          ],
+          [
+            "URI",
+            "acps://1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          ]
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "sanAic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        }
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ],
+        "sans": [
+          [
+            "URI",
+            "acps://"
+          ]
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": ""
+      },
+      "identity": {
+        "error": "InvalidPeerCertificateError",
+        "message": "invalid peer certificate SAN URI: AIC 不能为空"
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ],
+        "sans": [
+          [
+            "URI",
+            "acps://not-an-aic"
+          ]
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": "not-an-aic"
+      },
+      "identity": {
+        "error": "InvalidPeerCertificateError",
+        "message": "invalid peer certificate SAN URI: AIC 必须包含 10 段，当前为 1 段"
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "not-an-aic"
+        ]
+      },
+      "commonName": "not-an-aic",
+      "san": {
+        "result": null
+      },
+      "identity": {
+        "error": "InvalidPeerCertificateError",
+        "message": "invalid peer certificate CN: AIC 必须包含 10 段，当前为 1 段"
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4"
+        ]
+      },
+      "commonName": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": null
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "1.2.156.30 88.1.1.34C2.478BDF.3GF546.0JU4",
+          "sanAic": null
+        }
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          ""
+        ]
+      },
+      "commonName": "",
+      "san": {
+        "result": null
+      },
+      "identity": {
+        "error": "InvalidPeerCertificateError",
+        "message": "invalid peer certificate CN: AIC 不能为空"
+      }
+    },
+    {
+      "spec": {
+        "sans": [
+          [
+            "URI",
+            "acps://1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+          ]
+        ]
+      },
+      "commonName": null,
+      "san": {
+        "result": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+      },
+      "identity": {
+        "result": null
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+        ]
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": null
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "sanAic": null
+        }
+      }
+    },
+    {
+      "spec": {
+        "cns": [
+          "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+        ],
+        "org": "ACPs"
+      },
+      "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+      "san": {
+        "result": null
+      },
+      "identity": {
+        "result": {
+          "aic": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "commonName": "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4",
+          "sanAic": null
+        }
+      }
+    }
+  ],
+  "errorToJsonRpc": [
+    {
+      "error": "AipIdentityError",
+      "message": "boom",
+      "jsonrpc": "{\"code\":-32009,\"message\":\"AuthorizationFailedError\",\"data\":\"boom\"}"
+    },
+    {
+      "error": "AipIdentityError",
+      "message": "",
+      "jsonrpc": "{\"code\":-32009,\"message\":\"AuthorizationFailedError\",\"data\":\"\"}"
+    },
+    {
+      "error": "AipIdentityError",
+      "message": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n",
+      "jsonrpc": "{\"code\":-32009,\"message\":\"AuthorizationFailedError\",\"data\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"}"
+    },
+    {
+      "error": "PeerAicMissingError",
+      "message": "boom",
+      "jsonrpc": "{\"code\":-32008,\"message\":\"AuthenticationRequiredError\",\"data\":\"boom\"}"
+    },
+    {
+      "error": "PeerAicMissingError",
+      "message": "",
+      "jsonrpc": "{\"code\":-32008,\"message\":\"AuthenticationRequiredError\",\"data\":\"\"}"
+    },
+    {
+      "error": "PeerAicMissingError",
+      "message": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n",
+      "jsonrpc": "{\"code\":-32008,\"message\":\"AuthenticationRequiredError\",\"data\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"}"
+    },
+    {
+      "error": "SenderIdentityMismatchError",
+      "message": "boom",
+      "jsonrpc": "{\"code\":-32009,\"message\":\"AuthorizationFailedError\",\"data\":\"boom\"}"
+    },
+    {
+      "error": "SenderIdentityMismatchError",
+      "message": "",
+      "jsonrpc": "{\"code\":-32009,\"message\":\"AuthorizationFailedError\",\"data\":\"\"}"
+    },
+    {
+      "error": "SenderIdentityMismatchError",
+      "message": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n",
+      "jsonrpc": "{\"code\":-32009,\"message\":\"AuthorizationFailedError\",\"data\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"}"
+    },
+    {
+      "error": "InvalidPeerCertificateError",
+      "message": "boom",
+      "jsonrpc": "{\"code\":-32008,\"message\":\"AuthenticationRequiredError\",\"data\":\"boom\"}"
+    },
+    {
+      "error": "InvalidPeerCertificateError",
+      "message": "",
+      "jsonrpc": "{\"code\":-32008,\"message\":\"AuthenticationRequiredError\",\"data\":\"\"}"
+    },
+    {
+      "error": "InvalidPeerCertificateError",
+      "message": "中文 😀 \"quote\" \\ /   \u0000 \u001f tab\tnl\n",
+      "jsonrpc": "{\"code\":-32008,\"message\":\"AuthenticationRequiredError\",\"data\":\"中文 😀 \\\"quote\\\" \\\\ /   \\u0000 \\u001f tab\\tnl\\n\"}"
+    }
+  ]
+}

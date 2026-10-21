@@ -1,0 +1,136 @@
+{
+  "rfc8032_test1_ed25519": {
+    "note": "RFC 8032 §7.1 TEST 1 public test vector (not a secret)",
+    "secret_key_hex": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+    "public_key_hex": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+  },
+  "public_keys": {
+    "ed25519": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n-----END PUBLIC KEY-----\n",
+    "rsa": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuTqaMYyU2Ay2iWuIvKRo\nGLMwpyddD1FZMkjZcGyy08IwV6EZZQ3n+y74wzk/OvmjqkjNY562vKYL80Sx0dfy\nilHhXEg837QMQhqc3qM+eowoItHo/HZ6gzIv46H5KBpiTFb3IhR9gdbii01rQzEp\nVyWyh1k8nh7+5hvXcuQTIqjVvMRHwb9P690pDnWVfJGzVk5nSYHOWHBS6uso7ita\njnD+5l7vXo+s2udsar6Jstauyje4JEd7vQZoKlClnNLUrbPR3gGxvbBAoF2KfI33\ngxdI2bJusawsBKczn3KtcdiZNxN+F7iXx+RhQCUBU8+EFJrT55c6syzhrMveAjYk\ngQIDAQAB\n-----END PUBLIC KEY-----\n",
+    "ec": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEXK3/9Zmla0YWsf77q6fNae23B1B9\n3klklx5+fkN7VCduZfWy04yZzyh4MvRvi4rVRk2UgIMTKIFAuazB/2fJ5Q==\n-----END PUBLIC KEY-----\n"
+  },
+  "certs": {
+    "ed25519": "-----BEGIN CERTIFICATE-----\nMIH2MIGpoAMCAQICBQP4qRssMAUGAytlcDAjMSEwHwYDVQQDDBhhY3BzLWFtcC1m\naXh0dXJlLWVkMjU1MTkwHhcNMjYwMTAxMDAwMDAwWhcNMzYwMTAxMDAwMDAwWjAj\nMSEwHwYDVQQDDBhhY3BzLWFtcC1maXh0dXJlLWVkMjU1MTkwKjAFBgMrZXADIQDX\nWpgBgrEKt9VL/tPJZAc6DuFy89qmIyWvAhpo9wdRGjAFBgMrZXADQQB6dg7LUeWt\nbs4zUt+u/J+0LdLxg3vJXTwOnleNRQ7PQ6X5xNxtBkQZpoiKlDFmghtU7MkkrZY0\nRBChtYJwS+wE\n-----END CERTIFICATE-----\n",
+    "rsa": "-----BEGIN CERTIFICATE-----\nMIICvzCCAaegAwIBAgIJAI/ty6mHZUMhMA0GCSqGSIb3DQEBCwUAMB8xHTAbBgNV\nBAMMFGFjcHMtYW1wLWZpeHR1cmUtcnNhMB4XDTI2MDEwMTAwMDAwMFoXDTM2MDEw\nMTAwMDAwMFowHzEdMBsGA1UEAwwUYWNwcy1hbXAtZml4dHVyZS1yc2EwggEiMA0G\nCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5OpoxjJTYDLaJa4i8pGgYszCnJ10P\nUVkySNlwbLLTwjBXoRllDef7LvjDOT86+aOqSM1jnra8pgvzRLHR1/KKUeFcSDzf\ntAxCGpzeoz56jCgi0ej8dnqDMi/jofkoGmJMVvciFH2B1uKLTWtDMSlXJbKHWTye\nHv7mG9dy5BMiqNW8xEfBv0/r3SkOdZV8kbNWTmdJgc5YcFLq6yjuK1qOcP7mXu9e\nj6za52xqvomy1q7KN7gkR3u9BmgqUKWc0tSts9HeAbG9sECgXYp8jfeDF0jZsm6x\nrCwEpzOfcq1x2Jk3E34XuJfH5GFAJQFTz4QUmtPnlzqzLOGsy94CNiSBAgMBAAEw\nDQYJKoZIhvcNAQELBQADggEBAKPlYXEYqivpoPCtohG1V+zRBdsp76btUAEtvXT9\n462NsW0nY+sq0WCB/8exvqi7ngxLM7dbNkFMHG5YARXqMOIP1o6DV+aiG4qkVxVj\nbeVewZPRfwBBMjlhRdnxPccEd7o2YrHxXzIDaEb5GsvW9yw/FRDfC0CnIukXhiDL\nmhJ5ntz9c3TVE5GzoyTiA+IR0UqHnn1EdtYlNeN4B35ebIvl+RR1OYxlZEyXQ26L\nmXwfj86jRJH/gMhQk022d6795fK6uKyIjRA/ZbGLFnTvDqTwObUCtFm1kg2kLyvG\n3hMufaIrDNLkWYoZH5HxayZE+DeGwq4eIE5qpeK1jJKF9ns=\n-----END CERTIFICATE-----\n",
+    "serial_1": "-----BEGIN CERTIFICATE-----\nMIH0MIGnoAMCAQICAQEwBQYDK2VwMCQxIjAgBgNVBAMMGWFjcHMtYW1wLWZpeHR1\ncmUtc2VyaWFsLTEwHhcNMjYwMTAxMDAwMDAwWhcNMzYwMTAxMDAwMDAwWjAkMSIw\nIAYDVQQDDBlhY3BzLWFtcC1maXh0dXJlLXNlcmlhbC0xMCowBQYDK2VwAyEA11qY\nAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURowBQYDK2VwA0EA86KCp2VE1ruF\noR8ASl3oJ8cjEZMl5vRdvrIj185c8Y/z0qoLZy7UPpfbroOsQxUpvNfuNdAui1wF\nfDlmTyyOBA==\n-----END CERTIFICATE-----\n",
+    "ec": "-----BEGIN CERTIFICATE-----\nMIIBGDCBy6ADAgECAgIKvDAFBgMrZXAwHjEcMBoGA1UEAwwTYWNwcy1hbXAtZml4\ndHVyZS1lYzAeFw0yNjAxMDEwMDAwMDBaFw0zNjAxMDEwMDAwMDBaMB4xHDAaBgNV\nBAMME2FjcHMtYW1wLWZpeHR1cmUtZWMwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNC\nAARcrf/1maVrRhax/vurp81p7bcHUH3eSWSXHn5+Q3tUJ25l9bLTjJnPKHgy9G+L\nitVGTZSAgxMogUC5rMH/Z8nlMAUGAytlcANBADwYvCI2Z2s+kEdq0CNuKIiH5qR/\nQpyv/nZr1DPOqOxwPmSC3UyzNMeCHUffg012v1dOuMGQdfXuaoNDDXF68go=\n-----END CERTIFICATE-----\n"
+  },
+  "serials_hex": {
+    "ed25519": "3f8a91b2c",
+    "rsa": "8fedcba987654321",
+    "serial_1": "1",
+    "ec": "abc"
+  },
+  "kids": {
+    "ed25519": "3F8A91B2C",
+    "rsa": "8FEDCBA987654321",
+    "serial_1": "1"
+  },
+  "record_input": {
+    "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+    "timestamp": "2026-10-19T08:01:12.160000+00:00",
+    "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+    "body": {
+      "actor": {
+        "id": "user-001",
+        "type": "user",
+        "name": "张三",
+        "userAgent": "curl/8.0"
+      },
+      "action": {
+        "name": "login",
+        "type": "auth"
+      },
+      "target": {
+        "type": "session",
+        "id": "sess-1",
+        "before": {
+          "z": 1,
+          "a": [
+            1,
+            2.5,
+            null,
+            {
+              "é": "😀"
+            }
+          ]
+        },
+        "after": {
+          "n": 1e+21
+        }
+      },
+      "result": {
+        "status": "success"
+      }
+    },
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "correlation_id": "corr-1"
+  },
+  "record_dict": {
+    "schema_version": "1.0",
+    "log_id": "0192f3a4-5b6c-7d8e-9f01-23456789abcd",
+    "log_type": "audit",
+    "timestamp": "2026-10-19T08:01:12.160000+00:00",
+    "aic": "1.2.156.3088.1.A.B.C.0.XYZW",
+    "body": {
+      "actor": {
+        "id": "user-001",
+        "type": "user",
+        "name": "张三",
+        "userAgent": "curl/8.0"
+      },
+      "action": {
+        "name": "login",
+        "type": "auth"
+      },
+      "target": {
+        "type": "session",
+        "id": "sess-1",
+        "before": {
+          "z": 1,
+          "a": [
+            1,
+            2.5,
+            null,
+            {
+              "é": "😀"
+            }
+          ]
+        },
+        "after": {
+          "n": 1e+21
+        }
+      },
+      "result": {
+        "status": "success"
+      }
+    },
+    "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+    "correlation_id": "corr-1"
+  },
+  "canonical": "{\"aic\":\"1.2.156.3088.1.A.B.C.0.XYZW\",\"body\":{\"action\":{\"name\":\"login\",\"type\":\"auth\"},\"actor\":{\"id\":\"user-001\",\"name\":\"张三\",\"type\":\"user\",\"userAgent\":\"curl/8.0\"},\"result\":{\"status\":\"success\"},\"target\":{\"after\":{\"n\":1e+21},\"before\":{\"a\":[1,2.5,null,{\"é\":\"😀\"}],\"z\":1},\"id\":\"sess-1\",\"type\":\"session\"}},\"correlation_id\":\"corr-1\",\"log_id\":\"0192f3a4-5b6c-7d8e-9f01-23456789abcd\",\"log_type\":\"audit\",\"schema_version\":\"1.0\",\"timestamp\":\"2026-10-19T08:01:12.160000+00:00\",\"trace_id\":\"4bf92f3577b34da6a3ce929d0e0e4736\"}",
+  "lines": {
+    "ed25519": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"audit\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"actor\": {\"id\": \"user-001\", \"type\": \"user\", \"name\": \"张三\", \"userAgent\": \"curl/8.0\"}, \"action\": {\"name\": \"login\", \"type\": \"auth\"}, \"target\": {\"type\": \"session\", \"id\": \"sess-1\", \"before\": {\"z\": 1, \"a\": [1, 2.5, null, {\"é\": \"😀\"}]}, \"after\": {\"n\": 1e+21}}, \"result\": {\"status\": \"success\"}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"correlation_id\": \"corr-1\", \"integrity\": {\"alg\": \"EdDSA\", \"kid\": \"audit-key-test\", \"sig\": \"KjjFTfnzlFgY8JsgHHpQDCvDwGsr6QuhOvEX1tTyQwzT_z5-unqlqfOGG3evI_PMiz71eCogtLCx43kS3P3cCw\"}}",
+    "cert_ed25519": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"audit\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"actor\": {\"id\": \"user-001\", \"type\": \"user\", \"name\": \"张三\", \"userAgent\": \"curl/8.0\"}, \"action\": {\"name\": \"login\", \"type\": \"auth\"}, \"target\": {\"type\": \"session\", \"id\": \"sess-1\", \"before\": {\"z\": 1, \"a\": [1, 2.5, null, {\"é\": \"😀\"}]}, \"after\": {\"n\": 1e+21}}, \"result\": {\"status\": \"success\"}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"correlation_id\": \"corr-1\", \"integrity\": {\"alg\": \"EdDSA\", \"kid\": \"3F8A91B2C\", \"sig\": \"KjjFTfnzlFgY8JsgHHpQDCvDwGsr6QuhOvEX1tTyQwzT_z5-unqlqfOGG3evI_PMiz71eCogtLCx43kS3P3cCw\"}}",
+    "cert_rsa": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"audit\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"actor\": {\"id\": \"user-001\", \"type\": \"user\", \"name\": \"张三\", \"userAgent\": \"curl/8.0\"}, \"action\": {\"name\": \"login\", \"type\": \"auth\"}, \"target\": {\"type\": \"session\", \"id\": \"sess-1\", \"before\": {\"z\": 1, \"a\": [1, 2.5, null, {\"é\": \"😀\"}]}, \"after\": {\"n\": 1e+21}}, \"result\": {\"status\": \"success\"}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"correlation_id\": \"corr-1\", \"integrity\": {\"alg\": \"RS256\", \"kid\": \"8FEDCBA987654321\", \"sig\": \"kFpJu3SLb-PFML43FMNYnoqyol7y6WrFEB0SIpR7j-nGVzBQtLM9s49huhV5YaApon2mLVFX_8K5HMClIb5UONTIweeAEcl-l_sr-L-Yi6CD_CldFwtzEiEbnWhtsqoXC2YqjT2_4R5883Sn-yf9YKpvXBel4nauE4DGgynsf3BiQSve48IxzL-LO6NQi-HzhTsFvbtvSpQV_O6OO7LTc-FULJFKYjBXEMSRFfZ6Ew036Kc_Yagbrc0s26g6Sq8ro6wSs6czsp32r-4Oqgw4TeGI6EmMie9muuwBuxp-WsMSfA3AD_zLjGFKuvFUcpZsybr25FE-YKp6OUJMUKJj-A\"}}",
+    "cert_rsa_pss": "{\"schema_version\": \"1.0\", \"log_id\": \"0192f3a4-5b6c-7d8e-9f01-23456789abcd\", \"log_type\": \"audit\", \"timestamp\": \"2026-10-19T08:01:12.160000+00:00\", \"aic\": \"1.2.156.3088.1.A.B.C.0.XYZW\", \"body\": {\"actor\": {\"id\": \"user-001\", \"type\": \"user\", \"name\": \"张三\", \"userAgent\": \"curl/8.0\"}, \"action\": {\"name\": \"login\", \"type\": \"auth\"}, \"target\": {\"type\": \"session\", \"id\": \"sess-1\", \"before\": {\"z\": 1, \"a\": [1, 2.5, null, {\"é\": \"😀\"}]}, \"after\": {\"n\": 1e+21}}, \"result\": {\"status\": \"success\"}}, \"trace_id\": \"4bf92f3577b34da6a3ce929d0e0e4736\", \"correlation_id\": \"corr-1\", \"integrity\": {\"alg\": \"RS256\", \"kid\": \"8FEDCBA987654321\", \"sig\": \"kFpJu3SLb-PFML43FMNYnoqyol7y6WrFEB0SIpR7j-nGVzBQtLM9s49huhV5YaApon2mLVFX_8K5HMClIb5UONTIweeAEcl-l_sr-L-Yi6CD_CldFwtzEiEbnWhtsqoXC2YqjT2_4R5883Sn-yf9YKpvXBel4nauE4DGgynsf3BiQSve48IxzL-LO6NQi-HzhTsFvbtvSpQV_O6OO7LTc-FULJFKYjBXEMSRFfZ6Ew036Kc_Yagbrc0s26g6Sq8ro6wSs6czsp32r-4Oqgw4TeGI6EmMie9muuwBuxp-WsMSfA3AD_zLjGFKuvFUcpZsybr25FE-YKp6OUJMUKJj-A\"}}"
+  },
+  "ecdsa_der_sig_b64url": "MEUCICluY41AbGdqCvOtALF-sSAHli61rw4n9UuhQCCPbVbIAiEA5HsSthjH0jXsB5jjzaTE14Y5EJTpsWPE3DeI7FcUFA4",
+  "errors": {
+    "ed25519_signer_with_rsa": {
+      "ok": false,
+      "type": "TypeError",
+      "message": "期望 Ed25519PrivateKey，实际类型: RSAPrivateKey。请确保私钥由 gen_audit_keys.py 或 ed25519 算法生成。"
+    },
+    "ed25519_signer_with_ec": {
+      "ok": false,
+      "type": "TypeError",
+      "message": "期望 Ed25519PrivateKey，实际类型: ECPrivateKey。请确保私钥由 gen_audit_keys.py 或 ed25519 算法生成。"
+    },
+    "cert_signer_with_ec": {
+      "ok": false,
+      "type": "TypeError",
+      "message": "不支持的私钥类型: ECPrivateKey。CertificateAuditSigner 仅支持 Ed25519 和 RSA 私钥。"
+    }
+  }
+}

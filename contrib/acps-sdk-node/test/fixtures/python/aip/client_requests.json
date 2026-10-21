@@ -1,0 +1,197 @@
+{
+  "rpc": {
+    "requests": [
+      {
+        "url": "http://partner/rpc",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":\"00000000-0000-0000-0000-000000000003\",\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000002\",\"sentAt\":\"2026-01-01T00:00:01.000001+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"dataItems\":[{\"type\":\"text\",\"text\":\"hello\"}],\"sessionId\":\"sess-1\",\"command\":\"start\",\"taskId\":\"task-00000000-0000-0000-0000-000000000001\"}}}"
+      },
+      {
+        "url": "http://partner/rpc",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":\"00000000-0000-0000-0000-000000000005\",\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000004\",\"sentAt\":\"2026-01-01T00:00:02.000002+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"start\",\"taskId\":\"t-fixed\"}}}"
+      },
+      {
+        "url": "http://partner/rpc",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":\"00000000-0000-0000-0000-000000000007\",\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000006\",\"sentAt\":\"2026-01-01T00:00:03.000003+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"dataItems\":[{\"type\":\"text\",\"text\":\"more\"}],\"sessionId\":\"sess-1\",\"command\":\"continue\",\"taskId\":\"t-fixed\"}}}"
+      },
+      {
+        "url": "http://partner/rpc",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":\"00000000-0000-0000-0000-000000000009\",\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000008\",\"sentAt\":\"2026-01-01T00:00:04.000004+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"complete\",\"taskId\":\"t-fixed\"}}}"
+      },
+      {
+        "url": "http://partner/rpc",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":\"00000000-0000-0000-0000-00000000000b\",\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-00000000000a\",\"sentAt\":\"2026-01-01T00:00:05.000005+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"cancel\",\"taskId\":\"t-fixed\"}}}"
+      },
+      {
+        "url": "http://partner/rpc",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":\"00000000-0000-0000-0000-00000000000d\",\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-00000000000c\",\"sentAt\":\"2026-01-01T00:00:06.000006+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"get\",\"taskId\":\"t-fixed\"}}}"
+      }
+    ],
+    "results": [
+      "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"task-00000000-0000-0000-0000-000000000001\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+      "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-fixed\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+      "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-fixed\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+      "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-fixed\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+      "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-fixed\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+      "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-fixed\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}"
+    ]
+  },
+  "stream": {
+    "requests": [
+      {
+        "url": "http://partner/stream",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "text/event-stream",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"stream\",\"id\":\"00000000-0000-0000-0000-000000000003\",\"params\":{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000002\",\"sentAt\":\"2026-01-01T00:00:01.000001+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"dataItems\":[{\"type\":\"text\",\"text\":\"hi\"}],\"sessionId\":\"sess-1\",\"command\":\"start\",\"taskId\":\"task-00000000-0000-0000-0000-000000000001\"}}}"
+      },
+      {
+        "url": "http://partner/stream",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "text/event-stream",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"stream\",\"id\":\"00000000-0000-0000-0000-000000000005\",\"params\":{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000004\",\"sentAt\":\"2026-01-01T00:00:02.000002+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"start\",\"taskId\":\"t-s\"}}}"
+      },
+      {
+        "url": "http://partner/stream",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "text/event-stream",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"stream\",\"id\":\"00000000-0000-0000-0000-000000000007\",\"params\":{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000006\",\"sentAt\":\"2026-01-01T00:00:03.000003+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"re-stream\",\"commandParams\":{\"lastEventSeq\":1},\"taskId\":\"t-s\"}}}"
+      },
+      {
+        "url": "http://partner/stream",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "text/event-stream",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"stream\",\"id\":\"00000000-0000-0000-0000-000000000009\",\"params\":{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000008\",\"sentAt\":\"2026-01-01T00:00:04.000004+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"re-stream\",\"taskId\":\"t-s\"}}}"
+      },
+      {
+        "url": "http://partner/rpc",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":\"00000000-0000-0000-0000-00000000000b\",\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-00000000000a\",\"sentAt\":\"2026-01-01T00:00:05.000005+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"complete\",\"taskId\":\"t-s\"}}}"
+      },
+      {
+        "url": "http://partner/rpc",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"rpc\",\"id\":\"00000000-0000-0000-0000-00000000000d\",\"params\":{\"command\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-00000000000c\",\"sentAt\":\"2026-01-01T00:00:06.000006+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"cancel\",\"taskId\":\"t-s\"}}}"
+      }
+    ],
+    "results": [
+      "{\"jsonrpc\":\"2.0\",\"id\":\"s\",\"result\":{\"eventSeq\":1,\"eventData\":{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}",
+      "{\"jsonrpc\":\"2.0\",\"id\":\"s\",\"result\":{\"eventSeq\":2,\"eventData\":{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}",
+      "{\"jsonrpc\":\"2.0\",\"id\":\"s\",\"result\":{\"eventSeq\":1,\"eventData\":{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}",
+      "{\"jsonrpc\":\"2.0\",\"id\":\"s\",\"result\":{\"eventSeq\":2,\"eventData\":{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}",
+      "{\"jsonrpc\":\"2.0\",\"id\":\"s\",\"result\":{\"eventSeq\":1,\"eventData\":{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}",
+      "{\"jsonrpc\":\"2.0\",\"id\":\"s\",\"result\":{\"eventSeq\":2,\"eventData\":{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}",
+      "{\"jsonrpc\":\"2.0\",\"id\":\"s\",\"result\":{\"eventSeq\":1,\"eventData\":{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}",
+      "{\"jsonrpc\":\"2.0\",\"id\":\"s\",\"result\":{\"eventSeq\":2,\"eventData\":{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"completed\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}}}",
+      "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+      "{\"type\":\"task-result\",\"id\":\"res\",\"sentAt\":\"2026-06-24T00:00:00Z\",\"senderRole\":\"partner\",\"senderId\":\"agent\",\"taskId\":\"t-s\",\"status\":{\"state\":\"working\",\"stateChangedAt\":\"2026-06-24T00:00:00Z\"}}",
+      2
+    ]
+  },
+  "notification": {
+    "requests": [
+      {
+        "url": "http://partner/notification/set",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/set\",\"id\":\"00000000-0000-0000-0000-000000000001\",\"params\":{\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}}"
+      },
+      {
+        "url": "http://partner/notification/set",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/set\",\"id\":\"00000000-0000-0000-0000-000000000002\",\"params\":{\"id\":\"cfg-9\",\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}}"
+      },
+      {
+        "url": "http://partner/notification/delete",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/delete\",\"id\":\"00000000-0000-0000-0000-000000000003\",\"params\":{\"taskId\":\"task-1\"}}"
+      },
+      {
+        "url": "http://partner/notification/delete",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/delete\",\"id\":\"00000000-0000-0000-0000-000000000004\",\"params\":{\"taskId\":\"task-1\",\"notificationConfigId\":\"cfg-9\"}}"
+      },
+      {
+        "url": "http://partner/notification/get",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/get\",\"id\":\"00000000-0000-0000-0000-000000000005\",\"params\":{\"taskId\":\"task-1\"}}"
+      },
+      {
+        "url": "http://partner/notification/get",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/get\",\"id\":\"00000000-0000-0000-0000-000000000006\",\"params\":{\"taskId\":\"task-1\",\"notificationConfigId\":\"cfg-1\"}}"
+      },
+      {
+        "url": "http://partner/notification/start",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/start\",\"id\":\"00000000-0000-0000-0000-000000000008\",\"params\":{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000007\",\"sentAt\":\"2026-01-01T00:00:01.000001+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"start\",\"commandParams\":{\"notificationConfigId\":\"cfg-1\"},\"taskId\":\"task-1\"}}}"
+      },
+      {
+        "url": "http://partner/notification/start",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/start\",\"id\":\"00000000-0000-0000-0000-00000000000a\",\"params\":{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-000000000009\",\"sentAt\":\"2026-01-01T00:00:02.000002+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"start\",\"commandParams\":{\"notificationConfigId\":\"cfg-1\",\"notifyOnStates\":[\"completed\",\"failed\"]},\"taskId\":\"task-1\"}}}"
+      },
+      {
+        "url": "http://partner/notification/start",
+        "method": "POST",
+        "contentType": "application/json",
+        "accept": "*/*",
+        "body": "{\"jsonrpc\":\"2.0\",\"method\":\"notification/start\",\"id\":\"00000000-0000-0000-0000-00000000000c\",\"params\":{\"message\":{\"type\":\"task-command\",\"id\":\"cmd-00000000-0000-0000-0000-00000000000b\",\"sentAt\":\"2026-01-01T00:00:03.000003+00:00\",\"senderRole\":\"leader\",\"senderId\":\"leader-1\",\"sessionId\":\"sess-1\",\"command\":\"start\",\"commandParams\":{\"notificationConfigId\":\"cfg-1\"},\"taskId\":\"task-1\"}}}"
+      }
+    ],
+    "results": [
+      "{\"id\":\"cfg-new\",\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}",
+      "{\"id\":\"cfg-9\",\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}",
+      true,
+      true,
+      [
+        "{\"id\":\"cfg-1\",\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}"
+      ],
+      [
+        "{\"id\":\"cfg-1\",\"url\":\"https://leader/cb\",\"token\":\"tok\",\"taskId\":\"task-1\"}"
+      ],
+      true,
+      true,
+      true
+    ]
+  }
+}
