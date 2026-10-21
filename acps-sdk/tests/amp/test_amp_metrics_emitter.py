@@ -78,15 +78,19 @@ def test_emit_sync_exclude_none(tmp_log: Path) -> None:
 
 
 def test_emit_sync_write_failure_only_warns(tmp_log: Path, caplog: pytest.LogCaptureFixture) -> None:
-    """写入失败（目录不可写）时只 WARNING 不 raise。"""
+    """写入失败（父路径是普通文件）时只 WARNING 不 raise。"""
     sampler = _make_sampler()
-    bad_path = Path("/readonly_nonexistent_dir/amp_metrics.jsonl")
+    blocked_parent = tmp_log.parent.parent / "blocked-parent"
+    blocked_parent.write_text("not a directory", encoding="utf-8")
+    bad_path = blocked_parent / "amp_metrics.jsonl"
     emitter = MetricsEmitter(bad_path, aic="aic-001", sampler=sampler)
 
     with caplog.at_level("WARNING"):
         emitter.emit_sync()  # 不应 raise
 
     assert any("写入失败" in m or "MetricsEmitter" in m for m in caplog.messages)
+    assert blocked_parent.read_text(encoding="utf-8") == "not a directory"
+    assert not bad_path.exists()
 
 
 # ── emit (async) ──────────────────────────────────────────────────────────────

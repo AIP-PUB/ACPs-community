@@ -12,6 +12,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -19,6 +21,17 @@ from typing import Any
 from acps_sdk.amp.models import MessageBody, MessageLogRecord
 
 _logger = logging.getLogger(__name__)
+
+# Windows append handles do not serialize independent thread-pool writes.
+# Share a lock between emitter instances targeting the same canonical path.
+_file_locks_guard = threading.Lock()
+_file_locks: dict[str, threading.RLock] = {}
+
+
+def _lock_for_path(path: Path):
+    key = os.path.normcase(str(path.resolve()))
+    with _file_locks_guard:
+        return _file_locks.setdefault(key, threading.RLock())
 
 
 class MessageEmitter:
@@ -31,7 +44,8 @@ class MessageEmitter:
         *,
         resource: dict[str, Any] | None = None,
     ) -> None:
-        self._log_file = log_file
+        self._log_file = log_file.resolve()
+        self._write_lock = _lock_for_path(self._log_file)
         self._aic = aic
         self._resource = resource
 
@@ -74,7 +88,8 @@ class MessageEmitter:
             if self._resource:
                 record_dict["resource"] = self._resource
             line = json.dumps(record_dict, ensure_ascii=False)
-            with self._log_file.open("a", encoding="utf-8") as f:
-                f.write(line + "\n")
+            with self._write_lock:
+                with self._log_file.open("a", encoding="utf-8") as f:
+                    f.write(line + "\n")
         except Exception:
             _logger.warning("MessageEmitter: 写入失败，跳过", exc_info=True)
