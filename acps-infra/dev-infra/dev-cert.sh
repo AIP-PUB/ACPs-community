@@ -70,6 +70,40 @@ require_tool() {
     fi
 }
 
+# Git Bash / MSYS2 会把形如 /CN=xxx 的参数当成 POSIX 路径，改写成 <msys_root>/CN=xxx，
+# 于是 openssl req -subj 报 "subject name is expected to be in the format /type0=value0/..."。
+# 这里把 subject 前缀排除在路径转换之外，其余路径参数仍然照常转换。
+exclude_msys_arg_conv() {
+    local prefix="$1"
+    case ";${MSYS2_ARG_CONV_EXCL:-};" in
+        *";${prefix};"*) ;;
+        *) MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+${MSYS2_ARG_CONV_EXCL};}${prefix}" ;;
+    esac
+    export MSYS2_ARG_CONV_EXCL
+}
+
+if [[ "${MSYSTEM:-}" != "" || "${OSTYPE:-}" == cygwin* ]]; then
+    exclude_msys_arg_conv "/CN="
+fi
+
+# 执行 openssl 并保留其 stderr：失败时打印真实报错，而不是只留下空目录与半成品文件。
+run_openssl() {
+    local err_file status
+
+    err_file="$(new_tmpfile)"
+    if openssl "$@" 2>"${err_file}"; then
+        status=0
+    else
+        status=$?
+    fi
+
+    if (( status != 0 )); then
+        log_error "openssl ${*} 执行失败：$(tr '\n' ' ' <"${err_file}")"
+    fi
+    rm -f "${err_file}"
+    return "${status}"
+}
+
 require_runtime() {
     require_tool openssl
     require_tool python3
@@ -197,26 +231,26 @@ create_root_ca() {
     csr="$(new_tmpfile)"
     extfile="$(new_tmpfile)"
 
-    openssl genpkey -algorithm ED25519 -out "${ROOT_CA_KEY}" >/dev/null 2>&1
-    openssl req -new -key "${ROOT_CA_KEY}" -out "${csr}" -subj "/CN=ACPs Development Root CA" >/dev/null 2>&1
+    run_openssl genpkey -algorithm ED25519 -out "${ROOT_CA_KEY}" >/dev/null
+    run_openssl req -new -key "${ROOT_CA_KEY}" -out "${csr}" -subj "/CN=ACPs Development Root CA" >/dev/null
     write_root_extfile "${extfile}"
     if is_ed25519_private_key "${ROOT_CA_KEY}"; then
-        openssl x509 -req \
+        run_openssl x509 -req \
             -in "${csr}" \
             -signkey "${ROOT_CA_KEY}" \
             -out "${ROOT_CA_CERT}" \
             -days "${ROOT_DAYS}" \
             -extfile "${extfile}" \
-            -extensions root_ca >/dev/null 2>&1
+            -extensions root_ca >/dev/null
     else
-        openssl x509 -req \
+        run_openssl x509 -req \
             -in "${csr}" \
             -signkey "${ROOT_CA_KEY}" \
             -out "${ROOT_CA_CERT}" \
             -days "${ROOT_DAYS}" \
             -sha256 \
             -extfile "${extfile}" \
-            -extensions root_ca >/dev/null 2>&1
+            -extensions root_ca >/dev/null
     fi
 
     rm -f "${csr}" "${extfile}"
@@ -235,11 +269,11 @@ create_intermediate_ca() {
     csr="$(new_tmpfile)"
     extfile="$(new_tmpfile)"
 
-    openssl genpkey -algorithm ED25519 -out "${key_path}" >/dev/null 2>&1
-    openssl req -new -key "${key_path}" -out "${csr}" -subj "/CN=${subject_cn}" >/dev/null 2>&1
+    run_openssl genpkey -algorithm ED25519 -out "${key_path}" >/dev/null
+    run_openssl req -new -key "${key_path}" -out "${csr}" -subj "/CN=${subject_cn}" >/dev/null
     write_intermediate_extfile "${extfile}"
     if is_ed25519_private_key "${ROOT_CA_KEY}"; then
-        openssl x509 -req \
+        run_openssl x509 -req \
             -in "${csr}" \
             -CA "${ROOT_CA_CERT}" \
             -CAkey "${ROOT_CA_KEY}" \
@@ -247,9 +281,9 @@ create_intermediate_ca() {
             -out "${cert_path}" \
             -days "${INTERMEDIATE_DAYS}" \
             -extfile "${extfile}" \
-            -extensions intermediate_ca >/dev/null 2>&1
+            -extensions intermediate_ca >/dev/null
     else
-        openssl x509 -req \
+        run_openssl x509 -req \
             -in "${csr}" \
             -CA "${ROOT_CA_CERT}" \
             -CAkey "${ROOT_CA_KEY}" \
@@ -258,7 +292,7 @@ create_intermediate_ca() {
             -days "${INTERMEDIATE_DAYS}" \
             -sha256 \
             -extfile "${extfile}" \
-            -extensions intermediate_ca >/dev/null 2>&1
+            -extensions intermediate_ca >/dev/null
     fi
 
     cat "${cert_path}" "${ROOT_CA_CERT}" >"${chain_path}"
@@ -364,20 +398,20 @@ issue_leaf_certificate() {
 
     case "${algorithm}" in
         ed25519)
-            openssl genpkey -algorithm ED25519 -out "${key_path}" >/dev/null 2>&1
+            run_openssl genpkey -algorithm ED25519 -out "${key_path}" >/dev/null
             ;;
         rsa)
-            openssl genrsa -out "${key_path}" 2048 >/dev/null 2>&1
+            run_openssl genrsa -out "${key_path}" 2048 >/dev/null
             ;;
         *)
             log_error "issue-leaf 只支持 ed25519 或 rsa，当前算法：${algorithm}"
             exit 1
             ;;
     esac
-    openssl req -new -key "${key_path}" -out "${csr}" -subj "/CN=${subject_cn}" >/dev/null 2>&1
+    run_openssl req -new -key "${key_path}" -out "${csr}" -subj "/CN=${subject_cn}" >/dev/null
     write_leaf_extfile "${extfile}" "${usage}" "${san}" "${algorithm}"
     if is_ed25519_private_key "${ca_key}"; then
-        openssl x509 -req \
+        run_openssl x509 -req \
             -in "${csr}" \
             -CA "${ca_cert}" \
             -CAkey "${ca_key}" \
@@ -385,9 +419,9 @@ issue_leaf_certificate() {
             -out "${cert_path}" \
             -days "${LEAF_DAYS}" \
             -extfile "${extfile}" \
-            -extensions leaf_cert >/dev/null 2>&1
+            -extensions leaf_cert >/dev/null
     else
-        openssl x509 -req \
+        run_openssl x509 -req \
             -in "${csr}" \
             -CA "${ca_cert}" \
             -CAkey "${ca_key}" \
@@ -396,7 +430,7 @@ issue_leaf_certificate() {
             -days "${LEAF_DAYS}" \
             -sha256 \
             -extfile "${extfile}" \
-            -extensions leaf_cert >/dev/null 2>&1
+            -extensions leaf_cert >/dev/null
     fi
 
     rm -f "${csr}" "${extfile}"
