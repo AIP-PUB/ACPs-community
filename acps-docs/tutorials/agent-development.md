@@ -153,7 +153,8 @@ from acps_sdk.aip.aip_rpc_server import (
 from fastapi import FastAPI
 
 
-PARTNER_AIC = "example-partner-aic"
+# 本地开发用的占位 AIC：AIC 必须是 10 段格式，部署时换成平台分配的真实 AIC
+PARTNER_AIC = "1.2.156.3088.1.1.DEMOA1.DEMOB1.1.DEMO"
 
 app = FastAPI(title="Minimal AIP Partner")
 
@@ -238,7 +239,15 @@ handlers = CommandHandlers(
     on_continue=on_continue,
 )
 
-add_aip_rpc_router(app, "/rpc", handlers)
+# local_aic 声明本端身份；identity_binding_enabled=False 表示本地纯 HTTP 开发态，
+# 不做对端证书身份校验。部署到 mTLS 环境时改回默认开启，详见 1.4.3。
+add_aip_rpc_router(
+    app,
+    "/rpc",
+    handlers,
+    local_aic=PARTNER_AIC,
+    identity_binding_enabled=False,
+)
 
 
 @app.get("/health")
@@ -272,7 +281,8 @@ import uuid
 from acps_sdk.aip import AipRpcClient, TaskState, TextDataItem
 
 
-LEADER_AIC = "example-leader-aic"
+LEADER_AIC = "1.2.156.3088.1.1.DEMOC1.DEMOD1.1.LEDR"
+PARTNER_AIC = "1.2.156.3088.1.1.DEMOA1.DEMOB1.1.DEMO"
 PARTNER_RPC_URL = "http://localhost:8011/rpc"
 
 
@@ -295,6 +305,10 @@ async def main() -> None:
     client = AipRpcClient(
         partner_url=PARTNER_RPC_URL,
         leader_id=LEADER_AIC,
+        # expected_partner_aic 声明预期对端身份；identity_binding_enabled=False
+        # 表示本地纯 HTTP 开发态，不做对端证书身份校验。部署到 mTLS 环境时改回默认开启。
+        expected_partner_aic=PARTNER_AIC,
+        identity_binding_enabled=False,
     )
 
     try:
@@ -347,7 +361,28 @@ if __name__ == "__main__":
 python leader.py
 ```
 
+如果本机设置了 `HTTP_PROXY` / `HTTPS_PROXY` 环境变量，本地联调需要额外设置 `NO_PROXY=localhost,127.0.0.1`（或 `no_proxy`），否则 HTTP 客户端会把请求发给代理，Partner 侧会收到非法的请求目标并返回 404。
+
 这就是最小 Leader 的职责：创建任务、观察状态、在需要时补充输入、确认产出或处理失败。真实 Leader 可以在这个基础上增加多 Partner 选择、并发执行、Discovery 查询、结果聚合、前端 API、持久化和安全通信。
+
+### 1.4.3. 身份绑定开关：本地 HTTP 开发态与 mTLS 部署态
+
+SDK v2.2.0 默认开启身份绑定（`identity_binding_enabled=True`）：Leader 侧需要声明预期对端 AIC，Partner 侧需要声明本端 AIC，并校验对端证书中的 AIC 与消息 `senderId` 是否一致。因此直接照抄上面的最小示例会出现三种现象：
+
+| 场景 | 现象 |
+| --- | --- |
+| Leader 未传 `expected_partner_aic` | 构造 `AipRpcClient` 时直接抛 `ValueError: expected_partner_aic is required when identity_binding_enabled=True` |
+| Partner 未传 `local_aic` | 注册路由时不报错，但每次请求返回 HTTP 500（`ValueError: local_aic is required when identity_binding_enabled=True`） |
+| 开启身份绑定但走纯 HTTP | 请求返回 JSON-RPC 错误 `-32008 AuthenticationRequiredError: peer AIC is required for identity binding` |
+
+所以本地跑通最小示例的做法是两端都显式关闭身份绑定（见 1.3.2 与 1.4.1 的代码）：此时不做证书身份校验，`senderId` 也不做 10 段 AIC 格式校验，适合本地联调。
+
+部署到真实环境时反过来做：
+
+1. Leader 与 Partner 都使用平台分配的 AIC（AIC 必须包含 10 段，格式不符会被 `senderId is invalid` 拒绝）；
+2. 两端都保留默认的 `identity_binding_enabled=True`；
+3. Leader 传 `expected_partner_aic=<Partner 的 AIC>`，Partner 传 `local_aic=<本端 AIC>`；
+4. 通过 mTLS 提供对端证书，证书中的 AIC 需与消息里的 `senderId` 一致。
 
 ## 1.5. 独立开发时应该自己决定什么
 
