@@ -77,10 +77,14 @@ def test_emit_sync_exclude_none(tmp_log: Path) -> None:
     assert "resource" not in record  # resource 为 None 时不出现
 
 
-def test_emit_sync_write_failure_only_warns(tmp_log: Path, caplog: pytest.LogCaptureFixture) -> None:
-    """写入失败（目录不可写）时只 WARNING 不 raise。"""
+def test_emit_sync_write_failure_only_warns(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """写入失败（父路径不可写）时只 WARNING 不 raise。"""
     sampler = _make_sampler()
-    bad_path = Path("/readonly_nonexistent_dir/amp_metrics.jsonl")
+    # 平台无关地构造不可写的父路径：父路径是一个已存在的普通文件，mkdir 必然失败
+    # （不能使用 /readonly_nonexistent_dir 这类绝对路径，在 Windows 上可能被创建成功）
+    blocker = tmp_path / "not-a-directory"
+    blocker.write_text("block", encoding="utf-8")
+    bad_path = blocker / "amp_metrics.jsonl"
     emitter = MetricsEmitter(bad_path, aic="aic-001", sampler=sampler)
 
     with caplog.at_level("WARNING"):
