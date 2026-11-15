@@ -267,7 +267,11 @@ def _bind_default_task_result_identity(
     result: TaskResult,
     local_aic: str | None,
 ) -> TaskResult:
-    """Backfill the built-in TaskManager placeholder sender with the real local AIC."""
+    """Backfill the built-in TaskManager placeholder sender with the real local AIC.
+
+    Applied to every result returned by the router, including custom handlers that
+    build their result through TaskManager / DefaultHandlers.
+    """
     if local_aic and result.senderId == _DEFAULT_TASK_RESULT_SENDER:
         result.senderId = local_aic
     return result
@@ -328,7 +332,10 @@ async def handle_rpc_request(
         # Start can create a new task if missing
         if command.command == TaskCommandType.Start:
             if getattr(agent_handlers, "on_start", None):
-                result = await agent_handlers.on_start(command, task)
+                result = _bind_default_task_result_identity(
+                    await agent_handlers.on_start(command, task),
+                    local_aic,
+                )
             else:
                 result = _bind_default_task_result_identity(
                     await DefaultHandlers.start(command, task),
@@ -346,7 +353,10 @@ async def handle_rpc_request(
                 )
                 return RpcResponse(id=rpc_request.id, error=error)
             if getattr(agent_handlers, "on_get", None):
-                result = await agent_handlers.on_get(command, task)
+                result = _bind_default_task_result_identity(
+                    await agent_handlers.on_get(command, task),
+                    local_aic,
+                )
             else:
                 result = _bind_default_task_result_identity(
                     await DefaultHandlers.get(command, task),
@@ -365,7 +375,10 @@ async def handle_rpc_request(
 
         if command.command == TaskCommandType.Cancel:
             if getattr(agent_handlers, "on_cancel", None):
-                result = await agent_handlers.on_cancel(command, task)
+                result = _bind_default_task_result_identity(
+                    await agent_handlers.on_cancel(command, task),
+                    local_aic,
+                )
             else:
                 result = _bind_default_task_result_identity(
                     await DefaultHandlers.cancel(command, task),
@@ -377,7 +390,10 @@ async def handle_rpc_request(
 
         if command.command == TaskCommandType.Complete:
             if getattr(agent_handlers, "on_complete", None):
-                result = await agent_handlers.on_complete(command, task)
+                result = _bind_default_task_result_identity(
+                    await agent_handlers.on_complete(command, task),
+                    local_aic,
+                )
             else:
                 result = _bind_default_task_result_identity(
                     await DefaultHandlers.complete(command, task),
@@ -389,7 +405,10 @@ async def handle_rpc_request(
 
         if command.command == TaskCommandType.Continue:
             if getattr(agent_handlers, "on_continue", None):
-                result = await agent_handlers.on_continue(command, task)
+                result = _bind_default_task_result_identity(
+                    await agent_handlers.on_continue(command, task),
+                    local_aic,
+                )
             else:
                 result = _bind_default_task_result_identity(
                     await DefaultHandlers.continue_(command, task),
@@ -401,7 +420,10 @@ async def handle_rpc_request(
 
         # Unknown or missing command -> try catch-all handler if provided
         if getattr(agent_handlers, "on_message", None):
-            result = await agent_handlers.on_message(command, task)
+            result = _bind_default_task_result_identity(
+                await agent_handlers.on_message(command, task),
+                local_aic,
+            )
             if identity_binding_enabled and local_aic is not None:
                 assert_sender_matches_expected(result, local_aic)
             return RpcResponse(id=rpc_request.id, result=result)
@@ -419,8 +441,11 @@ async def handle_rpc_request(
     except Exception as e:
         # If the agent logic fails, update the task state to 'failed'
         error_item = TextDataItem(text=f"Agent execution failed: {str(e)}")
-        failed_task = TaskManager.update_task_status(
-            task_id, TaskState.Failed, data_items=[error_item]
+        failed_task = _bind_default_task_result_identity(
+            TaskManager.update_task_status(
+                task_id, TaskState.Failed, data_items=[error_item]
+            ),
+            local_aic,
         )
         return RpcResponse(id=rpc_request.id, result=failed_task)
 
