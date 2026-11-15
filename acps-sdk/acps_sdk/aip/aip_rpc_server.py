@@ -417,6 +417,17 @@ async def handle_rpc_request(
     except AipIdentityError as exc:
         return RpcResponse(id=rpc_request.id, error=identity_error_to_jsonrpc(exc))
     except Exception as e:
+        if not task_id or TaskManager.get_task(task_id) is None:
+            # The handler failed before any task existed (e.g. on_start raised before
+            # TaskManager.create_task). There is no task to mark Failed; answer with the
+            # JSON-RPC Internal error instead of letting update_task_status raise (HTTP 500).
+            logger.exception("event=rpc_handler_failed_without_task task_id=%s", task_id)
+            error = JSONRPCError(
+                code=-32603,
+                message="Internal error",
+                data=f"Agent execution failed: {str(e)}",
+            )
+            return RpcResponse(id=rpc_request.id, error=error)
         # If the agent logic fails, update the task state to 'failed'
         error_item = TextDataItem(text=f"Agent execution failed: {str(e)}")
         failed_task = TaskManager.update_task_status(
