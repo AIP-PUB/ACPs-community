@@ -2345,7 +2345,14 @@ class GroupLeader:
         }
 
     async def dissolve_group_session(self, session_id: str) -> None:
-        session = self.group_sessions.pop(session_id, None)
+        # 解散广播发出后的等待期里，会话仍留在表中：成员回的 GroupMgmtResult、Leader 收到的自己那条
+        # DISBAND 照常路由、记录（原来先摘会话，这几条都成了 "Cannot route message"）。广播之后再摘。
+        session = self.group_sessions.get(session_id)
+        if (
+            session is not None
+            and session.leader_mq_client.state == GroupLeaderState.DISSOLVING
+        ):
+            return  # 另一个调用正在解散这个会话
         if session:
             for partner_aic, pending in list(self._pending_invitations.items()):
                 if pending.session_id != session_id:
@@ -2359,7 +2366,10 @@ class GroupLeader:
                 self._clear_pending_invitation(partner_aic)
 
             session.leader_mq_client._state = GroupLeaderState.DISSOLVING
-            await session.leader_mq_client.broadcast_group_shutdown()
+            try:
+                await session.leader_mq_client.broadcast_group_shutdown()
+            finally:
+                self.group_sessions.pop(session_id, None)
             if self._group_acl_client:
                 try:
                     await self._group_acl_client.delete_group(
@@ -2533,7 +2543,11 @@ class GroupLeader:
                     if not pending.future.done():
                         pending.future.set_result(partner_info)
                     self._clear_pending_invitation(message.senderId)
-            elif self._group_acl_client is not None:
+            elif (
+                self._group_acl_client is not None
+                and session.leader_mq_client.state != GroupLeaderState.DISSOLVING
+            ):
+                # 解散中成员回的「已断开」不逐个删 ACL：随后整组 delete_group
                 try:
                     await self._group_acl_client.remove_member(
                         leader_aic=self.leader_aic,
