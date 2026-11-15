@@ -51,6 +51,7 @@ class AipRpcClient:
         trace_context_provider: Callable[[], TraceContext | None] | None = None,
         expected_partner_aic: str | None = None,
         identity_binding_enabled: bool = True,
+        timeout: float | httpx.Timeout | None = 30.0,
     ):
         """
         初始化AIP RPC客户端
@@ -64,6 +65,7 @@ class AipRpcClient:
             caller_service: 主调服务名
             callee_service: 被调服务名
             trace_context_provider: 返回当前 trace 上下文；无则每次 RPC 新生成 trace_id
+            timeout: 单次 RPC 请求的超时（秒，或 httpx.Timeout）；None 表示不设超时。默认 30 秒
         """
         self.partner_url = partner_url
         self.leader_id = leader_id
@@ -74,6 +76,7 @@ class AipRpcClient:
         self._trace_context_provider = trace_context_provider
         self._expected_partner_aic = expected_partner_aic
         self._identity_binding_enabled = identity_binding_enabled
+        self._timeout = timeout
 
         if self._identity_binding_enabled and not self._expected_partner_aic:
             raise ValueError(
@@ -142,7 +145,7 @@ class AipRpcClient:
                 self.partner_url,
                 json=request_payload,
                 headers=headers,
-                timeout=30.0,
+                timeout=self._timeout,
             )
             if self._identity_binding_enabled:
                 remote_aic = extract_peer_aic_from_httpx_response(response)
