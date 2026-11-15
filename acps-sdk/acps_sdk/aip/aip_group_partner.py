@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import inspect
 import json
@@ -186,6 +187,8 @@ class GroupPartnerMqClient:
         self._pending_leave: bool = False
         # 暂存退出命令中的 sessionId，供延迟执行的 _handle_leave_request 回显使用
         self._pending_leave_session_id: Optional[str] = None
+        # 正在执行的延迟退出任务（保留引用，避免被回收；close() 时等待其结束）
+        self._leave_tasks: set[asyncio.Task[None]] = set()
 
         # 群组信息
         self._group_id: Optional[str] = None
@@ -842,7 +845,14 @@ class GroupPartnerMqClient:
                     _active_cmd_trace.set(None)
             if self._pending_leave:
                 self._pending_leave = False
-                await self._handle_leave_request()
+                # 退出要关闭本通道；aiormq 关闭通道时会取消该通道上仍在运行的消费回调任务，
+                # 若在本回调内直接 await，清理会在 channel.close() 处被取消，状态停在 LEAVING、
+                # 断开回调不会触发。因此放到独立任务中执行。
+                leave_task = asyncio.get_running_loop().create_task(
+                    self._handle_leave_request()
+                )
+                self._leave_tasks.add(leave_task)
+                leave_task.add_done_callback(self._leave_tasks.discard)
 
         self._consumer_tag = await self._queue.consume(on_message)
         logger.info(
@@ -1361,6 +1371,8 @@ class GroupPartnerMqClient:
 
     async def close(self) -> None:
         """关闭客户端"""
+        if self._leave_tasks:
+            await asyncio.gather(*list(self._leave_tasks), return_exceptions=True)
         if self._state != PartnerGroupState.DISCONNECTED:
             await self.leave_group()
         if self._inbox_channel and not getattr(self._inbox_channel, "is_closed", False):
