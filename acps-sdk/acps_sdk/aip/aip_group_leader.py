@@ -1554,9 +1554,17 @@ class GroupLeader:
         *,
         message_emitter: MessageEmitter | None = None,
         trace_context_provider: Callable[[], TraceContext | None] | None = None,
+        auth_ssl_context: Optional[ssl.SSLContext] = None,
     ) -> None:
+        """
+        Args:
+            ssl_context: 连接 RabbitMQ 用的 TLS 配置。
+            auth_ssl_context: 连接群组 ACL 服务（``rabbitmq_config["auth_service_url"]``）用的 TLS 配置。
+                ACL 服务与 broker 的证书名、信任根或客户端证书不同时传入；不传则沿用 ``ssl_context``。
+        """
         self.leader_aic = leader_aic
         self.ssl_context = ssl_context
+        self.auth_ssl_context = auth_ssl_context
         self.ssl_cert = ssl_cert
         self._message_emitter = message_emitter
         self._trace_context_provider = trace_context_provider
@@ -1581,7 +1589,9 @@ class GroupLeader:
         if isinstance(self.auth_service_url, str) and self.auth_service_url.strip():
             self._group_acl_client = GroupAclClient(
                 base_url=self.auth_service_url.strip(),
-                ssl_context=self.ssl_context,
+                ssl_context=(
+                    auth_ssl_context if auth_ssl_context is not None else self.ssl_context
+                ),
             )
 
     async def _ensure_connection(self) -> AbstractConnection:
