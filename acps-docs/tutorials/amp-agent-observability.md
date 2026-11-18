@@ -517,6 +517,23 @@ acps-cli monitor audit records --aic "$AIC" --start "$START" --end "$END"
 
 heartbeat 被平台处理后，Discovery 的 alive 视图应能覆盖该 AIC（具体 API 见 Discovery / ADP 文档）。业务验收 Step D 会检查「Leader + Partner 的存活覆盖」。
 
+### 4.4 轮换 AIC 后核对同一条业务
+
+记录发布版本、原 AIC 到新 AIC 的角色映射，以及包含这次请求的带时区时间窗。按预期技能查询 Discovery，并逐个比对预期 AIC 与实际端点。接着检查该端点的 TLS 证书和 AIP 消息身份。注册已通过、能被发现、端点实际提供新身份，是三个独立结果。[AIP 身份绑定验证](./aip-identity-binding-verification.md)
+
+| 观察 | 记录或排查 |
+| --- | --- |
+| 新 AIC 可发现，端点仍提供旧证书 | 核对运行服务、证书、端点映射及发布版本。先处理身份差异，再发送业务数据。 |
+| 新身份的 AIP 交互完成，应用任务失败 | 分别记录 AIP 交互结果、应用终态和失败阶段。 |
+| 转发器已收到 Kafka 投递确认，Monitor 查询尚未命中 | 按新 AIC 和相同时间窗查接入和消费情况。记录 broker 确认，并将 Monitor 查询标为待确认。 |
+
+如果应用接入了 trace ID，可用下面的只读查询核对该条交互。将变量设置为实际的新 AIC、trace ID 和时间窗。翻页时保留这些条件，仅更新 cursor。
+
+```bash
+acps-cli monitor access events --aic "$AIC" --trace-id "$TRACE_ID" \
+  --start "$START" --end "$END" --limit 20
+```
+
 ---
 
 ## 5. 端到端故事：`business.yml` 的 Step D
