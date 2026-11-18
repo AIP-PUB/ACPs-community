@@ -66,6 +66,10 @@ class BufferedStreamEvent:
     is_terminal: bool = False
 
 
+class _ReplayUnavailable(Exception):
+    """请求的历史事件已被覆盖。"""
+
+
 class TaskStreamChannel:
     """单任务 SSE 事件通道。
 
@@ -141,22 +145,18 @@ class TaskStreamChannel:
     # --- 可续传判断 ---
 
     def can_resume(self, last_event_seq: Optional[int]) -> bool:
-        """判断 last_event_seq 对应的重连是否可续传。
-
-        - None：始终可续传（从头重放）
-        - last_event_seq >= oldest_buffered_seq - 1：可续传
-        - 否则：缓冲已溢出，不可续传
-        """
-        if last_event_seq is None:
-            return True
-        if not self._buffer:
-            return True
-        return last_event_seq >= self.oldest_buffered_seq - 1
+        """判断请求的起点之后是否保留了全部事件；None 表示从头重放。"""
+        cursor = 0 if last_event_seq is None else last_event_seq
+        replay_boundary = self.oldest_buffered_seq - 1 if self._buffer else self.latest_seq
+        return cursor >= replay_boundary
 
     # --- 订阅 ---
 
     async def subscribe(
-        self, last_event_seq: Optional[int] = None
+        self,
+        last_event_seq: Optional[int] = None,
+        *,
+        require_complete_replay: bool = False,
     ) -> AsyncIterator[BufferedStreamEvent]:
         """订阅事件流。
 
@@ -169,6 +169,8 @@ class TaskStreamChannel:
 
         # 注册订阅者队列（已关闭则不注册，避免永久阻塞）
         async with self._lock:
+            if require_complete_replay and not self.can_resume(last_event_seq):
+                raise _ReplayUnavailable
             replayed = self.replay(last_event_seq)
             already_closed = self._closed
             if not already_closed:
@@ -323,6 +325,12 @@ class StreamHandlers:
     on_re_stream: Optional[Callable[[object], Awaitable[Optional[TaskStreamChannel]]]] = None
 
 
+def _replay_unavailable_frame(rpc_id: str | None) -> bytes:
+    return format_sse(
+        build_stream_error_response(rpc_id, -32002, "Cannot re-stream: buffer overflow, please restart")
+    )
+
+
 async def _sse_event_generator(
     hub: StreamHub,
     task_id: str,
@@ -331,6 +339,7 @@ async def _sse_event_generator(
     *,
     local_aic: str | None = None,
     identity_binding_enabled: bool = False,
+    require_complete_replay: bool = False,
 ) -> AsyncIterator[bytes]:
     """异步生成器：从通道订阅事件并 yield SSE bytes。"""
     channel = hub.get_channel(task_id)
@@ -341,10 +350,16 @@ async def _sse_event_generator(
         )
         return
 
-    async for event in channel.subscribe(last_event_seq=last_event_seq):
-        if identity_binding_enabled:
-            assert_sender_matches_expected(event.payload, local_aic)
-        yield format_sse(build_stream_response(rpc_id, event))
+    try:
+        async for event in channel.subscribe(
+            last_event_seq=last_event_seq,
+            require_complete_replay=require_complete_replay,
+        ):
+            if identity_binding_enabled:
+                assert_sender_matches_expected(event.payload, local_aic)
+            yield format_sse(build_stream_response(rpc_id, event))
+    except _ReplayUnavailable:
+        yield _replay_unavailable_frame(rpc_id)
 
 
 async def handle_stream_request(
@@ -435,13 +450,7 @@ async def handle_stream_request(
         if not channel.can_resume(last_event_seq):
             # 无法续传：单帧错误响应
             async def _error_gen() -> AsyncIterator[bytes]:
-                yield format_sse(
-                    build_stream_error_response(
-                        rpc_id,
-                        -32002,
-                        "Cannot re-stream: buffer overflow, please restart",
-                    )
-                )
+                yield _replay_unavailable_frame(rpc_id)
 
             return StreamingResponse(
                 _error_gen(),
@@ -456,6 +465,7 @@ async def handle_stream_request(
                 last_event_seq=last_event_seq,
                 local_aic=local_aic,
                 identity_binding_enabled=identity_binding_enabled,
+                require_complete_replay=True,
             ),
             media_type=SSE_MEDIA_TYPE,
             headers=SSE_HEADERS,
