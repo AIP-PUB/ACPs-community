@@ -230,3 +230,35 @@ class TestFlushBatch:
                     assert result is True
                     mock_dedupe.mark_seen.assert_called_once()
                     mock_freshness.advance_partition_watermark.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_flush_or_commit_past_unconfirmed_dlq_record():
+    from aiokafka.errors import KafkaError
+
+    from app.core.config import settings
+
+    writer = _make_writer()
+    valid = _make_kafka_message(b"valid")
+    invalid = _make_kafka_message(b"invalid")
+    invalid.key = None
+    kafka = AsyncMock()
+    kafka.getmany.return_value = {0: [valid, invalid]}
+    writer._consumer = kafka
+    writer._producer = AsyncMock()
+    writer._producer.send_and_wait.side_effect = KafkaError("persistent DLQ failure")
+    writer._running = True
+    writer._retry_base_delay_s = 0
+    writer._pending.append(MagicMock())
+    writer._process_with_retry = AsyncMock(side_effect=[True, False])
+    writer._flush_batch = AsyncMock(return_value=True)
+
+    async def finish_iteration() -> None:
+        writer._running = False
+
+    writer._advance_idle_partitions = AsyncMock(side_effect=finish_iteration)
+    with patch.object(type(settings), "access_insert_batch_max_rows", 1), pytest.raises(KafkaError, match="persistent"):
+        await writer.run()
+
+    writer._flush_batch.assert_not_awaited()
+    kafka.commit.assert_not_awaited()

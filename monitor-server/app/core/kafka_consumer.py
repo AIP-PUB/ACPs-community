@@ -41,7 +41,7 @@ class BaseLogConsumer(abc.ABC):
         max_poll_records: 单次 poll 最大消息条数。
         session_timeout_ms: Consumer 会话超时（毫秒）。
         heartbeat_interval_ms: Consumer 心跳间隔（毫秒）。
-        max_retries: 消息处理失败时的最大重试次数。
+        max_retries: 消息处理及 DLQ 投递各自的最大重试次数。
         retry_base_delay_s: 首次重试等待基础秒数（后续指数翻倍）。
     """
 
@@ -128,7 +128,8 @@ class BaseLogConsumer(abc.ABC):
         """持续消费消息的主循环（at-least-once 语义）。
 
         流程：消费消息 → 处理（含重试）→ 提交 offset。
-        处理失败超过重试上限时，写入 DLQ 后提交 offset，不阻塞主循环。
+        处理失败超过重试上限时，确认 DLQ 写入后才提交 offset。
+        DLQ 重试耗尽时退出消费循环，保留未提交 offset 以便重启后重放。
         """
         if self._consumer is None:
             raise RuntimeError("Consumer 未启动，请先调用 start()")
@@ -202,14 +203,10 @@ class BaseLogConsumer(abc.ABC):
         return False
 
     async def _send_to_dlq(self, msg: Any) -> None:
-        """将处理失败的消息写入 DLQ 主题。
-
-        Args:
-            msg: aiokafka ConsumerRecord 对象。
-        """
-        if self._producer is None:
-            logger.error("DLQ producer 未初始化，消息丢失", topic=self._dlq_topic)
-            return
+        """确认处理失败的消息已写入 DLQ；失败时阻止调用方提交源 offset。"""
+        producer = self._producer
+        if producer is None:
+            raise RuntimeError(f"DLQ producer 未初始化: {self._dlq_topic}")
 
         dlq_payload = {
             "source_topic": msg.topic,
@@ -218,26 +215,41 @@ class BaseLogConsumer(abc.ABC):
             "key": msg.key.decode("utf-8", errors="replace") if msg.key else None,
             "value": msg.value.decode("utf-8", errors="replace") if msg.value else None,
         }
-        try:
-            await self._producer.send_and_wait(
-                self._dlq_topic,
-                value=json.dumps(dlq_payload).encode("utf-8"),
-            )
-            self._dlq_count += 1
-            logger.info(
-                "消息已写入 DLQ",
-                dlq_topic=self._dlq_topic,
-                source_partition=msg.partition,
-                source_offset=msg.offset,
-            )
-        except KafkaError as exc:
-            logger.error(
-                "DLQ 写入失败，消息永久丢失",
-                dlq_topic=self._dlq_topic,
-                source_partition=msg.partition,
-                source_offset=msg.offset,
-                error=str(exc),
-            )
+        value = json.dumps(dlq_payload).encode("utf-8")
+        delay = self._retry_base_delay_s
+        for attempt in range(self._max_retries + 1):
+            try:
+                await producer.send_and_wait(self._dlq_topic, value=value)
+            except KafkaError as exc:
+                if attempt == self._max_retries:
+                    logger.error(
+                        "DLQ 写入重试已耗尽，暂停消费，源 offset 未提交",
+                        dlq_topic=self._dlq_topic,
+                        source_partition=msg.partition,
+                        source_offset=msg.offset,
+                        error=str(exc),
+                    )
+                    raise
+                logger.warning(
+                    "DLQ 写入失败，即将重试",
+                    dlq_topic=self._dlq_topic,
+                    source_partition=msg.partition,
+                    source_offset=msg.offset,
+                    attempt=attempt + 1,
+                    retry_after_s=delay,
+                    error=str(exc),
+                )
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, 30.0)
+            else:
+                self._dlq_count += 1
+                logger.info(
+                    "消息已写入 DLQ",
+                    dlq_topic=self._dlq_topic,
+                    source_partition=msg.partition,
+                    source_offset=msg.offset,
+                )
+                return
 
     @abc.abstractmethod
     async def handle_message(self, message: Any) -> None:
