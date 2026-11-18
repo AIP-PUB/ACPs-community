@@ -158,7 +158,7 @@ export class AipStreamClient {
     });
   }
 
-  /** 最后成功接收的 SSE 事件序号。可传入 reStream 用于断线续传。 */
+  /** 客户端最近收到的 SSE 事件序号。手动续传时只对同一任务使用。 */
   get lastEventSeq(): number | null {
     return this._lastEventSeq;
   }
@@ -215,7 +215,7 @@ export class AipStreamClient {
     sessionId: string,
     { taskId, textContent }: { taskId?: string | null; textContent?: string | null } = {},
   ): AsyncGenerator<StreamResponse> {
-    // 新任务从头计数，避免沿用上一个任务的序号（Python 版不重置，复用客户端时会跳过新任务的前几个事件）
+    // 新任务从头计数。自动重连使用当前迭代器自己的序号。
     this._lastEventSeq = null;
     return this.stream(this.makeCommand(TaskCommandType.Start, sessionId, { taskId, textContent }));
   }
@@ -330,6 +330,7 @@ export class AipStreamClient {
   ): AsyncGenerator<StreamResponse> {
     const id = taskId ?? `task-${randomUUID()}`;
     let reconnectCount = 0;
+    let lastEventSeq: number | null = null;
     let generator = this.startStream(sessionId, { taskId: id, textContent: userInput });
 
     while (true) {
@@ -337,6 +338,9 @@ export class AipStreamClient {
         for await (const event of generator) {
           if (event.error) {
             throw new StreamProtocolError(event.error.code, event.error.message, event.error.data);
+          }
+          if (event.result) {
+            lastEventSeq = event.result.eventSeq;
           }
           yield event;
         }
@@ -350,7 +354,7 @@ export class AipStreamClient {
         }
         reconnectCount += 1;
         await new Promise((resolve) => setTimeout(resolve, backoffS * reconnectCount * 1000));
-        generator = this.reStream(id, sessionId, this._lastEventSeq);
+        generator = this.reStream(id, sessionId, lastEventSeq);
       }
     }
   }
