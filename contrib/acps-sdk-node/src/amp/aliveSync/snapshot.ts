@@ -23,13 +23,7 @@ import type { AliveRecord } from "./store.js";
 
 const utf8 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 
-/**
- * 字节按 UTF-8 严格解码，再解析为 JSON 对象。
- *
- * 与 Python 版的差异（有意为之）：非法 UTF-8 与「JSON 合法但不是对象」（数组、数字、null 等）
- * 在 Python 里分别抛 UnicodeDecodeError / AttributeError；Node 版统一包装为 SnapshotProtocolError，
- * 调用方只需处理一种协议错误。
- */
+/** 字节按 UTF-8 严格解码，任何不符合 JSON 对象约定的行均抛出 SnapshotProtocolError。 */
 function parseJsonObject(raw: string | Uint8Array, what: string): Record<string, unknown> {
   let text: string;
   try {
