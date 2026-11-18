@@ -188,15 +188,6 @@ class DSPClient:
 
         return [self._parse_envelope_line(line, context=context) for line in response.text.strip().split("\n") if line]
 
-    def _update_last_seq_from_response(self, response: httpx.Response) -> int | None:
-        """从 changes 响应头更新 last_seq。"""
-
-        state = self._require_state()
-        next_seq = response.headers.get("X-Next-Seq")
-        if next_seq:
-            state.last_seq = self._parse_int_header(response, "X-Next-Seq", next_seq)
-        return state.last_seq
-
     @staticmethod
     def _raise_for_snapshot_status(
         response: httpx.Response,
@@ -241,19 +232,20 @@ class DSPClient:
         *,
         seq: int,
         types: list[str],
-    ) -> list[Envelope]:
-        """处理 changes 响应并返回解析后的 Envelope 列表。"""
+    ) -> tuple[list[Envelope], int | None]:
+        """解析 changes 页面及其候选水位，暂不更新同步状态。"""
 
-        if response.status_code == 200:
-            next_seq = self._update_last_seq_from_response(response)
+        if response.status_code in (200, 204):
+            next_seq = (
+                self._parse_int_header(response, "X-Next-Seq", "") if response.headers.get("X-Next-Seq") else None
+            )
+            if response.status_code == 204:
+                logger.debug("No changes available", next_seq=next_seq if next_seq is not None else seq)
+                return [], next_seq
+
             envelopes = self._collect_response_envelopes(response)
-            logger.debug("Processed changes", envelope_count=len(envelopes), next_seq=next_seq)
-            return envelopes
-
-        if response.status_code == 204:
-            next_seq = self._update_last_seq_from_response(response)
-            logger.debug("No changes available", next_seq=next_seq or seq)
-            return []
+            logger.debug("Parsed changes", envelope_count=len(envelopes), next_seq=next_seq)
+            return envelopes, next_seq
 
         if response.status_code == 410:
             logger.warning("Client has fallen behind retention window, snapshot needed")
@@ -453,7 +445,8 @@ class DSPClient:
         wait: int | None = None,
     ) -> AsyncGenerator[Envelope]:
         """
-        从注册中心获取增量变更。
+        从注册中心获取增量变更。调用方处理完当前页面后须读到迭代结束，
+        才会推进本地水位。中途关闭迭代器会保留旧水位。
 
         Args:
             seq: 起始序列号
@@ -477,8 +470,13 @@ class DSPClient:
             logger.debug("Fetching changes", seq=seq)
 
             response = await client.get(url, params=params, headers={"Accept": NDJSON_MEDIA_TYPE})
-            for envelope in self._process_changes_response(response, seq=seq, types=types):
+            envelopes, next_seq = self._process_changes_response(response, seq=seq, types=types)
+            for envelope in envelopes:
                 yield envelope
+
+            # 调用方处理完本页并读到迭代结束后，才提交该页水位。
+            if next_seq is not None:
+                self._require_state().last_seq = next_seq
 
         except SyncOperationError:
             raise
