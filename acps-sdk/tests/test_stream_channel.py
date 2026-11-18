@@ -231,3 +231,42 @@ async def test_hub_close_stream_removes_channel():
     hub.get_or_create_channel(task_id)
     await hub.close_stream(task_id)
     assert hub.get_channel(task_id) is None
+
+
+@pytest.mark.asyncio
+async def test_closing_subscription_during_replay_releases_its_queue():
+    from contextlib import aclosing
+
+    channel = TaskStreamChannel()
+    await channel.publish(_task_result())
+    await channel.publish(_task_result())
+
+    async with aclosing(channel.subscribe()) as subscription:
+        assert (await anext(subscription)).event_seq == 1
+        assert len(channel._queues) == 1
+
+    assert not channel._queues
+    await channel.publish(_task_result())
+    assert not channel._queues
+
+
+@pytest.mark.asyncio
+async def test_closing_one_replay_subscriber_keeps_other_subscriber_live():
+    from contextlib import aclosing
+
+    channel = TaskStreamChannel()
+    await channel.publish(_task_result())
+
+    async with aclosing(channel.subscribe()) as remaining:
+        assert (await anext(remaining)).event_seq == 1
+        async with aclosing(channel.subscribe()) as departing:
+            assert (await anext(departing)).event_seq == 1
+            assert len(channel._queues) == 2
+
+        assert len(channel._queues) == 1
+        await channel.publish(_task_result(), is_terminal=True)
+        assert (await asyncio.wait_for(anext(remaining), timeout=1)).event_seq == 2
+        with pytest.raises(StopAsyncIteration):
+            await anext(remaining)
+
+    assert not channel._queues
