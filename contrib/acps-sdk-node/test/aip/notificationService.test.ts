@@ -7,7 +7,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { type TaskResult, TaskState } from "../../src/aip/baseModel.js";
+import { type TaskResult, TaskCommandType, TaskState } from "../../src/aip/baseModel.js";
 import { NOTIFICATION_TOKEN_HEADER } from "../../src/aip/notificationModel.js";
 import {
   NotificationService,
@@ -262,3 +262,71 @@ describe("test_notification_service", () => {
     expect(started).toEqual(["t-1"]);
   });
 });
+
+it.each([false, true])(
+  "deletes active subscriptions without interrupting other callbacks (%s)",
+  async (deleteAll) => {
+    const partner = "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5";
+    const leader = "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4";
+    const other = "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6";
+    const taskId = "notification-delete";
+    const transport = fixedStatusTransport(200);
+    const service = new NotificationService({ localAic: partner, transport });
+    function config(id: string, path = id) {
+      return { id, taskId, url: `https://callback.example/${path}`, token: "fixture-token" };
+    }
+    try {
+      for (const { ownerAic, id, path } of [
+        { ownerAic: leader, id: "removed", path: "removed" },
+        { ownerAic: leader, id: "retained", path: "retained" },
+        { ownerAic: other, id: "removed", path: "other-owner" },
+      ]) {
+        service.store.set(config(id, path), { ownerAic });
+        await service.handleStart(
+          {
+            jsonrpc: "2.0",
+            method: "notification/start",
+            id: "start",
+            params: {
+              message: {
+                ...startBody(taskId, id).params.message,
+                type: "task-command",
+                senderRole: "leader",
+                senderId: ownerAic,
+                command: TaskCommandType.Start,
+              },
+            },
+          },
+          { ownerAic },
+        );
+      }
+      const deleted = await service.handleDelete(
+        {
+          jsonrpc: "2.0",
+          method: "notification/delete",
+          id: "delete",
+          params: { taskId, ...(deleteAll ? {} : { notificationConfigId: "removed" }) },
+        },
+        { ownerAic: leader },
+      );
+      expect(deleted.result?.success).toBe(true);
+      const result = { ...taskResult(taskId, TaskState.Completed), senderId: partner };
+      await service.dispatch(result);
+      const expected = deleteAll
+        ? ["https://callback.example/other-owner"]
+        : ["https://callback.example/retained", "https://callback.example/other-owner"];
+      expect(transport.requests.map((request) => request.url).sort()).toEqual([...expected].sort());
+
+      service.store.set(config("removed"), { ownerAic: leader });
+      await service.dispatch(result);
+      expect(
+        transport.requests
+          .slice(expected.length)
+          .map((request) => request.url)
+          .sort(),
+      ).toEqual([...expected].sort());
+    } finally {
+      await service.close();
+    }
+  },
+);

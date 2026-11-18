@@ -364,3 +364,96 @@ async def test_notify_all_states_when_no_filter():
     await service.dispatch(_tr(TaskState.Working))
     await service.dispatch(_tr(TaskState.Completed))
     assert transport.call_count == 2, "两次 dispatch 均应触发 callback"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("delete_all", [False, True])
+async def test_delete_notification_preserves_remaining_callbacks(delete_all):
+    from acps_sdk.aip.aip_notification_model import (
+        NotificationDeleteRequest,
+        NotificationStartRequest,
+    )
+
+    leader = "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    partner = "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+    other = "1.2.156.3088.1.1.34C2.478BDF.3GF548.0JU6"
+    task_id = "notification-delete"
+    delivered = []
+
+    def capture(request):
+        delivered.append(request.url.path)
+        return httpx.Response(200)
+
+    service = NotificationService(
+        local_aic=partner, transport=httpx.MockTransport(capture)
+    )
+    try:
+        for owner, config_id, path in (
+            (leader, "removed", "removed"),
+            (leader, "retained", "retained"),
+            (other, "removed", "other-owner"),
+        ):
+            service.store.set(
+                NotificationConfig(
+                    id=config_id,
+                    taskId=task_id,
+                    url=f"https://callback.example/{path}",
+                    token="fixture-token",
+                ),
+                owner_aic=owner,
+            )
+            start = {
+                "jsonrpc": "2.0",
+                "method": "notification/start",
+                "id": "start",
+                "params": {
+                    "message": {
+                        "type": "task-command",
+                        "id": "cmd-start",
+                        "sentAt": NOW,
+                        "senderRole": "leader",
+                        "senderId": owner,
+                        "command": "start",
+                        "taskId": task_id,
+                        "commandParams": {"notificationConfigId": config_id},
+                    }
+                },
+            }
+            await service.handle_start(
+                NotificationStartRequest.model_validate(start), owner_aic=owner
+            )
+        params = {"taskId": task_id}
+        if not delete_all:
+            params["notificationConfigId"] = "removed"
+        deleted = await service.handle_delete(
+            NotificationDeleteRequest.model_validate(
+                {"jsonrpc": "2.0", "method": "notification/delete", "id": "delete", "params": params}
+            ),
+            owner_aic=leader,
+        )
+        assert deleted.result is not None and deleted.result.success
+        result = TaskResult(
+            id="result",
+            sentAt=NOW,
+            senderRole="partner",
+            senderId=partner,
+            taskId=task_id,
+            status=TaskStatus(state=TaskState.Completed, stateChangedAt=NOW),
+        )
+        await service.dispatch(result)
+        expected = ["/other-owner"] if delete_all else ["/retained", "/other-owner"]
+        assert sorted(delivered) == sorted(expected)
+
+        # Reusing the config ID only prepares a new config. A new start must subscribe it.
+        service.store.set(
+            NotificationConfig(
+                id="removed", taskId=task_id, url="https://callback.example/removed",
+                token="fixture-token",
+            ),
+            owner_aic=leader,
+        )
+        delivered.clear()
+        await service.dispatch(result)
+        assert sorted(delivered) == sorted(expected)
+    finally:
+        await service.close()
