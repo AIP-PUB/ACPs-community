@@ -99,6 +99,8 @@ class AsyncQueue<T> {
   }
 }
 
+class ReplayUnavailable extends Error {}
+
 /**
  * 单任务 SSE 事件通道。
  *
@@ -169,21 +171,10 @@ export class TaskStreamChannel {
     return this.buffer.filter((event) => event.eventSeq > lastEventSeq);
   }
 
-  /**
-   * 判断 lastEventSeq 对应的重连是否可续传。
-   *
-   * - null：始终可续传（从头重放）
-   * - lastEventSeq >= oldestBufferedSeq - 1：可续传
-   * - 否则：缓冲已溢出，不可续传
-   */
+  /** 判断请求的起点之后是否保留了全部事件；null 表示从头重放。 */
   canResume(lastEventSeq?: number | null): boolean {
-    if (lastEventSeq === null || lastEventSeq === undefined) {
-      return true;
-    }
-    if (this.buffer.length === 0) {
-      return true;
-    }
-    return lastEventSeq >= this.oldestBufferedSeq - 1;
+    const replayBoundary = this.buffer.length ? this.oldestBufferedSeq - 1 : this.latestSeq;
+    return (lastEventSeq ?? 0) >= replayBoundary;
   }
 
   /**
@@ -192,8 +183,14 @@ export class TaskStreamChannel {
    */
   async *subscribe(
     lastEventSeq?: number | null,
-    { signal }: { signal?: AbortSignal } = {},
+    {
+      signal,
+      requireCompleteReplay = false,
+    }: { signal?: AbortSignal; requireCompleteReplay?: boolean } = {},
   ): AsyncGenerator<BufferedStreamEvent> {
+    if (requireCompleteReplay && !this.canResume(lastEventSeq)) {
+      throw new ReplayUnavailable();
+    }
     const queue = new AsyncQueue<BufferedStreamEvent>();
     const replayed = this.replay(lastEventSeq);
     const alreadyClosed = this.closed;
@@ -359,6 +356,12 @@ export type StreamRequestOutcome =
   | { kind: "error"; status: number; detail: Record<string, unknown> }
   | { kind: "stream"; frames: AsyncIterable<string> };
 
+function replayUnavailableFrame(rpcId: JsonRpcId | undefined): string {
+  return formatSse(
+    buildStreamErrorResponse(rpcId, -32002, "Cannot re-stream: buffer overflow, please restart"),
+  );
+}
+
 async function* sseEventGenerator(
   hub: StreamHub,
   taskId: string | null,
@@ -367,6 +370,7 @@ async function* sseEventGenerator(
   localAic: string | null,
   identityBindingEnabled: boolean,
   signal: AbortSignal | undefined,
+  requireCompleteReplay = false,
 ): AsyncGenerator<string> {
   const channel = taskId === null ? null : hub.getChannel(taskId);
   if (!channel) {
@@ -376,11 +380,16 @@ async function* sseEventGenerator(
     );
     return;
   }
-  for await (const event of channel.subscribe(lastEventSeq, { signal })) {
-    if (identityBindingEnabled) {
-      assertSenderMatchesExpected(event.payload, localAic);
+  try {
+    for await (const event of channel.subscribe(lastEventSeq, { signal, requireCompleteReplay })) {
+      if (identityBindingEnabled) {
+        assertSenderMatchesExpected(event.payload, localAic);
+      }
+      yield formatSse(buildStreamResponse(rpcId, event));
     }
-    yield formatSse(buildStreamResponse(rpcId, event));
+  } catch (error) {
+    if (!(error instanceof ReplayUnavailable)) throw error;
+    yield replayUnavailableFrame(rpcId);
   }
 }
 
@@ -476,13 +485,7 @@ export async function handleStreamRequest(
       return {
         kind: "stream",
         frames: (async function* () {
-          yield formatSse(
-            buildStreamErrorResponse(
-              rpcId,
-              -32002,
-              "Cannot re-stream: buffer overflow, please restart",
-            ),
-          );
+          yield replayUnavailableFrame(rpcId);
         })(),
       };
     }
@@ -497,6 +500,7 @@ export async function handleStreamRequest(
         localAic,
         identityBindingEnabled,
         signal,
+        true,
       ),
     };
   }

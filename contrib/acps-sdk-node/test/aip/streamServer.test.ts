@@ -287,3 +287,57 @@ describe("test_stream_server: HTTP endpoint", () => {
     await hub.publishTaskResult("t-live", taskResult("t-live", TaskState.Completed));
   });
 });
+
+it.each([
+  { size: 2, params: undefined, seqs: null },
+  { size: 2, params: { lastEventSeq: null }, seqs: null },
+  { size: 0, params: undefined, seqs: null },
+  { size: 4, params: undefined, seqs: [1, 2, 3, 4] },
+  { size: 2, params: { lastEventSeq: 2 }, seqs: [3, 4] },
+  { size: 0, params: { lastEventSeq: 4 }, seqs: [] },
+])("requires complete requested history ($size, $params)", async ({ size, params, seqs }) => {
+  const hub = new StreamHub(size);
+  const taskId = "replay-boundary";
+  for (let i = 0; i < 3; i += 1) {
+    await hub.publishTaskResult(taskId, taskResult(taskId));
+  }
+  await hub.publishTaskResult(taskId, taskResult(taskId, TaskState.Completed));
+
+  const response = await post(
+    await buildAppWithHub(hub),
+    streamBody(command("re-stream", taskId, params ? { commandParams: params } : {}), "boundary"),
+  );
+  expect(response.status).toBe(200);
+  const frames = sseLines(await response.text());
+  if (seqs === null) {
+    expect(frames).toHaveLength(1);
+    expect(frames[0]?.error?.code).toBe(-32002);
+  } else {
+    expect(frames.map((frame) => frame.result?.eventSeq)).toEqual(seqs);
+  }
+});
+
+it("rechecks replay history when the response starts", async () => {
+  const hub = new StreamHub(2);
+  const taskId = "replay-after-response";
+  for (let i = 0; i < 2; i += 1) {
+    await hub.publishTaskResult(taskId, taskResult(taskId));
+  }
+  const outcome = await handleStreamRequest(
+    {
+      body: streamBody(command("re-stream", taskId, { commandParams: { lastEventSeq: 1 } })),
+      getPeerAic: () => null,
+    },
+    hub,
+    async () => undefined,
+    { identityBindingEnabled: false },
+  );
+  if (outcome.kind !== "stream") throw new Error("expected SSE");
+  await hub.publishTaskResult(taskId, taskResult(taskId));
+  await hub.publishTaskResult(taskId, taskResult(taskId, TaskState.Completed));
+
+  const frames = [];
+  for await (const frame of outcome.frames) frames.push(...sseLines(frame));
+  expect(frames).toHaveLength(1);
+  expect(frames[0]?.error?.code).toBe(-32002);
+});

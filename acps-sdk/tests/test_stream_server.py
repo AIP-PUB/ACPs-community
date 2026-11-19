@@ -386,3 +386,73 @@ async def test_restream_endpoint_buffer_expired_returns_error_frame():
     assert response.status_code == 200
     # 响应体应含 error 帧
     assert "error" in response.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("buffer_size", "params", "expected_seqs"),
+    [
+        (2, None, None),
+        (2, {"lastEventSeq": None}, None),
+        (0, None, None),
+        (4, None, [1, 2, 3, 4]),
+        (2, {"lastEventSeq": 2}, [3, 4]),
+        (0, {"lastEventSeq": 4}, []),
+    ],
+)
+async def test_restream_requires_complete_requested_history(buffer_size, params, expected_seqs):
+    hub = StreamHub(max_buffer=buffer_size)
+    task_id = "replay-boundary"
+    for _ in range(3):
+        await hub.publish_task_result(task_id, _task_result(task_id))
+    await hub.publish_task_result(task_id, _task_result(task_id, TaskState.Completed))
+
+    command = _task_command(task_id).model_copy(
+        update={"command": TaskCommandType.ReStream, "commandParams": params}
+    )
+    response = await _post_async(
+        _build_app_with_hub(hub),
+        "/stream",
+        json={
+            "jsonrpc": "2.0", "method": "stream", "id": "boundary",
+            "params": {"message": command.model_dump(mode="json", exclude_none=True)},
+        },
+    )
+    assert response.status_code == 200
+    frames = [
+        json.loads(line.removeprefix("data: "))
+        for line in response.text.splitlines()
+        if line.startswith("data: ")
+    ]
+    if expected_seqs is None:
+        assert len(frames) == 1
+        assert frames[0]["error"]["code"] == -32002
+    else:
+        assert [frame["result"]["eventSeq"] for frame in frames] == expected_seqs
+
+
+@pytest.mark.asyncio
+async def test_restream_rechecks_history_when_response_starts():
+    from unittest.mock import AsyncMock
+
+    from acps_sdk.aip.aip_stream_server import handle_stream_request
+
+    hub = StreamHub(max_buffer=2)
+    task_id = "replay-after-response"
+    for _ in range(2):
+        await hub.publish_task_result(task_id, _task_result(task_id))
+    command = _task_command(task_id).model_copy(
+        update={"command": TaskCommandType.ReStream, "commandParams": {"lastEventSeq": 1}}
+    )
+    request = AsyncMock()
+    request.json.return_value = {
+        "jsonrpc": "2.0", "method": "stream", "id": "late",
+        "params": {"message": command.model_dump(mode="json", exclude_none=True)},
+    }
+    response = await handle_stream_request(request, hub, AsyncMock(), identity_binding_enabled=False)
+
+    await hub.publish_task_result(task_id, _task_result(task_id))
+    await hub.publish_task_result(task_id, _task_result(task_id, TaskState.Completed))
+    frames = [json.loads(frame.decode().removeprefix("data: ")) async for frame in response.body_iterator]
+    assert len(frames) == 1
+    assert frames[0]["error"]["code"] == -32002
