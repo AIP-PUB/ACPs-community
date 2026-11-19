@@ -445,3 +445,64 @@ async def test_stream_with_reconnect_reconnects_on_network_error():
     assert len(events) == 2
     assert events[-1].result.eventSeq == 2  # type: ignore
     await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("receive_first_event", [False, True])
+async def test_reconnect_uses_cursor_of_its_own_task(monkeypatch, receive_first_event):
+    """A different task's event must not become this stream's resume cursor."""
+    leader_aic = "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4"
+    partner_aic = "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5"
+    monkeypatch.setattr(
+        "acps_sdk.aip.aip_stream_client.extract_peer_aic_from_httpx_response",
+        lambda response: partner_aic,
+    )
+    requests = []
+
+    def event_bytes(seq, task_id):
+        event = _task_result_resp(seq, task_id, TaskState.Working)
+        event.result.eventData.senderId = partner_aic
+        return _make_sse_bytes(event)
+
+    class InterruptedStream(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            if receive_first_event:
+                yield event_bytes(1, "second")
+            raise httpx.ReadError("test disconnect")
+
+    async def handle(request):
+        command = json.loads(request.content)["params"]["message"]
+        requests.append(command)
+        if command["command"] == "re-stream":
+            return httpx.Response(200, content=event_bytes(2, "second"))
+        if command["taskId"] == "first":
+            return httpx.Response(200, content=event_bytes(8, "first"))
+        return httpx.Response(200, stream=InterruptedStream())
+
+    client = AipStreamClient(
+        "https://partner.example/stream",
+        "https://partner.example/rpc",
+        leader_aic,
+        transport=httpx.MockTransport(handle),
+        expected_partner_aic=partner_aic,
+    )
+    try:
+        second = client.stream_with_reconnect(
+            "second-session", "hello", task_id="second", max_reconnects=1, backoff_s=0
+        )
+        if receive_first_event:
+            assert (await anext(second)).result.eventSeq == 1
+        assert [
+            e.result.eventSeq
+            async for e in client.start_stream("first-session", task_id="first")
+        ] == [8]
+        assert [e.result.eventSeq async for e in second] == [2]
+        resume = requests[-1]
+        assert resume["command"] == "re-stream"
+        assert resume["taskId"] == "second"
+        assert resume["sessionId"] == "second-session"
+        assert resume.get("commandParams") == (
+            {"lastEventSeq": 1} if receive_first_event else None
+        )
+    finally:
+        await client.close()

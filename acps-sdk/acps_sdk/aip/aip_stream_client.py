@@ -108,7 +108,7 @@ class AipStreamClient:
 
     @property
     def last_event_seq(self) -> Optional[int]:
-        """最后成功接收的 SSE 事件序号。可传入 re_stream 用于断线续传。"""
+        """客户端最近收到的 SSE 事件序号。手动续传时只对同一任务使用。"""
         return self._last_event_seq
 
     # ------------------------------------------------------------------
@@ -308,6 +308,7 @@ class AipStreamClient:
             task_id = f"task-{uuid.uuid4()}"
 
         reconnect_count = 0
+        last_event_seq: int | None = None
         gen = self.start_stream(session_id=session_id, task_id=task_id, text_content=user_input)
 
         while True:
@@ -319,11 +320,13 @@ class AipStreamClient:
                             message=event.error.message,
                             data=event.error.data if hasattr(event.error, "data") else None,
                         )
+                    if event.result is not None:
+                        last_event_seq = event.result.eventSeq
                     yield event
                 break  # 流正常结束，退出重连循环
             except StreamProtocolError:
                 raise  # 服务端明确 error，不重连
-            except (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadError) as exc:
+            except (httpx.RemoteProtocolError, httpx.ConnectError, httpx.ReadError):
                 if reconnect_count >= max_reconnects:
                     raise
                 reconnect_count += 1
@@ -331,7 +334,7 @@ class AipStreamClient:
                 gen = self.re_stream(
                     task_id=task_id,
                     session_id=session_id,
-                    last_event_seq=self._last_event_seq,
+                    last_event_seq=last_event_seq,
                 )
 
     # ------------------------------------------------------------------

@@ -350,3 +350,70 @@ describe("test_stream_client: streamWithReconnect", () => {
     expect(isReconnectableStreamError("ECONNRESET")).toBe(false);
   });
 });
+
+describe("resume cursors are scoped to the stream invocation", () => {
+  it("resumes an overlapping task from its own event sequence", async () => {
+    const partnerAic = "1.2.156.3088.1.1.34C2.478BDF.3GF547.0JU5";
+    const leaderAic = "1.2.156.3088.1.1.34C2.478BDF.3GF546.0JU4";
+    type Command = { command: string; taskId: string; sessionId: string; commandParams?: unknown };
+    const requests: Command[] = [];
+    function encodedEvent(seq: number, taskId: string): Buffer {
+      const data = taskResult(taskId, TaskState.Working);
+      data.senderId = partnerAic;
+      return Buffer.from(
+        makeSse({
+          jsonrpc: "2.0",
+          id: "rpc-test",
+          result: { eventSeq: seq, eventData: data },
+        }),
+      );
+    }
+    const transport: HttpStreamTransport = async ({ body }) => {
+      const command = (JSON.parse(String(body)) as { params: { message: Command } }).params.message;
+      requests.push(command);
+      async function* events() {
+        if (command.command === "re-stream") {
+          yield encodedEvent(2, "second");
+        } else if (command.taskId === "first") {
+          yield encodedEvent(8, "first");
+        } else {
+          yield encodedEvent(1, "second");
+          throw Object.assign(new Error("test disconnect"), { code: "ECONNRESET" });
+        }
+      }
+      return {
+        status: 200,
+        headers: {},
+        peerCertificate: { subject: { CN: partnerAic } },
+        body: events(),
+        close: () => undefined,
+      };
+    };
+    const c = new AipStreamClient(
+      "https://partner.example/stream",
+      "https://partner.example/rpc",
+      leaderAic,
+      { streamTransport: transport, expectedPartnerAic: partnerAic },
+    );
+    try {
+      const second = c.streamWithReconnect("second-session", "hello", {
+        taskId: "second",
+        maxReconnects: 1,
+        backoffS: 0,
+      });
+      expect((await second.next()).value?.result?.eventSeq).toBe(1);
+      expect(
+        (await drain(c.startStream("first-session", { taskId: "first" }))).at(-1)?.result?.eventSeq,
+      ).toBe(8);
+      expect((await drain(second)).at(-1)?.result?.eventSeq).toBe(2);
+      expect(requests.at(-1)).toMatchObject({
+        command: "re-stream",
+        taskId: "second",
+        sessionId: "second-session",
+        commandParams: { lastEventSeq: 1 },
+      });
+    } finally {
+      await c.close();
+    }
+  });
+});
