@@ -2,7 +2,7 @@
 
 覆盖：
 - _process_with_retry：首次成功、重试后成功、耗尽重试
-- _send_to_dlq：正常写入、无 producer 时优雅降级
+- _send_to_dlq：确认写入、瞬时故障重试、持续故障中止
 - run 循环：_running=False 时退出
 """
 
@@ -132,12 +132,13 @@ class TestSendToDlq:
         assert consumer._dlq_count == 1
 
     @pytest.mark.asyncio
-    async def test_dlq_graceful_when_producer_is_none(self) -> None:
+    async def test_dlq_requires_a_producer(self) -> None:
         consumer = _ConcreteConsumer()
         msg = _make_mock_msg()
         consumer._producer = None
 
-        await consumer._send_to_dlq(msg)  # 不应抛异常
+        with pytest.raises(RuntimeError, match="DLQ producer"):
+            await consumer._send_to_dlq(msg)
 
         assert consumer._dlq_count == 0
 
@@ -153,16 +154,18 @@ class TestSendToDlq:
         assert consumer._dlq_count == 1
 
     @pytest.mark.asyncio
-    async def test_dlq_kafka_error_does_not_raise(self) -> None:
+    async def test_dlq_propagates_exhausted_kafka_error(self) -> None:
         from aiokafka.errors import KafkaError
 
-        consumer = _ConcreteConsumer()
+        consumer = _ConcreteConsumer(max_retries=1, retry_base_delay_s=0)
         msg = _make_mock_msg()
         mock_producer = AsyncMock()
         mock_producer.send_and_wait = AsyncMock(side_effect=KafkaError("kafka 连接失败"))
         consumer._producer = mock_producer
 
-        await consumer._send_to_dlq(msg)  # 不应向外抛异常
+        with pytest.raises(KafkaError):
+            await consumer._send_to_dlq(msg)
+        assert mock_producer.send_and_wait.await_count == 2
 
         assert consumer._dlq_count == 0
 
@@ -181,3 +184,51 @@ class TestStopClearsRunningFlag:
 
         assert consumer._running is False
         mock_kafka.stop.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_run_waits_for_dlq_confirmation_before_committing():
+    from aiokafka.errors import KafkaError
+
+    consumer = _ConcreteConsumer(max_retries=1, retry_base_delay_s=0)
+    consumer._running = True
+    consumer._consumer = MagicMock()
+    consumer._consumer.__aiter__.return_value = [_make_mock_msg(offset=42)]
+    consumer._consumer.commit = AsyncMock()
+    consumer._process_with_retry = AsyncMock(return_value=False)
+    consumer._producer = AsyncMock()
+
+    async def publish(*args: Any, **kwargs: Any) -> None:
+        consumer._consumer.commit.assert_not_awaited()
+        if consumer._producer.send_and_wait.await_count == 1:
+            raise KafkaError("temporary DLQ failure")
+
+    consumer._producer.send_and_wait.side_effect = publish
+    await consumer.run()
+
+    assert consumer._producer.send_and_wait.await_count == 2
+    consumer._consumer.commit.assert_awaited_once()
+    assert consumer._dlq_count == 1
+
+
+@pytest.mark.asyncio
+async def test_run_does_not_commit_when_dlq_is_unavailable():
+    from aiokafka.errors import KafkaError
+
+    consumer = _ConcreteConsumer(max_retries=1, retry_base_delay_s=0)
+    consumer._running = True
+    kafka = MagicMock()
+    kafka.__aiter__.return_value = [_make_mock_msg(offset=42), _make_mock_msg(offset=43)]
+    kafka.commit = AsyncMock()
+    consumer._consumer = kafka
+    consumer._process_with_retry = AsyncMock(side_effect=[False, True])
+    consumer._producer = AsyncMock()
+    consumer._producer.send_and_wait.side_effect = KafkaError("persistent DLQ failure")
+
+    with pytest.raises(KafkaError, match="persistent"):
+        await consumer.run()
+
+    kafka.commit.assert_not_awaited()
+    consumer._process_with_retry.assert_awaited_once()
+    assert consumer._producer.send_and_wait.await_count == 2
+    assert consumer._dlq_count == 0
