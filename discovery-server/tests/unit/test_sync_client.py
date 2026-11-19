@@ -282,3 +282,73 @@ def test_get_dsp_client_raises_when_base_url_missing(monkeypatch: pytest.MonkeyP
     assert exc_info.value.status_code == 503
     assert exc_info.value.error_name == SyncError.CLIENT_CONFIG_ERROR
     assert "DSP_BASE_URL" in exc_info.value.error_msg
+
+
+async def test_changes_retry_page_after_apply_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = sync_client_module.DSPClient("http://registry.example/acps-dsp-v2")
+    client.state = DSPState(last_seq=40, needs_snapshot=False)
+    envelopes = [
+        Envelope(seq=41, type="acs", id="first", version=1),
+        Envelope(seq=42, type="acs", id="second", version=1),
+        Envelope(seq=43, type="acs", id="third", version=1),
+    ]
+    requested = []
+    copied = []
+    failed_once = False
+
+    def registry(request: httpx.Request) -> httpx.Response:
+        seq = int(request.url.params["seq"])
+        requested.append(seq)
+        if seq == 40:
+            return httpx.Response(
+                200,
+                text="\n".join(item.model_dump_json() for item in envelopes),
+                headers={"X-Next-Seq": "43"},
+            )
+        assert seq == 43
+        return httpx.Response(204, headers={"X-Next-Seq": "45"})
+
+    async def persist(envelope: Envelope) -> None:
+        nonlocal failed_once
+        if envelope.id == "second" and not failed_once:
+            failed_once = True
+            raise RuntimeError("temporary database failure")
+        copied.append(envelope.id)
+
+    async def no_index_io(envelope: Envelope) -> None:
+        pass
+
+    async def no_diagnostics(**kwargs: object) -> None:
+        pass
+
+    monkeypatch.setattr(client, "_apply_to_database", persist)
+    monkeypatch.setattr(client, "update_search_index", no_index_io)
+    monkeypatch.setattr(client, "_log_agent_visibility", no_diagnostics)
+    monkeypatch.setattr(client, "_log_changes_sync_result", lambda _: asyncio.sleep(0))
+    async with httpx.AsyncClient(transport=httpx.MockTransport(registry)) as http:
+        monkeypatch.setattr(client, "_get_http_client", lambda: http)
+        with pytest.raises(RuntimeError, match="temporary database failure"):
+            await client.sync_once()
+        assert client.state.last_seq == 40
+        await client.sync_once()
+
+    assert requested == [40, 40, 43]
+    assert copied == ["first", "second", "third"]
+    assert client.state.last_seq == 45
+
+
+async def test_closing_changes_iterator_keeps_previous_cursor(monkeypatch: pytest.MonkeyPatch) -> None:
+    from contextlib import aclosing
+
+    client = sync_client_module.DSPClient("http://registry.example/acps-dsp-v2")
+    client.state = DSPState(last_seq=10, needs_snapshot=False)
+    envelope = Envelope(seq=11, type="acs", id="first", version=1)
+    transport = httpx.MockTransport(
+        lambda _: httpx.Response(200, text=envelope.model_dump_json(), headers={"X-Next-Seq": "11"})
+    )
+    async with httpx.AsyncClient(transport=transport) as http:
+        monkeypatch.setattr(client, "_get_http_client", lambda: http)
+        async with aclosing(client.get_changes(seq=10)) as changes:
+            assert await anext(changes) == envelope
+
+    assert client.state.last_seq == 10
