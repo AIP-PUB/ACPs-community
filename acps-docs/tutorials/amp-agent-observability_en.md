@@ -517,6 +517,23 @@ There may be a short delay right after writing, so wait a moment before querying
 
 Once the platform has processed the heartbeat, Discovery's alive view should cover that AIC (see the Discovery / ADP documentation for the specific API). Business acceptance Step D checks "liveness coverage for the Leader + Partner".
 
+### 4.4 Verify one interaction after rotating AICs
+
+Record the deployed version, the old-to-new AIC mapping for each role, and a time window with an explicit offset. Query Discovery by the expected skill and verify the AIC and endpoint for each role. Then verify the endpoint certificate and AIP message identity. Record registration approval, discoverability, and the identity the endpoint serves as separate results. [AIP identity binding verification](./aip-identity-binding-verification_en.md)
+
+| Observation | Evidence to collect or check |
+| --- | --- |
+| Discovery returns the new AIC and the endpoint still presents the old certificate | Check the running service, certificate, endpoint mapping, and deployed version. Resolve the identity mismatch before sending application data. |
+| The AIP interaction completes and the application task fails | Record the AIP interaction result, the terminal application state, and the failure stage. |
+| The forwarder has a Kafka delivery acknowledgement and Monitor has no matching records yet | Check ingestion for the new AIC and the same time window. Record the broker acknowledgement and mark Monitor visibility as pending. |
+
+If the application propagates a trace ID, use this read-only query to find that interaction. Set the variables to the new AIC, the observed trace ID, and the time window. When paging, keep these filters and change only the cursor.
+
+```bash
+acps-cli monitor access events --aic "$AIC" --trace-id "$TRACE_ID" \
+  --start "$START" --end "$END" --limit 20
+```
+
 ---
 
 ## 5. The end-to-end story: Step D of `business.yml`
