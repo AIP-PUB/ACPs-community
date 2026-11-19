@@ -31,6 +31,13 @@ VALID_ROW = {
 }
 
 
+@pytest.mark.parametrize("parser", [parse_meta_line, parse_snapshot_row])
+@pytest.mark.parametrize("raw", ["null", "[]", b"\xff"])
+def test_invalid_snapshot_line_uses_protocol_error(parser, raw):
+    with pytest.raises(SnapshotProtocolError):
+        parser(raw)
+
+
 class TestParseMetaLine:
     def test_valid_meta_dict(self) -> None:
         meta = parse_meta_line(json.dumps(VALID_META))

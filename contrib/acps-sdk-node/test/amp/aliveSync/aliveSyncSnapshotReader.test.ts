@@ -64,7 +64,7 @@ describe("TestParseMetaLine", () => {
       /snapshot meta 行字段校验失败/,
     );
   });
-  // 与 Python 的差异：Python 分别抛 UnicodeDecodeError / AttributeError，Node 统一为 SnapshotProtocolError
+  // 两端 SDK 对无效 UTF-8 和非 JSON 对象均使用 SnapshotProtocolError。
   it("invalid UTF-8 bytes are wrapped as SnapshotProtocolError", () => {
     expectProtocolError(() => parseMetaLine(Uint8Array.from([0xff, 0xfe])), /UTF-8 解码失败/);
     expectProtocolError(() => parseSnapshotRow(Uint8Array.from([0xc3, 0x28])), /UTF-8 解码失败/);

@@ -7,6 +7,7 @@ snapshot 格式：
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from acps_sdk.amp.heartbeat_sync import (
     ALIVE_DELTA_TYPE,
@@ -21,6 +22,19 @@ from acps_sdk.amp.alive_sync.errors import SnapshotProtocolError
 from acps_sdk.amp.alive_sync.store import AliveRecord
 
 
+def _parse_json_object(raw: str | bytes, field: str) -> dict[str, Any]:
+    try:
+        text = raw.decode("utf-8") if isinstance(raw, bytes) else raw
+        data = json.loads(text)
+    except UnicodeDecodeError as exc:
+        raise SnapshotProtocolError(f"{field} UTF-8 解码失败: {exc}") from exc
+    except (ValueError, RecursionError) as exc:
+        raise SnapshotProtocolError(f"{field} JSON 解析失败: {exc}") from exc
+    if not isinstance(data, dict):
+        raise SnapshotProtocolError(f"{field} 不是 JSON 对象")
+    return data
+
+
 def parse_meta_line(raw: str | bytes) -> AliveSnapshotMeta:
     """解析 snapshot 首行（snapshot-meta）。
 
@@ -31,13 +45,9 @@ def parse_meta_line(raw: str | bytes) -> AliveSnapshotMeta:
         AliveSnapshotMeta 实例。
 
     Raises:
-        SnapshotProtocolError: JSON 解析失败、recordType 或 type 字段不符合契约。
+        SnapshotProtocolError: UTF-8 或 JSON 解析失败、JSON 值不是对象、recordType 或 type 字段不符合契约。
     """
-    text = raw.decode() if isinstance(raw, bytes) else raw
-    try:
-        data = json.loads(text)
-    except Exception as exc:
-        raise SnapshotProtocolError(f"snapshot meta 行 JSON 解析失败: {exc}") from exc
+    data = _parse_json_object(raw, "snapshot meta 行")
 
     if data.get("recordType") != SNAPSHOT_META_RECORD_TYPE:
         raise SnapshotProtocolError(
@@ -66,13 +76,9 @@ def parse_snapshot_row(raw: str | bytes) -> AliveDeltaEnvelope:
         AliveDeltaEnvelope 实例。
 
     Raises:
-        SnapshotProtocolError: JSON 解析失败、kind/op/payload 不符合契约。
+        SnapshotProtocolError: UTF-8 或 JSON 解析失败、JSON 值不是对象、kind/op/payload 不符合契约。
     """
-    text = raw.decode() if isinstance(raw, bytes) else raw
-    try:
-        data = json.loads(text)
-    except Exception as exc:
-        raise SnapshotProtocolError(f"snapshot 数据行 JSON 解析失败: {exc}") from exc
+    data = _parse_json_object(raw, "snapshot 数据行")
 
     if data.get("kind") != "snapshot":
         raise SnapshotProtocolError(
