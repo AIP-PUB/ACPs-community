@@ -174,27 +174,22 @@ class TaskStreamChannel:
             if not already_closed:
                 self._queues.append(q)
 
-        # 先 yield 重放事件
-        for event in replayed:
-            yield event
-
-        # 若订阅时通道已关闭，无需等待新事件
-        if already_closed:
-            return
-
-        # 再 yield 实时事件
         try:
+            # 回放期间关闭迭代器时，也必须释放订阅队列。
+            for event in replayed:
+                yield event
+
+            if already_closed:
+                return
+
             while True:
                 item = await q.get()
                 if item is None:
                     break
                 yield item
         finally:
-            # 清理：移除队列
-            try:
+            if not already_closed:
                 self._queues.remove(q)
-            except ValueError:
-                pass
 
     # --- 关闭 ---
 
