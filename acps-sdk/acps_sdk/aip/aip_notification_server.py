@@ -191,6 +191,25 @@ class NotificationRegistry:
         """移除一个任务的所有订阅。"""
         self._subs.pop(task_id, None)
 
+    def remove_for_owner(
+        self,
+        owner_aic: str | None,
+        task_id: str,
+        *,
+        config_id: str | None = None,
+    ) -> None:
+        """移除该所有者对指定配置（或任务下全部配置）的订阅。"""
+        remaining = [
+            sub
+            for sub in self._subs.get(task_id, [])
+            if (sub.owner_aic or None) != (owner_aic or None)
+            or (config_id is not None and sub.config_id != config_id)
+        ]
+        if remaining:
+            self._subs[task_id] = remaining
+        else:
+            self.remove_task(task_id)
+
     def matches(self, task_id: str, state: TaskState) -> list[NotificationSubscription]:
         """返回命中指定 task_id 与 state 的所有订阅。
 
@@ -418,6 +437,12 @@ class NotificationService:
             req.params.taskId,
             config_id=req.params.notificationConfigId,
         )
+        if success:
+            self.registry.remove_for_owner(
+                owner_aic,
+                req.params.taskId,
+                config_id=req.params.notificationConfigId,
+            )
         result = NotificationDeleteResult() if success else None
         return NotificationDeleteResponse(id=req.id, result=result)
 

@@ -509,6 +509,37 @@ async def flow_notification(rn: Run) -> None:
         error = fails_with(ck, "delete again", await leader.notif(base, "delete", task_id, identity=L, config_id=cfg["id"]))
         ck.equal("delete again: HTTP status", error.get("status"), 404)
 
+    async with rn.scenario("notification: delete one subscription, keep the other callback") as ck:
+        sid = rn.uid("sess")
+        task_id = rn.uid("notif-delete")
+        configs = []
+        for label in ("removed", "retained"):
+            config = must(
+                ck,
+                f"set {label} configuration",
+                await leader.notif(
+                    base, "set", task_id, identity=L,
+                    callback_url=f"{receiver_base}/callbacks/{task_id}-{label}", token=token,
+                ),
+            )
+            configs.append(config)
+            must(
+                ck,
+                f"start {label} subscription",
+                await leader.notif(base, "start", task_id, identity=L, config_id=config["id"], session_id=sid),
+            )
+
+        must(
+            ck,
+            "delete the first active configuration",
+            await leader.notif(base, "delete", task_id, identity=L, config_id=configs[0]["id"]),
+        )
+        remaining = must(ck, "get remaining configuration", await leader.notif(base, "get", task_id, identity=L))
+        ck.equal("retained configuration remains active", remaining, [configs[1]])
+        must(ck, "dispatch after deletion", await partner.partner_notify(task_id, sid, "completed"))
+        callbacks = await _wait_callbacks(leader, task_id, 1)
+        ck.equal("exactly one completed callback", [item["status"]["state"] for item in callbacks], ["completed"])
+
     async with rn.scenario("notification: identity binding negatives") as ck:
         sid = rn.uid("sess")
         task_id = rn.uid("notif-neg")

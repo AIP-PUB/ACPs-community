@@ -200,6 +200,24 @@ export class NotificationRegistry {
     this.subs.delete(taskId);
   }
 
+  /** 移除该所有者对指定配置（或任务下全部配置）的订阅。 */
+  removeForOwner(
+    ownerAic: string | null | undefined,
+    taskId: string,
+    { configId }: { configId?: string | null } = {},
+  ): void {
+    const remaining = (this.subs.get(taskId) ?? []).filter(
+      (sub) =>
+        (sub.ownerAic || null) !== (ownerAic || null) ||
+        (configId != null && sub.configId !== configId),
+    );
+    if (remaining.length) {
+      this.subs.set(taskId, remaining);
+    } else {
+      this.removeTask(taskId);
+    }
+  }
+
   /** 返回命中指定 taskId 与 state 的所有订阅；notifyOnStates 为空时命中所有状态。 */
   matches(taskId: string, state: TaskState): NotificationSubscription[] {
     return (this.subs.get(taskId) ?? []).filter(
@@ -409,6 +427,11 @@ export class NotificationService {
     const success = this.store.deleteForOwner(ownerAic, req.params.taskId, {
       configId: req.params.notificationConfigId,
     });
+    if (success) {
+      this.registry.removeForOwner(ownerAic, req.params.taskId, {
+        configId: req.params.notificationConfigId,
+      });
+    }
     return { jsonrpc: "2.0", id: req.id, result: success ? { success: true } : undefined };
   }
 
